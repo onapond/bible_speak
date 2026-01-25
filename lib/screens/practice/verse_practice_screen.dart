@@ -3,12 +3,11 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:audioplayers/audioplayers.dart';
 import '../../services/auth_service.dart';
 import '../../services/tts_service.dart';
-import '../../services/stt_service.dart';
 import '../../services/recording_service.dart';
-import '../../services/accuracy_service.dart';
-import '../../services/gemini_service.dart';
 import '../../services/progress_service.dart';
 import '../../services/esv_service.dart';
+import '../../services/pronunciation/azure_pronunciation_service.dart';
+import '../../services/pronunciation/pronunciation_feedback_service.dart';
 import '../../data/bible_data.dart';
 
 /// 구절 연습 화면
@@ -32,12 +31,11 @@ class VersePracticeScreen extends StatefulWidget {
 class _VersePracticeScreenState extends State<VersePracticeScreen> {
   // 서비스
   final TTSService _tts = TTSService();
-  final STTService _stt = STTService();
   final RecordingService _recorder = RecordingService();
-  final AccuracyService _accuracy = AccuracyService();
-  final GeminiService _gemini = GeminiService();
   final ProgressService _progress = ProgressService();
   final EsvService _esv = EsvService();
+  final AzurePronunciationService _pronunciation = AzurePronunciationService();
+  final PronunciationFeedbackService _feedbackService = PronunciationFeedbackService();
   final AudioPlayer _myVoicePlayer = AudioPlayer();
 
   // 상태
@@ -45,7 +43,7 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
   bool _isTTSPlaying = false;
   bool _isTTSLoading = false;
   bool _isRecording = false;
-  bool _isProcessingSTT = false;
+  bool _isProcessing = false;
   bool _isPlayingMyVoice = false;
   bool _showEnglish = true;
   bool _isNewRecord = false;
@@ -56,9 +54,8 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
   String? _loadingError;
 
   String? _lastRecordingPath;
-  EvaluationResult? _evaluationResult;
-  String? _aiFeedback;
-  bool _isLoadingFeedback = false;
+  PronunciationResult? _pronunciationResult;
+  PronunciationFeedback? _feedback;
   Map<int, double> _verseScores = {};
 
   // 데이터 - ESV API에서 로드
@@ -166,10 +163,10 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
   }
 
   void _resetState() {
-    _evaluationResult = null;
+    _pronunciationResult = null;
+    _feedback = null;
     _lastRecordingPath = null;
     _isNewRecord = false;
-    _aiFeedback = null;
   }
 
   Future<void> _playTTS() async {
@@ -235,7 +232,7 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
 
     setState(() {
       _isRecording = false;
-      _isProcessingSTT = true;
+      _isProcessing = true;
     });
 
     try {
@@ -243,96 +240,63 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
 
       if (audioPath == null) {
         _showSnackBar('녹음 파일 저장 실패', isError: true);
-        setState(() => _isProcessingSTT = false);
+        setState(() => _isProcessing = false);
         return;
       }
 
       _lastRecordingPath = audioPath;
 
-      // STT
-      final sttResult = await _stt.transcribeAudio(
+      // Azure 발음 평가
+      final result = await _pronunciation.evaluate(
         audioFilePath: audioPath,
-        languageCode: 'en',
+        referenceText: _currentVerse!.english,
       );
 
-      if (!sttResult.isSuccess) {
-        _showSnackBar(sttResult.errorMessage ?? 'STT 실패', isError: true);
-        setState(() => _isProcessingSTT = false);
+      if (!result.isSuccess) {
+        _showSnackBar(result.errorMessage ?? '발음 평가 실패', isError: true);
+        setState(() => _isProcessing = false);
         return;
       }
 
-      // 정확도 평가
-      final result = _accuracy.evaluate(
-        originalText: _currentVerse!.english,
-        spokenText: sttResult.text ?? '',
-      );
+      // 피드백 생성
+      final feedback = _feedbackService.generateFeedback(result);
 
       // 점수 저장
       final isNew = await _progress.saveScore(
         book: widget.book,
         chapter: widget.chapter,
         verse: _currentVerse!.verse,
-        score: result.score,
+        score: result.overallScore,
       );
 
       await _loadAllScores();
 
       // 달란트 적립 (70% 이상)
-      if (result.score >= 70.0) {
-        final added =
-            await widget.authService.addTalant(_currentVerse!.verse);
+      if (result.overallScore >= 70.0) {
+        final added = await widget.authService.addTalant(_currentVerse!.verse);
         if (added) {
           _showSnackBar('달란트 +1 획득!', isError: false);
         }
       }
 
       setState(() {
-        _evaluationResult = result;
-        _isProcessingSTT = false;
+        _pronunciationResult = result;
+        _feedback = feedback;
+        _isProcessing = false;
         _isNewRecord = isNew;
       });
 
-      // AI 피드백
-      _requestAIFeedback(result);
-
-      if (isNew && result.score >= ProgressService.masteryThreshold) {
+      if (isNew && result.overallScore >= ProgressService.masteryThreshold) {
         _showSnackBar(
-            '암기 완료! 새 최고 기록: ${result.score.toStringAsFixed(0)}%',
+            '암기 완료! 새 최고 기록: ${result.overallScore.toStringAsFixed(0)}%',
             isError: false);
       } else if (isNew) {
-        _showSnackBar('새 최고 기록: ${result.score.toStringAsFixed(0)}%',
+        _showSnackBar('새 최고 기록: ${result.overallScore.toStringAsFixed(0)}%',
             isError: false);
       }
     } catch (e) {
       _showSnackBar('처리 중 오류: $e', isError: true);
-      setState(() => _isProcessingSTT = false);
-    }
-  }
-
-  Future<void> _requestAIFeedback(EvaluationResult result) async {
-    if (_currentVerse == null) return;
-
-    setState(() => _isLoadingFeedback = true);
-
-    try {
-      final feedback = await _gemini.getFeedback(
-        originalText: _currentVerse!.english,
-        spokenText: result.spokenText,
-        incorrectWords:
-            result.incorrectWords.map((w) => w.originalWord).toList(),
-        score: result.score,
-      );
-
-      if (mounted) {
-        setState(() {
-          _aiFeedback = feedback;
-          _isLoadingFeedback = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isLoadingFeedback = false);
-      }
+      setState(() => _isProcessing = false);
     }
   }
 
@@ -469,7 +433,7 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
                 const SizedBox(height: 12),
                 _buildSpeedControl(),
                 const SizedBox(height: 20),
-                if (_evaluationResult != null) _buildResultCard(),
+                if (_pronunciationResult != null) _buildResultCard(),
               ],
             ),
           ),
@@ -670,10 +634,10 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
         Expanded(
           child: ElevatedButton.icon(
             onPressed:
-                (_isProcessingSTT || _isTTSPlaying || isWebDisabled || _currentVerse == null)
+                (_isProcessing || _isTTSPlaying || isWebDisabled || _currentVerse == null)
                     ? null
                     : _toggleRecording,
-            icon: _isProcessingSTT
+            icon: _isProcessing
                 ? const SizedBox(
                     width: 20,
                     height: 20,
@@ -684,8 +648,8 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
             label: Text(
               isWebDisabled
                   ? '웹 미지원'
-                  : (_isProcessingSTT
-                      ? '분석 중...'
+                  : (_isProcessing
+                      ? '발음 분석 중...'
                       : (_isRecording ? '녹음 중지' : '암송 시작')),
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
@@ -755,7 +719,8 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
   }
 
   Widget _buildResultCard() {
-    final result = _evaluationResult!;
+    final result = _pronunciationResult!;
+    final feedback = _feedback;
 
     return Card(
       elevation: 4,
@@ -764,175 +729,318 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 점수
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: result.score >= 70
-                    ? Colors.green.shade100
-                    : Colors.orange.shade100,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(result.grade,
-                          style: const TextStyle(
-                              fontSize: 20, fontWeight: FontWeight.bold)),
-                      if (_isNewRecord)
-                        Container(
-                          margin: const EdgeInsets.only(top: 4),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.amber,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Text('NEW RECORD!',
-                              style: TextStyle(
-                                  fontSize: 11, fontWeight: FontWeight.bold)),
-                        ),
-                    ],
-                  ),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      '${result.score.toStringAsFixed(0)}%',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: _getScoreColor(result.score),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            // 종합 점수
+            _buildScoreHeader(result),
 
-            // AI 피드백
+            // 세부 점수 (정확도, 유창성, 운율)
             const SizedBox(height: 16),
-            _buildAIFeedback(),
+            _buildDetailedScores(result),
 
-            // 상세 정보
-            const SizedBox(height: 16),
-            Text('정확한 단어: ${result.correctCount} / ${result.totalCount}'),
-
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('내가 말한 내용',
-                      style:
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                  const SizedBox(height: 4),
-                  Text(result.spokenText.isEmpty
-                      ? '(인식된 내용 없음)'
-                      : result.spokenText),
-                ],
-              ),
-            ),
-
-            // 비교 듣기
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                if (_lastRecordingPath != null)
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: _playMyVoice,
-                      icon: Icon(
-                          _isPlayingMyVoice ? Icons.stop : Icons.person,
-                          size: 18),
-                      label: Text(_isPlayingMyVoice ? '중지' : '내 목소리'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.purple,
-                        foregroundColor: Colors.white,
-                      ),
-                    ),
+            // 격려 메시지
+            if (feedback != null) ...[
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.purple.shade50, Colors.indigo.shade50],
                   ),
-                if (_lastRecordingPath != null) const SizedBox(width: 8),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _isTTSPlaying ? null : _playTTS,
-                    icon: Icon(
-                        _isTTSPlaying ? Icons.stop : Icons.record_voice_over,
-                        size: 18),
-                    label: Text(_isTTSPlaying ? '중지' : '원어민'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.teal,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-              ],
-            ),
+                child: Text(
+                  feedback.encouragement,
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                ),
+              ),
+            ],
+
+            // 틀린 단어 상세 피드백
+            if (feedback != null && feedback.hasIssues) ...[
+              const SizedBox(height: 16),
+              _buildWordFeedback(feedback),
+            ],
+
+            // 발음 팁
+            if (feedback != null && feedback.tips.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              _buildPronunciationTips(feedback),
+            ],
+
+            // 인식된 텍스트
+            const SizedBox(height: 16),
+            _buildRecognizedText(result),
+
+            // 비교 듣기 버튼
+            const SizedBox(height: 16),
+            _buildPlaybackButtons(),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildAIFeedback() {
+  Widget _buildScoreHeader(PronunciationResult result) {
     return Container(
-      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: result.overallScore >= 70
+            ? Colors.green.shade100
+            : Colors.orange.shade100,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '등급: ${result.grade}',
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              if (_isNewRecord)
+                Container(
+                  margin: const EdgeInsets.only(top: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.amber,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text('NEW RECORD!',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                ),
+            ],
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              '${result.overallScore.toStringAsFixed(0)}%',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: _getScoreColor(result.overallScore),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailedScores(PronunciationResult result) {
+    return Row(
+      children: [
+        Expanded(child: _buildScoreItem('정확도', result.accuracyScore, Colors.blue)),
+        const SizedBox(width: 8),
+        Expanded(child: _buildScoreItem('유창성', result.fluencyScore, Colors.green)),
+        const SizedBox(width: 8),
+        Expanded(child: _buildScoreItem('운율', result.prosodyScore, Colors.purple)),
+      ],
+    );
+  }
+
+  Widget _buildScoreItem(String label, double score, Color color) {
+    return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.purple.shade50, Colors.indigo.shade50],
-        ),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.purple.shade200),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        children: [
+          Text(label, style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w500)),
+          const SizedBox(height: 4),
+          Text(
+            '${score.toStringAsFixed(0)}',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWordFeedback(PronunciationFeedback feedback) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.red.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.red.shade200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Row(
             children: [
-              Icon(Icons.auto_awesome, size: 18, color: Colors.purple),
+              Icon(Icons.warning_amber, size: 18, color: Colors.red),
               SizedBox(width: 8),
-              Text('AI 튜터 피드백',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold, color: Colors.purple)),
+              Text('발음 교정 필요',
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
             ],
           ),
-          const SizedBox(height: 10),
-          if (_isLoadingFeedback)
-            Row(
+          const SizedBox(height: 12),
+          ...feedback.details.take(5).map((detail) => Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: Colors.purple.shade300),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _getStatusColor(detail.status),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    detail.word,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      fontSize: 13,
+                    ),
+                  ),
                 ),
                 const SizedBox(width: 8),
-                const Text('AI가 피드백을 작성 중...',
-                    style:
-                        TextStyle(fontSize: 13, fontStyle: FontStyle.italic)),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(detail.message, style: const TextStyle(fontSize: 13)),
+                      if (detail.phonemeIssues.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Wrap(
+                            spacing: 4,
+                            children: detail.phonemeIssues.take(3).map((p) =>
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.orange.shade100,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  '${p.phoneme} → ${p.koreanHint}',
+                                  style: const TextStyle(fontSize: 11),
+                                ),
+                              ),
+                            ).toList(),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                Text(
+                  '${detail.score.toStringAsFixed(0)}%',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: _getScoreColor(detail.score),
+                  ),
+                ),
               ],
-            )
-          else if (_aiFeedback != null)
-            Text(_aiFeedback!,
-                style: const TextStyle(fontSize: 14, height: 1.5))
-          else
-            const Text('피드백을 불러오는 중...',
-                style: TextStyle(fontSize: 13, color: Colors.grey)),
+            ),
+          )),
         ],
       ),
+    );
+  }
+
+  Color _getStatusColor(FeedbackStatus status) {
+    switch (status) {
+      case FeedbackStatus.correct:
+        return Colors.green;
+      case FeedbackStatus.needsImprovement:
+        return Colors.orange;
+      case FeedbackStatus.incorrect:
+        return Colors.red;
+      case FeedbackStatus.omitted:
+        return Colors.grey;
+    }
+  }
+
+  Widget _buildPronunciationTips(PronunciationFeedback feedback) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.blue.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.lightbulb, size: 18, color: Colors.blue),
+              SizedBox(width: 8),
+              Text('발음 팁', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ...feedback.tips.take(3).map((tip) => Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Text(tip, style: const TextStyle(fontSize: 13, height: 1.4)),
+          )),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecognizedText(PronunciationResult result) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('인식된 발음',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+          const SizedBox(height: 4),
+          Text(
+            result.recognizedText.isEmpty ? '(인식된 내용 없음)' : result.recognizedText,
+            style: const TextStyle(fontSize: 14),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPlaybackButtons() {
+    return Row(
+      children: [
+        if (_lastRecordingPath != null)
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: _playMyVoice,
+              icon: Icon(_isPlayingMyVoice ? Icons.stop : Icons.person, size: 18),
+              label: Text(_isPlayingMyVoice ? '중지' : '내 목소리'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.purple,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ),
+        if (_lastRecordingPath != null) const SizedBox(width: 8),
+        Expanded(
+          child: ElevatedButton.icon(
+            onPressed: _isTTSPlaying ? null : _playTTS,
+            icon: Icon(_isTTSPlaying ? Icons.stop : Icons.record_voice_over, size: 18),
+            label: Text(_isTTSPlaying ? '중지' : '원어민'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.teal,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

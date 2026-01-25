@@ -1,0 +1,33 @@
+<!--
+📁 파일: android/app/src/main/AndroidManifest.xml
+📝 기존 파일에 아래 권한들을 추가하세요!
+
+🔧 추가 위치: <manifest> 태그 안, <application> 태그 위
+-->
+
+<!-- 🎤 마이크 권한 (녹음용) - 필수! -->
+<uses-permission android:name="android.permission.RECORD_AUDIO"/>
+
+<!-- 🌐 인터넷 권한 (이미 있을 수 있음) -->
+<uses-permission android:name="android.permission.INTERNET"/>
+
+
+<!--
+=============================================================================
+📋 전체 예시:
+=============================================================================
+
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <!-- 여기에 추가! -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <uses-permission android:name="android.permission.INTERNET"/>
+
+    <application
+        android:label="bible_speak"
+        ...
+    >
+        ...
+    </application>
+</manifest>
+-->

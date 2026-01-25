@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "438057570983",
+    "project_id": "bible-speak",
+    "storage_bucket": "bible-speak.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:438057570983:android:100297bceb3eef0b004182",
+        "android_client_info": {
+          "package_name": "com.example.bible_speak"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBi8nN0zS75vu1oIbuoG0K8W6-ddJC-D94"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

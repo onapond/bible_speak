@@ -8,7 +8,7 @@
 | Language | Dart | - |
 | Backend | Firebase | Firestore, Auth |
 | TTS | ElevenLabs API | 원어민 음성 |
-| STT | Google Cloud Speech-to-Text | 음성→텍스트 |
+| 발음 평가 | Azure Speech SDK | 음소별 정확도, 유창성, 운율 |
 | AI | Google Gemini | 피드백 생성 |
 | 성경 API | ESV API | 영어 성경 텍스트 |
 | 로컬 저장 | SharedPreferences | 점수/진척도 |
@@ -20,6 +20,10 @@
 lib/
 ├── main.dart                 # 앱 진입점
 ├── firebase_options.dart     # Firebase 설정
+│
+├── services/pronunciation/   # 발음 평가 (신규)
+│   ├── azure_pronunciation_service.dart  # Azure Speech 연동
+│   └── pronunciation_feedback_service.dart # 피드백 생성
 │
 ├── data/                     # 정적 데이터
 │   ├── bible_data.dart       # 성경책 메타데이터, 한글 매핑

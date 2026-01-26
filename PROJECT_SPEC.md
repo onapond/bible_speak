@@ -56,8 +56,14 @@ SplashScreen
 
 ## 환경 변수 (.env)
 ```
-ESV_API_KEY=xxx          # ESV 성경 API
-ELEVENLABS_API_KEY=xxx   # TTS API
-GEMINI_API_KEY=xxx       # AI 피드백
-GOOGLE_STT_API_KEY=xxx   # 음성인식
+ESV_API_KEY=xxx              # ESV 성경 API
+ELEVENLABS_API_KEY=xxx       # TTS API
+GEMINI_API_KEY=xxx           # AI 피드백
+AZURE_SPEECH_KEY=xxx         # Azure 발음 평가 (필수)
+AZURE_SPEECH_REGION=koreacentral  # Azure 리전
 ```
+
+## Azure Speech 설정 방법
+1. https://portal.azure.com 접속
+2. "Speech" 리소스 생성 (무료 F0 티어: 월 5시간)
+3. 키와 리전을 .env에 입력

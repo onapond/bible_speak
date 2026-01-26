@@ -21,3 +21,7 @@
 
 # Keep model classes (for serialization)
 -keep class com.onapond.biblespeak.models.** { *; }
+
+# Play Core library (for deferred components)
+-dontwarn com.google.android.play.core.**
+-keep class com.google.android.play.core.** { *; }

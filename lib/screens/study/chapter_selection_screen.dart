@@ -4,7 +4,7 @@ import '../../services/auth_service.dart';
 import '../../services/bible_data_service.dart';
 import '../../services/progress_service.dart';
 import '../../models/verse_progress.dart';
-import '../practice/verse_practice_screen.dart';
+import 'verse_roadmap_screen.dart';
 
 /// 장 선택 화면 - Speak 스타일 로드맵 UI
 class ChapterSelectionScreen extends StatefulWidget {
@@ -253,7 +253,8 @@ class _ChapterSelectionScreenState extends State<ChapterSelectionScreen> {
     }
 
     return GestureDetector(
-      onTap: () {
+      onTap: () => _navigateToPractice(chapter),
+      onLongPress: () {
         setState(() {
           _selectedChapter = _selectedChapter == chapter ? null : chapter;
         });
@@ -580,9 +581,9 @@ class _ChapterSelectionScreenState extends State<ChapterSelectionScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => VersePracticeScreen(
+        builder: (_) => VerseRoadmapScreen(
           authService: widget.authService,
-          book: widget.book.id,
+          book: widget.book,
           chapter: chapter,
         ),
       ),

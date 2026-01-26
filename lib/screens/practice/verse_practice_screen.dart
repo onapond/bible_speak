@@ -18,12 +18,14 @@ class VersePracticeScreen extends StatefulWidget {
   final AuthService authService;
   final String book;
   final int chapter;
+  final int? initialVerse;
 
   const VersePracticeScreen({
     super.key,
     required this.authService,
     this.book = 'malachi',
     this.chapter = 1,
+    this.initialVerse,
   });
 
   @override
@@ -146,6 +148,17 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
     if (mounted) {
       setState(() {
         _verseProgressMap = progressMap;
+
+        // initialVerse가 지정된 경우 해당 구절로 이동
+        if (widget.initialVerse != null) {
+          final initialIndex = _verses.indexWhere(
+            (v) => v.verse == widget.initialVerse,
+          );
+          if (initialIndex >= 0) {
+            _currentVerseIndex = initialIndex;
+          }
+        }
+
         // 현재 구절의 스테이지로 설정
         if (_currentVerseProgress != null) {
           _currentStage = _currentVerseProgress!.currentStage;

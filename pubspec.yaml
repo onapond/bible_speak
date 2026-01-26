@@ -30,6 +30,9 @@ dependencies:
   # 환경 변수
   flutter_dotenv: ^5.2.1
 
+  # 인앱 결제
+  in_app_purchase: ^3.2.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

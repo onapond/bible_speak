@@ -151,12 +151,13 @@
 | 분류 | 기술 |
 |------|------|
 | 프레임워크 | Flutter 3.x / Dart |
-| 백엔드 | Firebase (Auth, Firestore) |
+| 백엔드 | Firebase (Auth, Firestore, Storage) |
 | TTS | ElevenLabs API |
 | 발음 평가 | Azure Speech SDK (REST) |
 | 성경 API | ESV API |
 | AI 피드백 | Google Gemini |
 | 인앱 결제 | in_app_purchase 패키지 |
+| 오디오 재생 | audioplayers 패키지 |
 
 ---
 
@@ -165,14 +166,34 @@
 ```
 bible_speak/
 ├── lib/
+│   ├── core/
+│   │   └── constants/
+│   │       └── firestore_paths.dart     # Firestore 경로 상수
+│   ├── domain/
+│   │   └── models/
+│   │       └── bible/
+│   │           ├── book.dart            # Book 모델
+│   │           ├── chapter.dart         # Chapter 모델
+│   │           ├── verse.dart           # Verse 모델
+│   │           └── bible_models.dart    # 배럴 파일
+│   ├── data/
+│   │   └── repositories/
+│   │       ├── bible_repository.dart         # 추상 인터페이스
+│   │       └── firestore_bible_repository.dart # Firestore 구현
 │   ├── models/
 │   │   ├── learning_stage.dart      # 학습 단계 enum
 │   │   ├── verse_progress.dart      # 구절 진행 모델
 │   │   └── subscription.dart        # 구독 모델
 │   ├── services/
+│   │   ├── bible_data_service.dart  # 성경 데이터 파사드
+│   │   ├── bible_data_migration.dart # 마이그레이션 스크립트
 │   │   ├── progress_service.dart    # 진행 상태 관리
 │   │   ├── tts_service.dart         # TTS 서비스
 │   │   ├── iap_service.dart         # 인앱 결제
+│   │   ├── audio/
+│   │   │   └── bible_audio_service.dart  # 하이브리드 오디오
+│   │   ├── tutor/
+│   │   │   └── tutor_coordinator.dart    # AI 튜터 파이프라인
 │   │   └── pronunciation/
 │   │       └── azure_pronunciation_service.dart
 │   ├── screens/
@@ -219,6 +240,60 @@ bible_speak/
 | `f9fdd88` | feat: Phase 3 - Audio streaming optimization |
 | `817b56b` | feat: Phase 2 - Roadmap UI |
 | 이전 | Phase 1 및 기획 문서 |
+
+---
+
+### Phase 5: 핵심 인프라 리팩토링 ✓
+
+**Firestore 기반 BibleDataService**
+
+새로운 도메인 모델:
+| 파일 | 설명 |
+|------|------|
+| `lib/domain/models/bible/book.dart` | Book 모델 (Firestore 직렬화) |
+| `lib/domain/models/bible/chapter.dart` | Chapter 모델 |
+| `lib/domain/models/bible/verse.dart` | Verse 모델 (오디오 타임스탬프, keyWords) |
+| `lib/domain/models/bible/bible_models.dart` | 배럴 파일 |
+
+Repository 패턴:
+| 파일 | 설명 |
+|------|------|
+| `lib/core/constants/firestore_paths.dart` | Firestore 경로 상수 |
+| `lib/data/repositories/bible_repository.dart` | 추상 인터페이스 |
+| `lib/data/repositories/firestore_bible_repository.dart` | Firestore 구현 (30분 캐시) |
+| `lib/services/bible_data_service.dart` | 파사드 (Firestore + 로컬 폴백) |
+| `lib/services/bible_data_migration.dart` | 마이그레이션 스크립트 |
+
+**하이브리드 오디오 서비스**
+
+| 파일 | 설명 |
+|------|------|
+| `lib/services/audio/bible_audio_service.dart` | Firebase Storage + ESV API 하이브리드 |
+
+오디오 우선순위:
+1. 로컬 캐시 (30일 만료, 100MB 제한)
+2. Firebase Storage (고품질 오프라인)
+3. ESV API (실시간 스트리밍 폴백)
+
+**AI 튜터 파이프라인**
+
+| 파일 | 설명 |
+|------|------|
+| `lib/services/tutor/tutor_coordinator.dart` | AI 튜터 코디네이터 |
+
+파이프라인 흐름:
+```
+[녹음] → Azure 발음 평가 → Gemini 피드백 생성 → (옵션) ElevenLabs 음성 합성
+```
+
+기능:
+- 단계별 통과 기준 관리 (Stage 1: 70%, Stage 2: 80%, Stage 3: 85%)
+- 발음 팁 자동 추출 (음소별 한국어 가이드)
+- 다음 단계 추천 (listenAgain, repeatSlow, practiceWords, nextVerse)
+- 로컬 폴백 피드백 (API 실패 시)
+
+**추가된 의존성**
+- `firebase_storage: ^12.3.7`
 
 ---
 

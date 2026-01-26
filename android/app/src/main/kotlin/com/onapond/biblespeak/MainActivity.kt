@@ -1,4 +1,4 @@
-package com.example.bible_speak
+package com.onapond.biblespeak
 
 import io.flutter.embedding.android.FlutterActivity
 

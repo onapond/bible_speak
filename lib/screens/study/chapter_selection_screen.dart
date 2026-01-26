@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../data/bible_data.dart';
+import '../../domain/models/bible/bible_models.dart';
 import '../../services/auth_service.dart';
+import '../../services/bible_data_service.dart';
 import '../../services/progress_service.dart';
 import '../../models/verse_progress.dart';
 import '../practice/verse_practice_screen.dart';
@@ -8,7 +9,7 @@ import '../practice/verse_practice_screen.dart';
 /// 장 선택 화면 - Speak 스타일 로드맵 UI
 class ChapterSelectionScreen extends StatefulWidget {
   final AuthService authService;
-  final BibleBook book;
+  final Book book;
 
   const ChapterSelectionScreen({
     super.key,
@@ -22,7 +23,9 @@ class ChapterSelectionScreen extends StatefulWidget {
 
 class _ChapterSelectionScreenState extends State<ChapterSelectionScreen> {
   final ProgressService _progress = ProgressService();
+  final BibleDataService _bibleData = BibleDataService.instance;
   Map<int, ChapterProgress> _chapterProgress = {};
+  Map<int, int> _verseCountCache = {}; // Cache verse counts
   bool _isLoading = true;
   int? _selectedChapter;
 
@@ -36,8 +39,11 @@ class _ChapterSelectionScreenState extends State<ChapterSelectionScreen> {
     await _progress.init();
 
     final progressMap = <int, ChapterProgress>{};
-    for (int ch = 1; ch <= widget.book.chapters; ch++) {
-      final verseCount = BibleData.getVerseCount(widget.book.id, ch);
+    final verseCountMap = <int, int>{};
+
+    for (int ch = 1; ch <= widget.book.chapterCount; ch++) {
+      final verseCount = await _bibleData.getVerseCount(widget.book.id, ch);
+      verseCountMap[ch] = verseCount;
       progressMap[ch] = await _progress.getChapterProgress(
         book: widget.book.id,
         chapter: ch,
@@ -48,9 +54,14 @@ class _ChapterSelectionScreenState extends State<ChapterSelectionScreen> {
     if (mounted) {
       setState(() {
         _chapterProgress = progressMap;
+        _verseCountCache = verseCountMap;
         _isLoading = false;
       });
     }
+  }
+
+  int _getVerseCount(int chapter) {
+    return _verseCountCache[chapter] ?? 0;
   }
 
   ChapterStatus _getChapterStatus(int chapter) {
@@ -120,7 +131,7 @@ class _ChapterSelectionScreenState extends State<ChapterSelectionScreen> {
     if (_chapterProgress.isEmpty) return 0;
     int totalCompleted = 0;
     int totalVerses = 0;
-    for (int ch = 1; ch <= widget.book.chapters; ch++) {
+    for (int ch = 1; ch <= widget.book.chapterCount; ch++) {
       final progress = _chapterProgress[ch];
       if (progress != null) {
         totalCompleted += progress.completedVerses;
@@ -159,7 +170,7 @@ class _ChapterSelectionScreenState extends State<ChapterSelectionScreen> {
                     ),
                   ),
                   Text(
-                    '$completedChapters / ${widget.book.chapters}장 완료',
+                    '$completedChapters / ${widget.book.chapterCount}장 완료',
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -208,9 +219,9 @@ class _ChapterSelectionScreenState extends State<ChapterSelectionScreen> {
       padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
       child: Column(
         children: [
-          for (int i = 0; i < widget.book.chapters; i++) ...[
+          for (int i = 0; i < widget.book.chapterCount; i++) ...[
             _buildRoadmapNode(i + 1, i.isEven),
-            if (i < widget.book.chapters - 1) _buildRoadmapConnector(i + 1, i.isEven),
+            if (i < widget.book.chapterCount - 1) _buildRoadmapConnector(i + 1, i.isEven),
           ],
         ],
       ),
@@ -221,7 +232,7 @@ class _ChapterSelectionScreenState extends State<ChapterSelectionScreen> {
     final progress = _chapterProgress[chapter];
     final status = _getChapterStatus(chapter);
     final isSelected = _selectedChapter == chapter;
-    final verseCount = BibleData.getVerseCount(widget.book.id, chapter);
+    final verseCount = _getVerseCount(chapter);
 
     Color nodeColor;
     IconData nodeIcon;
@@ -371,7 +382,7 @@ class _ChapterSelectionScreenState extends State<ChapterSelectionScreen> {
   Widget _buildChapterDetailPanel() {
     final chapter = _selectedChapter!;
     final progress = _chapterProgress[chapter];
-    final verseCount = BibleData.getVerseCount(widget.book.id, chapter);
+    final verseCount = _getVerseCount(chapter);
     final status = _getChapterStatus(chapter);
 
     return Container(

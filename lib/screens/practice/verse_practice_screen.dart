@@ -6,11 +6,11 @@ import '../../services/tts_service.dart';
 import '../../services/recording_service.dart';
 import '../../services/progress_service.dart';
 import '../../services/esv_service.dart';
+import '../../services/bible_data_service.dart';
 import '../../services/pronunciation/azure_pronunciation_service.dart';
 import '../../services/pronunciation/pronunciation_feedback_service.dart';
 import '../../models/learning_stage.dart';
 import '../../models/verse_progress.dart';
-import '../../data/bible_data.dart';
 
 /// 구절 연습 화면
 /// - 3단계 학습: Listen & Repeat → Key Expressions → Real Speak
@@ -36,9 +36,14 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
   final RecordingService _recorder = RecordingService();
   final ProgressService _progress = ProgressService();
   final EsvService _esv = EsvService();
+  final BibleDataService _bibleData = BibleDataService.instance;
   final AzurePronunciationService _pronunciation = AzurePronunciationService();
   final PronunciationFeedbackService _feedbackService = PronunciationFeedbackService();
   final AudioPlayer _myVoicePlayer = AudioPlayer();
+
+  // Cached book info
+  String _bookNameKo = '';
+  String _bookNameEn = '';
 
   // 상태
   int _currentVerseIndex = 0;
@@ -90,20 +95,25 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
     });
 
     try {
-      final bookName = BibleData.getEsvBookName(widget.book);
+      // Load book names from BibleDataService
+      _bookNameKo = await _bibleData.getBookNameKo(widget.book);
+      _bookNameEn = await _bibleData.getBookNameEn(widget.book);
+
       final verses = await _esv.getChapter(
-        book: bookName,
+        book: _bookNameEn,
         chapter: widget.chapter,
       );
 
-      final versesWithKorean = verses.map((v) {
-        final korean = BibleData.getKoreanVerse(
+      // Load Korean translations from BibleDataService
+      final versesWithKorean = <VerseText>[];
+      for (final v in verses) {
+        final korean = await _bibleData.getKoreanText(
           widget.book,
           widget.chapter,
           v.verse,
         );
-        return v.copyWith(korean: korean);
-      }).toList();
+        versesWithKorean.add(v.copyWith(korean: korean));
+      }
 
       if (mounted) {
         setState(() {
@@ -225,7 +235,7 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
     setState(() => _isTTSLoading = true);
 
     try {
-      final bookName = BibleData.getEsvBookName(widget.book);
+      final bookName = _bookNameEn;
       await _tts.playBibleVerse(
         book: bookName,
         chapter: widget.chapter,
@@ -448,13 +458,11 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bookName = BibleData.getBookName(widget.book);
-
     return Scaffold(
       appBar: AppBar(
         title: Text(_currentVerse != null
-            ? '$bookName ${widget.chapter}장 ${_currentVerse!.verse}절'
-            : '$bookName ${widget.chapter}장'),
+            ? '$_bookNameKo ${widget.chapter}장 ${_currentVerse!.verse}절'
+            : '$_bookNameKo ${widget.chapter}장'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: _buildBody(),

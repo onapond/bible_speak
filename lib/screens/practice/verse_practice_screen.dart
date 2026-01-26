@@ -8,10 +8,12 @@ import '../../services/progress_service.dart';
 import '../../services/esv_service.dart';
 import '../../services/pronunciation/azure_pronunciation_service.dart';
 import '../../services/pronunciation/pronunciation_feedback_service.dart';
+import '../../models/learning_stage.dart';
+import '../../models/verse_progress.dart';
 import '../../data/bible_data.dart';
 
 /// 구절 연습 화면
-/// - ESV API로 성경 텍스트 동적 로딩
+/// - 3단계 학습: Listen & Repeat → Key Expressions → Real Speak
 class VersePracticeScreen extends StatefulWidget {
   final AuthService authService;
   final String book;
@@ -40,13 +42,12 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
 
   // 상태
   int _currentVerseIndex = 0;
+  LearningStage _currentStage = LearningStage.listenRepeat;
   bool _isTTSPlaying = false;
   bool _isTTSLoading = false;
   bool _isRecording = false;
   bool _isProcessing = false;
   bool _isPlayingMyVoice = false;
-  bool _showEnglish = true;
-  bool _isNewRecord = false;
   double _playbackSpeed = 1.0;
 
   // 로딩 상태
@@ -56,14 +57,17 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
   String? _lastRecordingPath;
   PronunciationResult? _pronunciationResult;
   PronunciationFeedback? _feedback;
-  Map<int, double> _verseScores = {};
+  Map<int, VerseProgress> _verseProgressMap = {};
 
-  // 데이터 - ESV API에서 로드
+  // 데이터
   List<VerseText> _verses = [];
 
   VerseText? get _currentVerse =>
       _verses.isNotEmpty ? _verses[_currentVerseIndex] : null;
   int get _totalVerses => _verses.length;
+
+  VerseProgress? get _currentVerseProgress =>
+      _currentVerse != null ? _verseProgressMap[_currentVerse!.verse] : null;
 
   @override
   void initState() {
@@ -79,7 +83,6 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
     await _loadVerses();
   }
 
-  /// ESV API에서 구절 로드
   Future<void> _loadVerses() async {
     setState(() {
       _isLoadingVerses = true;
@@ -93,7 +96,6 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
         chapter: widget.chapter,
       );
 
-      // 한글 번역 매핑
       final versesWithKorean = verses.map((v) {
         final korean = BibleData.getKoreanVerse(
           widget.book,
@@ -108,10 +110,9 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
           _verses = versesWithKorean;
           _isLoadingVerses = false;
         });
-        await _loadAllScores();
+        await _loadAllProgress();
       }
     } catch (e) {
-      print('ESV API 오류: $e');
       if (mounted) {
         setState(() {
           _loadingError = '성경 데이터를 불러오는데 실패했습니다.\n$e';
@@ -121,34 +122,41 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
     }
   }
 
-  Future<void> _loadAllScores() async {
+  Future<void> _loadAllProgress() async {
     if (_verses.isEmpty) return;
 
-    final scores = <int, double>{};
+    final progressMap = <int, VerseProgress>{};
     for (final verse in _verses) {
-      scores[verse.verse] = await _progress.getScore(
+      progressMap[verse.verse] = await _progress.getVerseProgress(
         book: widget.book,
         chapter: widget.chapter,
         verse: verse.verse,
       );
     }
     if (mounted) {
-      setState(() => _verseScores = scores);
+      setState(() {
+        _verseProgressMap = progressMap;
+        // 현재 구절의 스테이지로 설정
+        if (_currentVerseProgress != null) {
+          _currentStage = _currentVerseProgress!.currentStage;
+        }
+      });
     }
   }
 
-  int get _masteredCount => _verseScores.values
-      .where((score) => score >= ProgressService.masteryThreshold)
+  int get _completedCount => _verseProgressMap.values
+      .where((p) => p.isCompleted)
       .length;
 
   double get _progressPercent =>
-      _totalVerses > 0 ? _masteredCount / _totalVerses : 0;
+      _totalVerses > 0 ? _completedCount / _totalVerses : 0;
 
   void _goToPreviousVerse() {
     if (_currentVerseIndex > 0) {
       setState(() {
         _currentVerseIndex--;
         _resetState();
+        _loadCurrentVerseStage();
       });
     }
   }
@@ -158,7 +166,17 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
       setState(() {
         _currentVerseIndex++;
         _resetState();
+        _loadCurrentVerseStage();
       });
+    }
+  }
+
+  void _loadCurrentVerseStage() {
+    final progress = _currentVerseProgress;
+    if (progress != null) {
+      _currentStage = progress.currentStage;
+    } else {
+      _currentStage = LearningStage.listenRepeat;
     }
   }
 
@@ -166,7 +184,33 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
     _pronunciationResult = null;
     _feedback = null;
     _lastRecordingPath = null;
-    _isNewRecord = false;
+  }
+
+  void _selectStage(LearningStage stage) {
+    final progress = _currentVerseProgress;
+    if (progress == null) {
+      // 진행 기록 없으면 Stage 1만 가능
+      if (stage == LearningStage.listenRepeat) {
+        setState(() {
+          _currentStage = stage;
+          _resetState();
+        });
+      }
+      return;
+    }
+
+    // 잠금 해제 확인
+    if (stage.stageNumber <= progress.currentStage.stageNumber) {
+      setState(() {
+        _currentStage = stage;
+        _resetState();
+      });
+    } else {
+      _showSnackBar(
+        '이전 단계를 완료해야 잠금 해제됩니다',
+        isError: true,
+      );
+    }
   }
 
   Future<void> _playTTS() async {
@@ -261,42 +305,62 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
       // 피드백 생성
       final feedback = _feedbackService.generateFeedback(result);
 
-      // 점수 저장
-      final isNew = await _progress.saveScore(
+      // 점수 저장 (스테이지 포함)
+      final updatedProgress = await _progress.saveScore(
         book: widget.book,
         chapter: widget.chapter,
         verse: _currentVerse!.verse,
         score: result.overallScore,
+        stage: _currentStage,
       );
 
-      await _loadAllScores();
+      // 진척도 맵 업데이트
+      _verseProgressMap[_currentVerse!.verse] = updatedProgress;
 
-      // 달란트 적립 (70% 이상)
-      if (result.overallScore >= 70.0) {
+      // 달란트 적립 (Stage 3에서 85% 이상)
+      if (_currentStage == LearningStage.realSpeak &&
+          result.overallScore >= LearningStage.realSpeak.passThreshold) {
         final added = await widget.authService.addTalant(_currentVerse!.verse);
         if (added) {
-          _showSnackBar('달란트 +1 획득!', isError: false);
+          _showSnackBar('달란트 +1 획득! 암송 완료!', isError: false);
         }
       }
+
+      // 스테이지 통과 처리
+      final passed = _currentStage.isPassed(result.overallScore);
 
       setState(() {
         _pronunciationResult = result;
         _feedback = feedback;
         _isProcessing = false;
-        _isNewRecord = isNew;
       });
 
-      if (isNew && result.overallScore >= ProgressService.masteryThreshold) {
-        _showSnackBar(
-            '암기 완료! 새 최고 기록: ${result.overallScore.toStringAsFixed(0)}%',
-            isError: false);
-      } else if (isNew) {
-        _showSnackBar('새 최고 기록: ${result.overallScore.toStringAsFixed(0)}%',
-            isError: false);
+      if (passed) {
+        if (_currentStage.isFinalStage) {
+          _showSnackBar(
+            '축하합니다! 암송 완료! (${result.overallScore.toStringAsFixed(0)}%)',
+            isError: false,
+          );
+        } else {
+          _showSnackBar(
+            '${_currentStage.koreanName} 통과! (${result.overallScore.toStringAsFixed(0)}%)',
+            isError: false,
+          );
+        }
       }
     } catch (e) {
       _showSnackBar('처리 중 오류: $e', isError: true);
       setState(() => _isProcessing = false);
+    }
+  }
+
+  void _goToNextStage() {
+    final nextStage = _currentStage.nextStage;
+    if (nextStage != null) {
+      setState(() {
+        _currentStage = nextStage;
+        _resetState();
+      });
     }
   }
 
@@ -338,6 +402,42 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
     return Colors.red;
   }
 
+  /// Stage 2: 핵심 단어를 빈칸으로 변환
+  String _getBlankText(String text) {
+    final words = text.split(' ');
+    final keyWords = _getKeyWords(text);
+
+    return words.map((word) {
+      final cleanWord = word.replaceAll(RegExp(r'[^\w]'), '').toLowerCase();
+      if (keyWords.contains(cleanWord)) {
+        // 구두점 유지
+        final punctuation = word.replaceAll(RegExp(r'\w'), '');
+        return '_____$punctuation';
+      }
+      return word;
+    }).join(' ');
+  }
+
+  /// 핵심 단어 추출 (명사, 동사 위주)
+  List<String> _getKeyWords(String text) {
+    final words = text.split(' ');
+    final keyWords = <String>[];
+
+    // 간단한 휴리스틱: 4글자 이상 단어 중 일부 선택
+    for (final word in words) {
+      final cleanWord = word.replaceAll(RegExp(r'[^\w]'), '').toLowerCase();
+      if (cleanWord.length >= 4 && keyWords.length < 3) {
+        // 일반적인 단어 제외
+        if (!['have', 'with', 'that', 'this', 'from', 'will', 'been', 'were']
+            .contains(cleanWord)) {
+          keyWords.add(cleanWord);
+        }
+      }
+    }
+
+    return keyWords;
+  }
+
   @override
   void dispose() {
     _tts.dispose();
@@ -356,20 +456,12 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
             ? '$bookName ${widget.chapter}장 ${_currentVerse!.verse}절'
             : '$bookName ${widget.chapter}장'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        actions: [
-          IconButton(
-            icon: Icon(_showEnglish ? Icons.translate : Icons.language),
-            tooltip: _showEnglish ? '한글만 보기' : '영어 보기',
-            onPressed: () => setState(() => _showEnglish = !_showEnglish),
-          ),
-        ],
       ),
       body: _buildBody(),
     );
   }
 
   Widget _buildBody() {
-    // 로딩 중
     if (_isLoadingVerses) {
       return const Center(
         child: Column(
@@ -383,7 +475,6 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
       );
     }
 
-    // 에러
     if (_loadingError != null) {
       return Center(
         child: Padding(
@@ -393,11 +484,7 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
             children: [
               const Icon(Icons.error_outline, size: 64, color: Colors.red),
               const SizedBox(height: 16),
-              Text(
-                _loadingError!,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 16),
-              ),
+              Text(_loadingError!, textAlign: TextAlign.center),
               const SizedBox(height: 24),
               ElevatedButton.icon(
                 onPressed: _loadVerses,
@@ -410,17 +497,14 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
       );
     }
 
-    // 데이터 없음
     if (_verses.isEmpty) {
-      return const Center(
-        child: Text('구절 데이터가 없습니다.'),
-      );
+      return const Center(child: Text('구절 데이터가 없습니다.'));
     }
 
-    // 정상 표시
     return Column(
       children: [
         _buildProgressBar(),
+        _buildStageIndicator(),
         _buildVerseNavigator(),
         Expanded(
           child: SingleChildScrollView(
@@ -456,9 +540,8 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text('학습 진척도',
-                  style: TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold)),
-              Text('$_masteredCount / $_totalVerses 구절 완료',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              Text('$_completedCount / $_totalVerses 구절 완료',
                   style: const TextStyle(color: Colors.white70, fontSize: 12)),
             ],
           ),
@@ -479,17 +562,118 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
     );
   }
 
-  Widget _buildVerseNavigator() {
-    if (_currentVerse == null) return const SizedBox.shrink();
-
-    final currentScore = _verseScores[_currentVerse!.verse] ?? 0.0;
-    final isMastered = currentScore >= ProgressService.masteryThreshold;
+  Widget _buildStageIndicator() {
+    final progress = _currentVerseProgress;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.indigo.shade50,
+      color: Colors.grey.shade100,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: LearningStage.values.map((stage) {
+          final isUnlocked = progress == null
+              ? stage == LearningStage.listenRepeat
+              : stage.stageNumber <= progress.currentStage.stageNumber;
+          final isCurrentStage = stage == _currentStage;
+          final stageProgress = progress?.stages[stage];
+          final isPassed = stageProgress != null &&
+              stage.isPassed(stageProgress.bestScore);
+
+          return Expanded(
+            child: GestureDetector(
+              onTap: () => _selectStage(stage),
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                decoration: BoxDecoration(
+                  color: isCurrentStage
+                      ? Colors.indigo
+                      : (isPassed ? Colors.green.shade100 : Colors.white),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isCurrentStage
+                        ? Colors.indigo
+                        : (isPassed ? Colors.green : Colors.grey.shade300),
+                    width: 2,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    // 스테이지 아이콘
+                    Icon(
+                      isPassed
+                          ? Icons.check_circle
+                          : (isUnlocked ? _getStageIcon(stage) : Icons.lock),
+                      color: isCurrentStage
+                          ? Colors.white
+                          : (isPassed
+                              ? Colors.green
+                              : (isUnlocked ? Colors.indigo : Colors.grey)),
+                      size: 24,
+                    ),
+                    const SizedBox(height: 4),
+                    // 스테이지 번호
+                    Text(
+                      'Stage ${stage.stageNumber}',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: isCurrentStage ? Colors.white70 : Colors.grey,
+                      ),
+                    ),
+                    // 스테이지 이름
+                    Text(
+                      stage.koreanName,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: isCurrentStage
+                            ? Colors.white
+                            : (isPassed ? Colors.green.shade700 : Colors.black87),
+                      ),
+                    ),
+                    // 최고 점수
+                    if (stageProgress != null)
+                      Text(
+                        '${stageProgress.bestScore.toStringAsFixed(0)}%',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: isCurrentStage
+                              ? Colors.white70
+                              : _getScoreColor(stageProgress.bestScore),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }).toList(),
       ),
+    );
+  }
+
+  IconData _getStageIcon(LearningStage stage) {
+    switch (stage) {
+      case LearningStage.listenRepeat:
+        return Icons.hearing;
+      case LearningStage.keyExpressions:
+        return Icons.edit_note;
+      case LearningStage.realSpeak:
+        return Icons.record_voice_over;
+    }
+  }
+
+  Widget _buildVerseNavigator() {
+    if (_currentVerse == null) return const SizedBox.shrink();
+
+    final progress = _currentVerseProgress;
+    final isCompleted = progress?.isCompleted ?? false;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(color: Colors.indigo.shade50),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -501,49 +685,34 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              color: isMastered ? Colors.green.shade100 : Colors.white,
+              color: isCompleted ? Colors.green.shade100 : Colors.white,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: isMastered ? Colors.green : Colors.indigo.shade200,
+                color: isCompleted ? Colors.green : Colors.indigo.shade200,
                 width: 2,
               ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (isMastered)
+                if (isCompleted)
                   const Padding(
                     padding: EdgeInsets.only(right: 8),
-                    child:
-                        Icon(Icons.check_circle, color: Colors.green, size: 20),
+                    child: Icon(Icons.check_circle, color: Colors.green, size: 20),
                   ),
                 Text(
                   '${_currentVerse!.verse}절',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: isMastered
-                        ? Colors.green.shade700
-                        : Colors.indigo.shade700,
+                    color: isCompleted ? Colors.green.shade700 : Colors.indigo.shade700,
                   ),
                 ),
-                if (currentScore > 0) ...[
-                  const SizedBox(width: 8),
-                  Text(
-                    '${currentScore.toStringAsFixed(0)}%',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: _getScoreColor(currentScore),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
               ],
             ),
           ),
           IconButton(
-            onPressed:
-                _currentVerseIndex < _verses.length - 1 ? _goToNextVerse : null,
+            onPressed: _currentVerseIndex < _verses.length - 1 ? _goToNextVerse : null,
             icon: const Icon(Icons.chevron_right, size: 30),
             color: Colors.indigo,
           ),
@@ -564,28 +733,52 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // 스테이지 헤더
             Row(
               children: [
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.indigo,
+                    gradient: LinearGradient(
+                      colors: [Colors.indigo, Colors.indigo.shade700],
+                    ),
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: Text(
-                    '${_currentVerse!.verse}절',
-                    style: const TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.bold),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(_getStageIcon(_currentStage), color: Colors.white, size: 16),
+                      const SizedBox(width: 6),
+                      Text(
+                        _currentStage.englishName,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const Spacer(),
+                // 통과 기준 표시
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade200,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '통과 기준: ${_currentStage.passThreshold.toStringAsFixed(0)}%',
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+                  ),
+                ),
+                const SizedBox(width: 8),
                 IconButton(
                   onPressed: _isTTSLoading ? null : _playTTS,
                   icon: _isTTSLoading
                       ? const SizedBox(
-                          width: 24,
-                          height: 24,
+                          width: 24, height: 24,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : Icon(
@@ -593,37 +786,179 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
                           size: 32,
                           color: _isTTSPlaying ? Colors.red : Colors.indigo,
                         ),
-                  tooltip: _isTTSPlaying ? '중지' : '전체 듣기',
+                  tooltip: _isTTSPlaying ? '중지' : '듣기',
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            if (_showEnglish) ...[
-              const Text('English',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold, color: Colors.indigo)),
-              const SizedBox(height: 8),
-              Text(_currentVerse!.english,
-                  style: const TextStyle(fontSize: 18, height: 1.6)),
-              const SizedBox(height: 16),
-            ],
-            const Text('한국어',
-                style: TextStyle(
-                    fontWeight: FontWeight.bold, color: Colors.indigo)),
-            const SizedBox(height: 8),
-            Text(
-              korean ?? '(한글 번역 준비 중)',
-              style: TextStyle(
-                fontSize: 16,
-                height: 1.6,
-                color: korean != null ? Colors.black : Colors.grey,
-                fontStyle: korean != null ? FontStyle.normal : FontStyle.italic,
-              ),
-            ),
+
+            // 스테이지별 텍스트 표시
+            _buildStageContent(korean),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildStageContent(String? korean) {
+    switch (_currentStage) {
+      case LearningStage.listenRepeat:
+        // Stage 1: 전체 텍스트 표시
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('English',
+                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo)),
+            const SizedBox(height: 8),
+            Text(_currentVerse!.english,
+                style: const TextStyle(fontSize: 18, height: 1.6)),
+            const SizedBox(height: 16),
+            const Text('한국어',
+                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo)),
+            const SizedBox(height: 8),
+            Text(
+              korean ?? '(한글 번역 준비 중)',
+              style: TextStyle(
+                fontSize: 16, height: 1.6,
+                color: korean != null ? Colors.black : Colors.grey,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.lightbulb, color: Colors.blue, size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '전체 문장을 보면서 원어민 발음을 듣고 따라해보세요.',
+                      style: TextStyle(fontSize: 13, color: Colors.blue),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+
+      case LearningStage.keyExpressions:
+        // Stage 2: 빈칸 채우기
+        final blankText = _getBlankText(_currentVerse!.english);
+        final keyWords = _getKeyWords(_currentVerse!.english);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('빈칸을 채우며 말해보세요',
+                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo)),
+            const SizedBox(height: 8),
+            Text(blankText, style: const TextStyle(fontSize: 18, height: 1.6)),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              children: [
+                const Text('힌트: ', style: TextStyle(fontWeight: FontWeight.bold)),
+                ...keyWords.map((word) => Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.shade100,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(word, style: const TextStyle(fontWeight: FontWeight.w500)),
+                )),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Text('한국어',
+                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo)),
+            const SizedBox(height: 8),
+            Text(
+              korean ?? '(한글 번역 준비 중)',
+              style: TextStyle(fontSize: 16, height: 1.6,
+                  color: korean != null ? Colors.black : Colors.grey),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.edit_note, color: Colors.orange, size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '핵심 단어를 기억하며 전체 문장을 말해보세요.',
+                      style: TextStyle(fontSize: 13, color: Colors.orange),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+
+      case LearningStage.realSpeak:
+        // Stage 3: 영어 텍스트 숨김
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade200,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Column(
+                children: [
+                  Icon(Icons.visibility_off, size: 48, color: Colors.grey),
+                  SizedBox(height: 12),
+                  Text(
+                    '영어 텍스트 없이 암송하세요',
+                    style: TextStyle(fontSize: 16, color: Colors.grey, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text('한국어 (참고용)',
+                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo)),
+            const SizedBox(height: 8),
+            Text(
+              korean ?? '(한글 번역 준비 중)',
+              style: TextStyle(fontSize: 16, height: 1.6,
+                  color: korean != null ? Colors.black54 : Colors.grey),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.purple.shade50,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.emoji_events, color: Colors.purple, size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      '최종 단계입니다! 85% 이상 달성하면 암송 완료!',
+                      style: TextStyle(fontSize: 13, color: Colors.purple),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+    }
   }
 
   Widget _buildControlButtons() {
@@ -639,10 +974,8 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
                     : _toggleRecording,
             icon: _isProcessing
                 ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white),
+                    width: 20, height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                   )
                 : Icon(_isRecording ? Icons.stop : Icons.mic, size: 24),
             label: Text(
@@ -657,8 +990,7 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
               backgroundColor: _isRecording ? Colors.red : Colors.indigo,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
           ),
         ),
@@ -678,19 +1010,16 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('재생 속도',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text('재생 속도', style: TextStyle(fontWeight: FontWeight.bold)),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
                   color: Colors.indigo,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   '${_playbackSpeed.toStringAsFixed(1)}x',
-                  style: const TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                 ),
               ),
             ],
@@ -721,6 +1050,7 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
   Widget _buildResultCard() {
     final result = _pronunciationResult!;
     final feedback = _feedback;
+    final passed = _currentStage.isPassed(result.overallScore);
 
     return Card(
       elevation: 4,
@@ -729,14 +1059,10 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 종합 점수
-            _buildScoreHeader(result),
-
-            // 세부 점수 (정확도, 유창성, 운율)
+            _buildScoreHeader(result, passed),
             const SizedBox(height: 16),
             _buildDetailedScores(result),
 
-            // 격려 메시지
             if (feedback != null) ...[
               const SizedBox(height: 16),
               Container(
@@ -755,38 +1081,32 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
               ),
             ],
 
-            // 틀린 단어 상세 피드백
             if (feedback != null && feedback.hasIssues) ...[
               const SizedBox(height: 16),
               _buildWordFeedback(feedback),
             ],
 
-            // 발음 팁
             if (feedback != null && feedback.tips.isNotEmpty) ...[
               const SizedBox(height: 16),
               _buildPronunciationTips(feedback),
             ],
 
-            // 인식된 텍스트
             const SizedBox(height: 16),
             _buildRecognizedText(result),
 
-            // 비교 듣기 버튼
             const SizedBox(height: 16),
-            _buildPlaybackButtons(),
+            _buildActionButtons(passed),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildScoreHeader(PronunciationResult result) {
+  Widget _buildScoreHeader(PronunciationResult result, bool passed) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: result.overallScore >= 70
-            ? Colors.green.shade100
-            : Colors.orange.shade100,
+        color: passed ? Colors.green.shade100 : Colors.orange.shade100,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -795,21 +1115,36 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                '등급: ${result.grade}',
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              if (_isNewRecord)
-                Container(
-                  margin: const EdgeInsets.only(top: 4),
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: Colors.amber,
-                    borderRadius: BorderRadius.circular(8),
+              Row(
+                children: [
+                  Text(
+                    '등급: ${result.grade}',
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
-                  child: const Text('NEW RECORD!',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                  if (passed)
+                    Container(
+                      margin: const EdgeInsets.only(left: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.green,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        'PASS!',
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                    ),
+                ],
+              ),
+              Text(
+                passed
+                    ? '${_currentStage.koreanName} 통과!'
+                    : '${_currentStage.passThreshold.toStringAsFixed(0)}% 이상 필요',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: passed ? Colors.green.shade700 : Colors.orange.shade700,
                 ),
+              ),
             ],
           ),
           Container(
@@ -898,11 +1233,7 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
                   ),
                   child: Text(
                     detail.word,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      fontSize: 13,
-                    ),
+                    style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -923,10 +1254,7 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
                                   color: Colors.orange.shade100,
                                   borderRadius: BorderRadius.circular(4),
                                 ),
-                                child: Text(
-                                  '${p.phoneme} → ${p.koreanHint}',
-                                  style: const TextStyle(fontSize: 11),
-                                ),
+                                child: Text('${p.phoneme} → ${p.koreanHint}', style: const TextStyle(fontSize: 11)),
                               ),
                             ).toList(),
                           ),
@@ -936,11 +1264,7 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
                 ),
                 Text(
                   '${detail.score.toStringAsFixed(0)}%',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: _getScoreColor(detail.score),
-                  ),
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: _getScoreColor(detail.score)),
                 ),
               ],
             ),
@@ -1001,8 +1325,7 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('인식된 발음',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+          const Text('인식된 발음', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
           const SizedBox(height: 4),
           Text(
             result.recognizedText.isEmpty ? '(인식된 내용 없음)' : result.recognizedText,
@@ -1013,7 +1336,7 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
     );
   }
 
-  Widget _buildPlaybackButtons() {
+  Widget _buildActionButtons(bool passed) {
     return Row(
       children: [
         if (_lastRecordingPath != null)
@@ -1040,6 +1363,20 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
             ),
           ),
         ),
+        if (passed && _currentStage.nextStage != null) ...[
+          const SizedBox(width: 8),
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: _goToNextStage,
+              icon: const Icon(Icons.arrow_forward, size: 18),
+              label: const Text('다음 단계'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }

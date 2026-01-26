@@ -3,6 +3,7 @@ import '../../services/auth_service.dart';
 import '../study/book_selection_screen.dart';
 import '../ranking/ranking_screen.dart';
 import '../word_study/word_study_home_screen.dart';
+import '../admin/migration_screen.dart';
 
 /// 메인 메뉴 화면
 /// - 각 기능으로 이동하는 허브
@@ -284,6 +285,18 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
               onTap: () {
                 Navigator.pop(context);
                 _showComingSoon('캐시 삭제');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.cloud_upload, color: Colors.deepPurple),
+              title: const Text('Firestore 마이그레이션'),
+              subtitle: const Text('관리자용 - 데이터 업로드'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const MigrationScreen()),
+                );
               },
             ),
             ListTile(

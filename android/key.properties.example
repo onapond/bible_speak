@@ -1,0 +1,8 @@
+# Android 릴리스 서명 키 설정
+# 이 파일을 key.properties로 복사하고 실제 값을 입력하세요
+# 주의: key.properties 파일은 절대 Git에 커밋하지 마세요!
+
+storePassword=YOUR_KEYSTORE_PASSWORD
+keyPassword=YOUR_KEY_PASSWORD
+keyAlias=bible_speak
+storeFile=/path/to/your/keystore/bible_speak_upload.jks

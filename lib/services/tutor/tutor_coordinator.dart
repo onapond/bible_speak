@@ -218,70 +218,46 @@ class TutorCoordinator {
     }
   }
 
-  /// Gemini 프롬프트 생성 (개선된 버전)
+  /// Gemini 프롬프트 생성 (간결한 버전 - 20단어 이하 팁)
   String _buildGeminiPrompt({
     required PronunciationResult pronunciationResult,
     required int currentStage,
   }) {
-    // 틀린 단어와 음소 상세 정보 구성
-    final incorrectWordsDetails = <String>[];
-    for (final word in pronunciationResult.incorrectWords.take(3)) {
-      final worstPhoneme = word.worstPhoneme;
-      if (worstPhoneme != null) {
-        incorrectWordsDetails.add(
-          '• "${word.word}" (${word.accuracyScore.toStringAsFixed(0)}점)\n'
-          '  - 문제 음소: ${worstPhoneme.phoneme} → 한국어로 "${worstPhoneme.koreanHint}"\n'
-          '  - 팁: ${worstPhoneme.pronunciationTip ?? "천천히 또박또박 발음해보세요"}'
-        );
-      } else {
-        incorrectWordsDetails.add(
-          '• "${word.word}" (${word.accuracyScore.toStringAsFixed(0)}점, ${word.errorTypeKorean})'
-        );
-      }
-    }
+    // 가장 문제되는 단어와 음소 추출
+    final worstWord = pronunciationResult.incorrectWords.isNotEmpty
+        ? pronunciationResult.incorrectWords.first
+        : null;
+    final worstPhoneme = worstWord?.worstPhoneme ??
+        (pronunciationResult.weakestPhonemes.isNotEmpty
+            ? pronunciationResult.weakestPhonemes.first
+            : null);
 
-    // 취약 음소 상세 정보
-    final weakPhonemeDetails = pronunciationResult.weakestPhonemes.take(3)
-        .map((p) => '• ${p.phoneme} (${p.accuracyScore.toStringAsFixed(0)}점) → "${p.koreanHint}"\n  팁: ${p.pronunciationTip ?? "정확하게 발음해보세요"}')
-        .join('\n');
+    final phonemeInfo = worstPhoneme != null
+        ? '문제 음소: ${worstPhoneme.phoneme} (${worstPhoneme.koreanHint})'
+        : '전체적으로 양호';
+
+    final wordInfo = worstWord != null
+        ? '문제 단어: "${worstWord.word}" (${worstWord.accuracyScore.toStringAsFixed(0)}점)'
+        : '모든 단어 정확';
 
     return '''
-당신은 영어 성경 암송을 도와주는 AI 발음 코치입니다. 한국인 학습자의 발음을 분석하고 구체적인 피드백을 제공합니다.
+You are a friendly Korean English pronunciation tutor helping with Bible verse memorization.
 
-## 학습자 정보
-- 학습 단계: Stage $currentStage ${_getStageDescription(currentStage)}
-- 통과 기준: ${_stagePassThresholds[currentStage]}점
+Score: ${pronunciationResult.overallScore.toStringAsFixed(0)}%
+$wordInfo
+$phonemeInfo
 
-## 발음 평가 결과
-원본: "${pronunciationResult.referenceText}"
-인식: "${pronunciationResult.recognizedText}"
+Give feedback in Korean with this EXACT format:
 
-점수:
-- 전체: ${pronunciationResult.overallScore.toStringAsFixed(0)}점
-- 정확도: ${pronunciationResult.accuracyScore.toStringAsFixed(0)}점
-- 유창성: ${pronunciationResult.fluencyScore.toStringAsFixed(0)}점
+[격려] (한 문장, 10단어 이하)
 
-## 문제 단어 상세
-${incorrectWordsDetails.isEmpty ? '없음 (모든 단어 정확!)' : incorrectWordsDetails.join('\n')}
+[팁] (발음 팁 한 문장, 20단어 이하, 입모양이나 혀 위치 설명)
 
-## 취약 음소 상세
-${weakPhonemeDetails.isEmpty ? '없음' : weakPhonemeDetails}
-
-## 한국인 발음 주의점
-- R/L: 한국어에 없는 구분, R은 혀를 말고 L은 혀끝을 잇몸에
-- TH(θ/ð): 혀를 이 사이로 내밀어야 함
-- F/V: 윗니로 아랫입술을 살짝 물어야 함
-- 장단음: 영어는 모음 길이가 의미를 바꿈
-
-## 응답 형식 (반드시 이 형식으로)
-[격려]
-(점수에 맞는 따뜻한 한 문장. 성경적 격려도 좋음)
-
-[발음팁]
-(가장 문제되는 1-2개 음소에 대한 구체적 조언. 입 모양, 혀 위치 설명)
-
-[다음단계]
-(점수가 통과 기준 이상이면 "다음 구절로!", 미만이면 "다시 도전!" 또는 구체적 연습 제안)
+Rules:
+- Be encouraging and warm
+- Focus on mouth position or tongue placement for the problem phoneme
+- Keep tips practical and specific
+- If score >= 80, praise and suggest moving forward
 ''';
   }
 
@@ -299,11 +275,10 @@ ${weakPhonemeDetails.isEmpty ? '없음' : weakPhonemeDetails}
     }
   }
 
-  /// Gemini 응답 파싱 (개선된 버전)
+  /// Gemini 응답 파싱 (간결한 버전)
   _GeminiFeedbackResponse _parseGeminiResponse(String text) {
     String encouragement = '';
-    String detailedFeedback = '';
-    String nextStep = '';
+    String tip = '';
 
     // [격려] 추출
     final encouragementMatch = RegExp(r'\[격려\]\s*(.+?)(?=\[|$)', dotAll: true).firstMatch(text);
@@ -311,43 +286,40 @@ ${weakPhonemeDetails.isEmpty ? '없음' : weakPhonemeDetails}
       encouragement = encouragementMatch.group(1)?.trim() ?? '';
     }
 
-    // [발음팁] 추출
-    final tipMatch = RegExp(r'\[발음팁\]\s*(.+?)(?=\[|$)', dotAll: true).firstMatch(text);
+    // [팁] 추출 (새 형식)
+    final tipMatch = RegExp(r'\[팁\]\s*(.+?)(?=\[|$)', dotAll: true).firstMatch(text);
     if (tipMatch != null) {
-      detailedFeedback = tipMatch.group(1)?.trim() ?? '';
+      tip = tipMatch.group(1)?.trim() ?? '';
     }
 
-    // [다음단계] 추출
-    final nextStepMatch = RegExp(r'\[다음단계\]\s*(.+?)(?=\[|$)', dotAll: true).firstMatch(text);
-    if (nextStepMatch != null) {
-      nextStep = nextStepMatch.group(1)?.trim() ?? '';
-    }
-
-    // 기존 [피드백] 형식도 지원 (하위 호환)
-    if (detailedFeedback.isEmpty) {
-      final feedbackMatch = RegExp(r'\[피드백\]\s*(.+?)(?=\[|$)', dotAll: true).firstMatch(text);
-      if (feedbackMatch != null) {
-        detailedFeedback = feedbackMatch.group(1)?.trim() ?? '';
+    // [발음팁] 형식도 지원 (하위 호환)
+    if (tip.isEmpty) {
+      final oldTipMatch = RegExp(r'\[발음팁\]\s*(.+?)(?=\[|$)', dotAll: true).firstMatch(text);
+      if (oldTipMatch != null) {
+        tip = oldTipMatch.group(1)?.trim() ?? '';
       }
     }
 
-    // 형식이 맞지 않으면 전체 텍스트 사용
-    if (encouragement.isEmpty && detailedFeedback.isEmpty) {
+    // [피드백] 형식도 지원 (하위 호환)
+    if (tip.isEmpty) {
+      final feedbackMatch = RegExp(r'\[피드백\]\s*(.+?)(?=\[|$)', dotAll: true).firstMatch(text);
+      if (feedbackMatch != null) {
+        tip = feedbackMatch.group(1)?.trim() ?? '';
+      }
+    }
+
+    // 형식이 맞지 않으면 전체 텍스트에서 추출
+    if (encouragement.isEmpty && tip.isEmpty) {
       final lines = text.split('\n').where((l) => l.trim().isNotEmpty).toList();
       if (lines.isNotEmpty) {
         encouragement = lines.first;
-        detailedFeedback = lines.skip(1).join('\n');
+        tip = lines.length > 1 ? lines[1] : '';
       }
-    }
-
-    // 다음 단계 정보를 피드백에 추가
-    if (nextStep.isNotEmpty) {
-      detailedFeedback = '$detailedFeedback\n\n👉 $nextStep';
     }
 
     return _GeminiFeedbackResponse(
       encouragement: encouragement.isNotEmpty ? encouragement : '잘하고 있어요!',
-      detailedFeedback: detailedFeedback.isNotEmpty ? detailedFeedback : text,
+      detailedFeedback: tip.isNotEmpty ? tip : '',
     );
   }
 

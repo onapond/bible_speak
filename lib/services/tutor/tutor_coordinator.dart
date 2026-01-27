@@ -218,54 +218,70 @@ class TutorCoordinator {
     }
   }
 
-  /// Gemini 프롬프트 생성
+  /// Gemini 프롬프트 생성 (개선된 버전)
   String _buildGeminiPrompt({
     required PronunciationResult pronunciationResult,
     required int currentStage,
   }) {
-    final incorrectWordsStr = pronunciationResult.incorrectWords
-        .map((w) => '${w.word} (${w.accuracyScore.toStringAsFixed(0)}점, ${w.errorTypeKorean})')
+    // 틀린 단어와 음소 상세 정보 구성
+    final incorrectWordsDetails = <String>[];
+    for (final word in pronunciationResult.incorrectWords.take(3)) {
+      final worstPhoneme = word.worstPhoneme;
+      if (worstPhoneme != null) {
+        incorrectWordsDetails.add(
+          '• "${word.word}" (${word.accuracyScore.toStringAsFixed(0)}점)\n'
+          '  - 문제 음소: ${worstPhoneme.phoneme} → 한국어로 "${worstPhoneme.koreanHint}"\n'
+          '  - 팁: ${worstPhoneme.pronunciationTip ?? "천천히 또박또박 발음해보세요"}'
+        );
+      } else {
+        incorrectWordsDetails.add(
+          '• "${word.word}" (${word.accuracyScore.toStringAsFixed(0)}점, ${word.errorTypeKorean})'
+        );
+      }
+    }
+
+    // 취약 음소 상세 정보
+    final weakPhonemeDetails = pronunciationResult.weakestPhonemes.take(3)
+        .map((p) => '• ${p.phoneme} (${p.accuracyScore.toStringAsFixed(0)}점) → "${p.koreanHint}"\n  팁: ${p.pronunciationTip ?? "정확하게 발음해보세요"}')
         .join('\n');
 
-    final weakPhonemesStr = pronunciationResult.weakestPhonemes
-        .map((p) => '${p.phoneme}: ${p.koreanHint}')
-        .join(', ');
-
     return '''
-당신은 성경 영어 암송을 도와주는 친절한 AI 튜터입니다. 한국인 학습자를 위해 격려하고 구체적인 피드백을 제공해주세요.
+당신은 영어 성경 암송을 도와주는 AI 발음 코치입니다. 한국인 학습자의 발음을 분석하고 구체적인 피드백을 제공합니다.
 
-[학습 단계]
-Stage $currentStage ${_getStageDescription(currentStage)}
+## 학습자 정보
+- 학습 단계: Stage $currentStage ${_getStageDescription(currentStage)}
+- 통과 기준: ${_stagePassThresholds[currentStage]}점
 
-[원본 문장]
-${pronunciationResult.referenceText}
+## 발음 평가 결과
+원본: "${pronunciationResult.referenceText}"
+인식: "${pronunciationResult.recognizedText}"
 
-[인식된 발화]
-${pronunciationResult.recognizedText}
-
-[평가 점수]
+점수:
 - 전체: ${pronunciationResult.overallScore.toStringAsFixed(0)}점
 - 정확도: ${pronunciationResult.accuracyScore.toStringAsFixed(0)}점
 - 유창성: ${pronunciationResult.fluencyScore.toStringAsFixed(0)}점
-- 완전성: ${pronunciationResult.completenessScore.toStringAsFixed(0)}점
 
-[문제 있는 단어]
-${incorrectWordsStr.isEmpty ? '없음' : incorrectWordsStr}
+## 문제 단어 상세
+${incorrectWordsDetails.isEmpty ? '없음 (모든 단어 정확!)' : incorrectWordsDetails.join('\n')}
 
-[취약한 발음]
-${weakPhonemesStr.isEmpty ? '없음' : weakPhonemesStr}
+## 취약 음소 상세
+${weakPhonemeDetails.isEmpty ? '없음' : weakPhonemeDetails}
 
-다음 형식으로 한국어 피드백을 작성해주세요:
+## 한국인 발음 주의점
+- R/L: 한국어에 없는 구분, R은 혀를 말고 L은 혀끝을 잇몸에
+- TH(θ/ð): 혀를 이 사이로 내밀어야 함
+- F/V: 윗니로 아랫입술을 살짝 물어야 함
+- 장단음: 영어는 모음 길이가 의미를 바꿈
 
-[격려] (한 문장, 따뜻하고 긍정적으로)
+## 응답 형식 (반드시 이 형식으로)
+[격려]
+(점수에 맞는 따뜻한 한 문장. 성경적 격려도 좋음)
 
-[피드백] (2-3문장, 구체적인 개선점과 팁)
+[발음팁]
+(가장 문제되는 1-2개 음소에 대한 구체적 조언. 입 모양, 혀 위치 설명)
 
-주의사항:
-- 항상 긍정적으로 시작하세요
-- 틀린 단어가 있으면 한국어 발음 가이드를 제공하세요
-- 성경적 맥락을 고려한 격려를 해주세요
-- 단계별 목표 달성을 강조하세요
+[다음단계]
+(점수가 통과 기준 이상이면 "다음 구절로!", 미만이면 "다시 도전!" 또는 구체적 연습 제안)
 ''';
   }
 
@@ -283,10 +299,11 @@ ${weakPhonemesStr.isEmpty ? '없음' : weakPhonemesStr}
     }
   }
 
-  /// Gemini 응답 파싱
+  /// Gemini 응답 파싱 (개선된 버전)
   _GeminiFeedbackResponse _parseGeminiResponse(String text) {
     String encouragement = '';
     String detailedFeedback = '';
+    String nextStep = '';
 
     // [격려] 추출
     final encouragementMatch = RegExp(r'\[격려\]\s*(.+?)(?=\[|$)', dotAll: true).firstMatch(text);
@@ -294,10 +311,24 @@ ${weakPhonemesStr.isEmpty ? '없음' : weakPhonemesStr}
       encouragement = encouragementMatch.group(1)?.trim() ?? '';
     }
 
-    // [피드백] 추출
-    final feedbackMatch = RegExp(r'\[피드백\]\s*(.+?)(?=\[|$)', dotAll: true).firstMatch(text);
-    if (feedbackMatch != null) {
-      detailedFeedback = feedbackMatch.group(1)?.trim() ?? '';
+    // [발음팁] 추출
+    final tipMatch = RegExp(r'\[발음팁\]\s*(.+?)(?=\[|$)', dotAll: true).firstMatch(text);
+    if (tipMatch != null) {
+      detailedFeedback = tipMatch.group(1)?.trim() ?? '';
+    }
+
+    // [다음단계] 추출
+    final nextStepMatch = RegExp(r'\[다음단계\]\s*(.+?)(?=\[|$)', dotAll: true).firstMatch(text);
+    if (nextStepMatch != null) {
+      nextStep = nextStepMatch.group(1)?.trim() ?? '';
+    }
+
+    // 기존 [피드백] 형식도 지원 (하위 호환)
+    if (detailedFeedback.isEmpty) {
+      final feedbackMatch = RegExp(r'\[피드백\]\s*(.+?)(?=\[|$)', dotAll: true).firstMatch(text);
+      if (feedbackMatch != null) {
+        detailedFeedback = feedbackMatch.group(1)?.trim() ?? '';
+      }
     }
 
     // 형식이 맞지 않으면 전체 텍스트 사용
@@ -307,6 +338,11 @@ ${weakPhonemesStr.isEmpty ? '없음' : weakPhonemesStr}
         encouragement = lines.first;
         detailedFeedback = lines.skip(1).join('\n');
       }
+    }
+
+    // 다음 단계 정보를 피드백에 추가
+    if (nextStep.isNotEmpty) {
+      detailedFeedback = '$detailedFeedback\n\n👉 $nextStep';
     }
 
     return _GeminiFeedbackResponse(
@@ -433,6 +469,57 @@ ${weakPhonemesStr.isEmpty ? '없음' : weakPhonemesStr}
       return null;
     } catch (e) {
       return null;
+    }
+  }
+
+  /// 기존 발음 결과로 AI 피드백만 생성 (Azure 재호출 없음)
+  Future<TutorFeedback> generateFeedbackFromResult({
+    required PronunciationResult pronunciationResult,
+    required int currentStage,
+  }) async {
+    if (!pronunciationResult.isSuccess) {
+      return TutorFeedback.error(
+        pronunciationResult.errorMessage ?? '발음 평가 결과가 유효하지 않습니다.',
+      );
+    }
+
+    try {
+      // Gemini로 피드백 생성
+      final geminiResponse = await _generateGeminiFeedback(
+        pronunciationResult: pronunciationResult,
+        currentStage: currentStage,
+      );
+
+      // 발음 팁 추출
+      final tips = _extractPronunciationTips(pronunciationResult);
+
+      // 다음 단계 추천 결정
+      final nextStep = _determineNextStep(
+        score: pronunciationResult.overallScore,
+        stage: currentStage,
+        incorrectWords: pronunciationResult.incorrectWords,
+      );
+
+      return TutorFeedback(
+        isSuccess: true,
+        encouragement: geminiResponse.encouragement,
+        detailedFeedback: geminiResponse.detailedFeedback,
+        tips: tips,
+        grade: pronunciationResult.grade,
+        overallScore: pronunciationResult.overallScore,
+        nextStep: nextStep,
+      );
+    } catch (e) {
+      // Gemini 실패 시 로컬 피드백
+      final localFeedback = _getLocalFeedback(pronunciationResult);
+      return TutorFeedback(
+        isSuccess: true,
+        encouragement: localFeedback.encouragement,
+        detailedFeedback: localFeedback.detailedFeedback,
+        tips: _extractPronunciationTips(pronunciationResult),
+        grade: pronunciationResult.grade,
+        overallScore: pronunciationResult.overallScore,
+      );
     }
   }
 

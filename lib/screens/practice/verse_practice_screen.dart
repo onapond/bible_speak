@@ -9,6 +9,7 @@ import '../../services/esv_service.dart';
 import '../../services/bible_data_service.dart';
 import '../../services/pronunciation/azure_pronunciation_service.dart';
 import '../../services/pronunciation/pronunciation_feedback_service.dart';
+import '../../services/tutor/tutor_coordinator.dart';
 import '../../models/learning_stage.dart';
 import '../../models/verse_progress.dart';
 
@@ -64,6 +65,8 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
   String? _lastRecordingPath;
   PronunciationResult? _pronunciationResult;
   PronunciationFeedback? _feedback;
+  TutorFeedback? _aiFeedback; // Gemini AI 피드백
+  bool _isLoadingAiFeedback = false;
   Map<int, VerseProgress> _verseProgressMap = {};
 
   // 데이터
@@ -220,6 +223,8 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
   void _resetState() {
     _pronunciationResult = null;
     _feedback = null;
+    _aiFeedback = null;
+    _isLoadingAiFeedback = false;
     _lastRecordingPath = null;
   }
 
@@ -334,8 +339,11 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
         return;
       }
 
-      // 피드백 생성
+      // 로컬 피드백 생성 (즉시)
       final feedback = _feedbackService.generateFeedback(result);
+
+      // AI 피드백 비동기 요청 (Gemini)
+      _requestAiFeedback(result);
 
       // 점수 저장 (스테이지 포함)
       final updatedProgress = await _progress.saveScore(
@@ -383,6 +391,36 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
     } catch (e) {
       _showSnackBar('처리 중 오류: $e', isError: true);
       setState(() => _isProcessing = false);
+    }
+  }
+
+  /// Gemini AI 피드백 비동기 요청 (기존 발음 결과 사용)
+  Future<void> _requestAiFeedback(PronunciationResult result) async {
+    if (!mounted) return;
+
+    setState(() => _isLoadingAiFeedback = true);
+
+    try {
+      final tutor = TutorCoordinator.instance;
+      // 이미 평가된 결과로 AI 피드백만 생성 (Azure 재호출 없음)
+      final aiFeedback = await tutor.generateFeedbackFromResult(
+        pronunciationResult: result,
+        currentStage: _currentStage.stageNumber,
+      );
+
+      if (mounted && aiFeedback.isSuccess) {
+        setState(() {
+          _aiFeedback = aiFeedback;
+          _isLoadingAiFeedback = false;
+        });
+      } else {
+        setState(() => _isLoadingAiFeedback = false);
+      }
+    } catch (e) {
+      print('❌ AI 피드백 오류: $e');
+      if (mounted) {
+        setState(() => _isLoadingAiFeedback = false);
+      }
     }
   }
 
@@ -1094,7 +1132,73 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
             const SizedBox(height: 16),
             _buildDetailedScores(result),
 
-            if (feedback != null) ...[
+            // AI 피드백 (Gemini)
+            if (_aiFeedback != null && _aiFeedback!.isSuccess) ...[
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.blue.shade50, Colors.purple.shade50],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.auto_awesome, size: 16, color: Colors.blue.shade600),
+                        const SizedBox(width: 6),
+                        Text(
+                          'AI 코치 피드백',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _aiFeedback!.encouragement,
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                    ),
+                    if (_aiFeedback!.detailedFeedback.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        _aiFeedback!.detailedFeedback,
+                        style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ] else if (_isLoadingAiFeedback) ...[
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 16, height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.blue.shade400),
+                    ),
+                    const SizedBox(width: 10),
+                    Text('AI 코치가 분석 중...', style: TextStyle(color: Colors.grey.shade600)),
+                  ],
+                ),
+              ),
+            ] else if (feedback != null) ...[
+              // 로컬 피드백 (AI 실패 시 fallback)
               const SizedBox(height: 16),
               Container(
                 width: double.infinity,

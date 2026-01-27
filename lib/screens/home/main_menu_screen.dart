@@ -3,13 +3,17 @@ import '../../services/auth_service.dart';
 import '../../services/group_service.dart';
 import '../../services/social/group_challenge_service.dart';
 import '../../services/social/streak_service.dart';
+import '../../services/social/morning_manna_service.dart';
 import '../../widgets/social/activity_ticker.dart';
 import '../../widgets/social/group_goal_widget.dart';
 import '../../widgets/social/streak_widget.dart';
+import '../../widgets/social/morning_manna_widget.dart';
 import '../../models/user_streak.dart';
+import '../../models/daily_verse.dart';
 import '../study/book_selection_screen.dart';
 import '../ranking/ranking_screen.dart';
 import '../word_study/word_study_home_screen.dart';
+import '../practice/verse_practice_screen.dart';
 import '../admin/migration_screen.dart';
 
 /// 메인 메뉴 화면
@@ -30,17 +34,23 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
   final _groupService = GroupService();
   final _challengeService = GroupChallengeService();
   final _streakService = StreakService();
+  final _morningMannaService = MorningMannaService();
 
   String? _groupName;
   WeeklyChallenge? _challenge;
   int _myContribution = 0;
   UserStreak _streak = const UserStreak();
+  DailyVerse? _dailyVerse;
+  EarlyBirdBonus _earlyBirdBonus = EarlyBirdBonus.calculate(DateTime.now());
+  bool _hasClaimedEarlyBird = false;
   bool _isLoading = true;
+  bool _isLoadingManna = true;
 
   @override
   void initState() {
     super.initState();
     _loadSocialData();
+    _loadMorningManna();
   }
 
   Future<void> _loadSocialData() async {
@@ -78,6 +88,28 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     }
   }
 
+  Future<void> _loadMorningManna() async {
+    try {
+      final results = await Future.wait([
+        _morningMannaService.getDailyVerse(),
+        _morningMannaService.hasClaimedEarlyBirdToday(),
+      ]);
+
+      if (mounted) {
+        setState(() {
+          _dailyVerse = results[0] as DailyVerse?;
+          _hasClaimedEarlyBird = results[1] as bool;
+          _earlyBirdBonus = _morningMannaService.getEarlyBirdBonus();
+          _isLoadingManna = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingManna = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = widget.authService.currentUser;
@@ -102,6 +134,20 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                   onTapProtection: _streak.isAtRisk && _streak.canUseProtection
                       ? () => _showProtectionDialog()
                       : null,
+                ),
+              ),
+            ),
+
+            // 아침 만나 (오늘의 구절)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                child: MorningMannaWidget(
+                  dailyVerse: _dailyVerse,
+                  earlyBirdBonus: _earlyBirdBonus,
+                  hasClaimedBonus: _hasClaimedEarlyBird,
+                  onTapStudy: () => _navigateToDailyVerse(),
+                  isLoading: _isLoadingManna,
                 ),
               ),
             ),
@@ -300,6 +346,57 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
       context,
       MaterialPageRoute(
         builder: (_) => BookSelectionScreen(authService: widget.authService),
+      ),
+    );
+  }
+
+  void _navigateToDailyVerse() async {
+    if (_dailyVerse == null) {
+      _navigateToPractice();
+      return;
+    }
+
+    // Early Bird 보너스 클레임 시도
+    if (_earlyBirdBonus.isEligible && !_hasClaimedEarlyBird) {
+      final bonusAmount = await _morningMannaService.claimEarlyBirdBonus();
+      if (bonusAmount > 0 && mounted) {
+        setState(() => _hasClaimedEarlyBird = true);
+        // 보너스 획득 다이얼로그 표시
+        showDialog(
+          context: context,
+          builder: (context) => EarlyBirdBonusDialog(
+            bonusAmount: bonusAmount,
+            message: _earlyBirdBonus.message,
+            emoji: _earlyBirdBonus.emoji,
+            onDismiss: () {
+              Navigator.pop(context);
+              // 오늘의 구절로 이동
+              _goToDailyVersePractice();
+            },
+          ),
+        );
+        // 유저 달란트 새로고침
+        await widget.authService.refreshUser();
+        return;
+      }
+    }
+
+    // 바로 구절로 이동
+    _goToDailyVersePractice();
+  }
+
+  void _goToDailyVersePractice() {
+    if (_dailyVerse == null) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => VersePracticeScreen(
+          authService: widget.authService,
+          book: _dailyVerse!.bookId,
+          chapter: _dailyVerse!.chapter,
+          initialVerse: _dailyVerse!.verse,
+        ),
       ),
     );
   }

@@ -4,12 +4,15 @@ import '../../services/group_service.dart';
 import '../../services/social/group_challenge_service.dart';
 import '../../services/social/streak_service.dart';
 import '../../services/social/morning_manna_service.dart';
+import '../../services/social/nudge_service.dart';
 import '../../widgets/social/activity_ticker.dart';
 import '../../widgets/social/group_goal_widget.dart';
 import '../../widgets/social/streak_widget.dart';
 import '../../widgets/social/morning_manna_widget.dart';
+import '../../widgets/social/nudge_widget.dart';
 import '../../models/user_streak.dart';
 import '../../models/daily_verse.dart';
+import '../../models/nudge.dart';
 import '../study/book_selection_screen.dart';
 import '../ranking/ranking_screen.dart';
 import '../word_study/word_study_home_screen.dart';
@@ -35,6 +38,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
   final _challengeService = GroupChallengeService();
   final _streakService = StreakService();
   final _morningMannaService = MorningMannaService();
+  final _nudgeService = NudgeService();
 
   String? _groupName;
   WeeklyChallenge? _challenge;
@@ -43,6 +47,8 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
   DailyVerse? _dailyVerse;
   EarlyBirdBonus _earlyBirdBonus = EarlyBirdBonus.calculate(DateTime.now());
   bool _hasClaimedEarlyBird = false;
+  List<InactiveMember> _inactiveMembers = [];
+  NudgeDailyStats _nudgeStats = const NudgeDailyStats(nudgesSent: 0, nudgesTo: {}, dailyLimit: 3);
   bool _isLoading = true;
   bool _isLoadingManna = true;
 
@@ -73,6 +79,8 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
         _groupService.getGroup(user.groupId),
         _challengeService.getCurrentChallenge(user.groupId),
         _challengeService.getMyContribution(user.groupId),
+        _nudgeService.getInactiveMembers(user.groupId),
+        _nudgeService.getDailyStats(isLeader: user.role.name == 'admin'),
       ]);
 
       if (mounted) {
@@ -80,6 +88,8 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
           _groupName = (results[0] as dynamic)?.name;
           _challenge = results[1] as WeeklyChallenge?;
           _myContribution = results[2] as int;
+          _inactiveMembers = results[3] as List<InactiveMember>;
+          _nudgeStats = results[4] as NudgeDailyStats;
           _isLoading = false;
         });
       }
@@ -171,11 +181,24 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
               if (_challenge != null)
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                     child: GroupGoalWidget(
                       challenge: _challenge!,
                       myContribution: _myContribution,
                       onTapContribute: () => _navigateToPractice(),
+                    ),
+                  ),
+                ),
+
+              // 비활성 멤버 (찌르기)
+              if (_inactiveMembers.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    child: InactiveMembersWidget(
+                      members: _inactiveMembers,
+                      stats: _nudgeStats,
+                      onNudge: (member) => _showNudgeDialog(member),
                     ),
                   ),
                 ),
@@ -424,6 +447,57 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
       SnackBar(
         content: Text('$feature 기능은 준비 중입니다.'),
         backgroundColor: Colors.orange,
+      ),
+    );
+  }
+
+  void _showNudgeDialog(InactiveMember member) {
+    final user = widget.authService.currentUser;
+    if (user == null) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => NudgeMessageDialog(
+        targetName: member.name,
+        onSend: (message, templateId) async {
+          final success = await _nudgeService.sendNudge(
+            toUserId: member.odId,
+            toUserName: member.name,
+            message: message,
+            templateId: templateId,
+            groupId: user.groupId,
+            fromUserName: user.name,
+          );
+
+          if (success && mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    const Text('💌', style: TextStyle(fontSize: 18)),
+                    const SizedBox(width: 10),
+                    Text('${member.name}님에게 찌르기를 보냈어요!'),
+                  ],
+                ),
+                backgroundColor: Colors.green.shade700,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            );
+            // 통계 새로고침
+            final stats = await _nudgeService.getDailyStats(
+              isLeader: user.role.name == 'admin',
+            );
+            setState(() => _nudgeStats = stats);
+          } else if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('찌르기 전송에 실패했습니다.'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        },
       ),
     );
   }

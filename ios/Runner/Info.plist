@@ -51,10 +51,12 @@
 	<!-- 음성 인식 권한 -->
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>영어 발음을 분석하기 위해 음성 인식 권한이 필요합니다.</string>
-	<!-- 백그라운드 오디오 재생 -->
+	<!-- 백그라운드 오디오 재생 및 푸시 알림 -->
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>
+		<string>remote-notification</string>
+		<string>fetch</string>
 	</array>
 </dict>
 </plist>

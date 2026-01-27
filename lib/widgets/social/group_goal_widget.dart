@@ -283,7 +283,6 @@ class _TemplePainter extends CustomPainter {
       const Color(0xFFFFD700),
       progress,
     )!;
-    final shadowColor = Colors.black26;
 
     // Foundation
     final foundationPaint = Paint()

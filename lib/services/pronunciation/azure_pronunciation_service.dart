@@ -20,10 +20,10 @@ class AzurePronunciationService {
   String get _endpoint =>
       'https://$_region.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1';
 
-  // 재시도 설정
-  static const int _maxRetries = 3;
-  static const Duration _timeout = Duration(seconds: 45);
-  static const Duration _retryDelay = Duration(seconds: 2);
+  // 재시도 설정 (최적화)
+  static const int _maxRetries = 2;
+  static const Duration _timeout = Duration(seconds: 15);
+  static const Duration _retryDelay = Duration(seconds: 1);
 
   /// API 키 설정 확인
   bool get isConfigured => _subscriptionKey.isNotEmpty && _subscriptionKey != 'YOUR_AZURE_SPEECH_KEY_HERE';
@@ -123,8 +123,8 @@ class AzurePronunciationService {
 
     final configBase64 = base64Encode(utf8.encode(jsonEncode(pronunciationConfig)));
 
-    // 오디오 형식 결정 (웹: webm, 모바일: wav)
-    final contentType = isWebAudio ? 'audio/webm; codecs=opus' : 'audio/wav';
+    // 오디오 형식: 웹과 모바일 모두 WAV 사용 (Azure 호환)
+    const contentType = 'audio/wav';
 
     // API 호출
     print('🎯 Azure API 호출 시작');

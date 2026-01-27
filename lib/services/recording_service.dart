@@ -90,8 +90,8 @@ class RecordingService {
       final timestamp = DateTime.now().millisecondsSinceEpoch;
 
       if (kIsWeb) {
-        // 웹: webm 형식으로 녹음 (브라우저 기본 지원)
-        print('🌐 웹 녹음 시작 (webm/opus)...');
+        // 웹: WAV 형식으로 녹음 시도 (Azure 호환)
+        print('🌐 웹 녹음 시작 (wav)...');
 
         // 권한 체크
         final canRecord = await _recorder!.hasPermission();
@@ -104,14 +104,13 @@ class RecordingService {
 
         await _recorder!.start(
           const RecordConfig(
-            encoder: AudioEncoder.opus,
+            encoder: AudioEncoder.wav,
             sampleRate: 16000,
             numChannels: 1,
-            bitRate: 64000,
           ),
           path: '',
         );
-        _lastRecordingPath = 'web_recording_$timestamp.webm';
+        _lastRecordingPath = 'web_recording_$timestamp.wav';
       } else {
         // 모바일: WAV 파일로 녹음
         final directory = await getTemporaryDirectory();

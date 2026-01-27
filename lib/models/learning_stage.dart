@@ -1,10 +1,10 @@
 /// 3단계 학습 스테이지
 enum LearningStage {
   /// Stage 1: 듣고 따라하기 (전체 자막 표시)
-  listenRepeat(1, '듣고 따라하기', 'Listen & Repeat', 75.0),
+  listenRepeat(1, '듣고 따라하기', 'Listen & Repeat', 70.0),
 
   /// Stage 2: 핵심 표현 (빈칸 채우기)
-  keyExpressions(2, '핵심 표현', 'Key Expressions', 78.0),
+  keyExpressions(2, '핵심 표현', 'Key Expressions', 75.0),
 
   /// Stage 3: 실전 암송 (자막 없음)
   realSpeak(3, '실전 암송', 'Real Speak', 80.0);

@@ -96,24 +96,33 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
     });
 
     try {
-      // Load book names from BibleDataService
-      _bookNameKo = await _bibleData.getBookNameKo(widget.book);
-      _bookNameEn = await _bibleData.getBookNameEn(widget.book);
+      // 책 이름과 구절 병렬 로드
+      final bookNamesFuture = Future.wait([
+        _bibleData.getBookNameKo(widget.book),
+        _bibleData.getBookNameEn(widget.book),
+      ]);
+
+      final bookNames = await bookNamesFuture;
+      _bookNameKo = bookNames[0];
+      _bookNameEn = bookNames[1];
 
       final verses = await _esv.getChapter(
         book: _bookNameEn,
         chapter: widget.chapter,
       );
 
-      // Load Korean translations from BibleDataService
+      // 한글 번역 병렬 로드 (최적화)
+      final koreanFutures = verses.map((v) => _bibleData.getKoreanText(
+        widget.book,
+        widget.chapter,
+        v.verse,
+      )).toList();
+
+      final koreanTexts = await Future.wait(koreanFutures);
+
       final versesWithKorean = <VerseText>[];
-      for (final v in verses) {
-        final korean = await _bibleData.getKoreanText(
-          widget.book,
-          widget.chapter,
-          v.verse,
-        );
-        versesWithKorean.add(v.copyWith(korean: korean));
+      for (int i = 0; i < verses.length; i++) {
+        versesWithKorean.add(verses[i].copyWith(korean: koreanTexts[i]));
       }
 
       if (mounted) {
@@ -136,14 +145,20 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
   Future<void> _loadAllProgress() async {
     if (_verses.isEmpty) return;
 
+    // 진행도 병렬 로드 (최적화)
+    final progressFutures = _verses.map((verse) => _progress.getVerseProgress(
+      book: widget.book,
+      chapter: widget.chapter,
+      verse: verse.verse,
+    )).toList();
+
+    final progressList = await Future.wait(progressFutures);
+
     final progressMap = <int, VerseProgress>{};
-    for (final verse in _verses) {
-      progressMap[verse.verse] = await _progress.getVerseProgress(
-        book: widget.book,
-        chapter: widget.chapter,
-        verse: verse.verse,
-      );
+    for (int i = 0; i < _verses.length; i++) {
+      progressMap[_verses[i].verse] = progressList[i];
     }
+
     if (mounted) {
       setState(() {
         _verseProgressMap = progressMap;

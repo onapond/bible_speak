@@ -12,9 +12,10 @@ import '../../services/pronunciation/pronunciation_feedback_service.dart';
 import '../../services/tutor/tutor_coordinator.dart';
 import '../../services/social/group_activity_service.dart';
 import '../../services/social/group_challenge_service.dart';
+import '../../services/social/streak_service.dart';
+import '../../widgets/social/streak_widget.dart';
 import '../../models/learning_stage.dart';
 import '../../models/verse_progress.dart';
-import '../../models/group_activity.dart';
 
 /// 구절 연습 화면
 /// - 3단계 학습: Listen & Repeat → Key Expressions → Real Speak
@@ -48,6 +49,7 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
   final AudioPlayer _myVoicePlayer = AudioPlayer();
   final GroupActivityService _activityService = GroupActivityService();
   final GroupChallengeService _challengeService = GroupChallengeService();
+  final StreakService _streakService = StreakService();
 
   // Cached book info
   String _bookNameKo = '';
@@ -374,11 +376,13 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
       // 스테이지 통과 처리
       final passed = _currentStage.isPassed(result.overallScore);
 
-      // 그룹 활동 및 챌린지 기여 (통과 시)
+      // 그룹 활동, 챌린지 기여 및 스트릭 기록 (통과 시)
       if (passed) {
         _postActivityAndChallenge(
           isStage3: _currentStage == LearningStage.realSpeak,
         );
+        // 스트릭 기록 (마일스톤 달성 시 알림)
+        _recordStreakAndCheckMilestone();
       }
 
       setState(() {
@@ -529,6 +533,27 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
     } catch (e) {
       setState(() => _isPlayingMyVoice = false);
       _showSnackBar('재생 오류', isError: true);
+    }
+  }
+
+  /// 스트릭 기록 및 마일스톤 체크
+  Future<void> _recordStreakAndCheckMilestone() async {
+    try {
+      final milestone = await _streakService.recordLearning();
+
+      // 마일스톤 달성 시 축하 다이얼로그 표시
+      if (milestone != null && mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => MilestoneAchievedDialog(
+            milestone: milestone,
+            onDismiss: () => Navigator.pop(context),
+          ),
+        );
+      }
+    } catch (e) {
+      print('스트릭 기록 오류: $e');
     }
   }
 

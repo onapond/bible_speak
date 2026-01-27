@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import '../../services/group_service.dart';
-import '../../services/social/group_activity_service.dart';
 import '../../services/social/group_challenge_service.dart';
+import '../../services/social/streak_service.dart';
 import '../../widgets/social/activity_ticker.dart';
 import '../../widgets/social/group_goal_widget.dart';
+import '../../widgets/social/streak_widget.dart';
+import '../../models/user_streak.dart';
 import '../study/book_selection_screen.dart';
 import '../ranking/ranking_screen.dart';
 import '../word_study/word_study_home_screen.dart';
@@ -27,10 +29,12 @@ class MainMenuScreen extends StatefulWidget {
 class _MainMenuScreenState extends State<MainMenuScreen> {
   final _groupService = GroupService();
   final _challengeService = GroupChallengeService();
+  final _streakService = StreakService();
 
   String? _groupName;
   WeeklyChallenge? _challenge;
   int _myContribution = 0;
+  UserStreak _streak = const UserStreak();
   bool _isLoading = true;
 
   @override
@@ -41,6 +45,14 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
 
   Future<void> _loadSocialData() async {
     final user = widget.authService.currentUser;
+
+    // 스트릭 체크 및 로드 (그룹 없어도)
+    await _streakService.checkAndResetStreak();
+    final streak = await _streakService.getStreak();
+    if (mounted) {
+      setState(() => _streak = streak);
+    }
+
     if (user == null || user.groupId.isEmpty) {
       setState(() => _isLoading = false);
       return;
@@ -81,13 +93,26 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
               child: _buildHeader(user?.name ?? '사용자', user?.talants ?? 0),
             ),
 
+            // 스트릭 위젯
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                child: StreakWidget(
+                  streak: _streak,
+                  onTapProtection: _streak.isAtRisk && _streak.canUseProtection
+                      ? () => _showProtectionDialog()
+                      : null,
+                ),
+              ),
+            ),
+
             // 소셜 섹션 (그룹 있을 때만)
             if (hasGroup && !_isLoading) ...[
               // 그룹 활동 피드
               if (_groupName != null)
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                     child: ActivityTicker(
                       groupId: user!.groupId,
                       groupName: _groupName!,
@@ -304,6 +329,51 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
         backgroundColor: Colors.orange,
       ),
     );
+  }
+
+  void _showProtectionDialog() async {
+    final user = widget.authService.currentUser;
+    if (user == null) return;
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => StreakProtectionDialog(
+        streak: _streak,
+        dalantBalance: user.talants,
+        onConfirm: () => Navigator.pop(context, true),
+        onCancel: () => Navigator.pop(context, false),
+      ),
+    );
+
+    if (result == true) {
+      // 달란트 차감
+      final deducted = await widget.authService.deductTalant(100);
+      if (!deducted) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('달란트가 부족합니다.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
+      // 스트릭 보호 사용
+      final success = await _streakService.useProtection();
+      if (success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('🛡️ 스트릭 보호권을 사용했습니다!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        // 스트릭 데이터 새로고침
+        final streak = await _streakService.getStreak();
+        setState(() => _streak = streak);
+      }
+    }
   }
 
   void _showSettingsSheet() {

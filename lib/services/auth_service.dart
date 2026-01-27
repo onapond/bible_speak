@@ -211,4 +211,27 @@ class AuthService {
       return false;
     }
   }
+
+  /// 달란트 차감 (스트릭 보호권 등)
+  Future<bool> deductTalant(int amount) async {
+    if (_currentUser == null) return false;
+    if (_currentUser!.talants < amount) return false;
+
+    try {
+      await _firestore.collection('users').doc(_currentUser!.uid).update({
+        'talants': FieldValue.increment(-amount),
+      });
+
+      // 로컬 캐시 업데이트
+      _currentUser = _currentUser!.copyWith(
+        talants: _currentUser!.talants - amount,
+      );
+
+      print('💸 달란트 차감: -$amount');
+      return true;
+    } catch (e) {
+      print('❌ 달란트 차감 오류: $e');
+      return false;
+    }
+  }
 }

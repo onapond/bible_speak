@@ -114,7 +114,7 @@ class NotificationService {
       if (kIsWeb) {
         // 웹에서는 VAPID 키 필요
         _fcmToken = await _messaging.getToken(
-          vapidKey: 'YOUR_VAPID_KEY_HERE', // Firebase Console에서 생성
+          vapidKey: 'BCS9On6lgZ79otYyGDWNKgWy-5qiZ3Ag0_UqFZaPDWtcwZMwD7FK5khQdKYOeuV2fuzl96dcx1gpk1tQ7h5LlYA',
         );
       } else {
         _fcmToken = await _messaging.getToken();

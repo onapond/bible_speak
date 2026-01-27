@@ -10,8 +10,11 @@ import '../../services/bible_data_service.dart';
 import '../../services/pronunciation/azure_pronunciation_service.dart';
 import '../../services/pronunciation/pronunciation_feedback_service.dart';
 import '../../services/tutor/tutor_coordinator.dart';
+import '../../services/social/group_activity_service.dart';
+import '../../services/social/group_challenge_service.dart';
 import '../../models/learning_stage.dart';
 import '../../models/verse_progress.dart';
+import '../../models/group_activity.dart';
 
 /// 구절 연습 화면
 /// - 3단계 학습: Listen & Repeat → Key Expressions → Real Speak
@@ -43,6 +46,8 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
   final AzurePronunciationService _pronunciation = AzurePronunciationService();
   final PronunciationFeedbackService _feedbackService = PronunciationFeedbackService();
   final AudioPlayer _myVoicePlayer = AudioPlayer();
+  final GroupActivityService _activityService = GroupActivityService();
+  final GroupChallengeService _challengeService = GroupChallengeService();
 
   // Cached book info
   String _bookNameKo = '';
@@ -369,29 +374,52 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
       // 스테이지 통과 처리
       final passed = _currentStage.isPassed(result.overallScore);
 
+      // 그룹 활동 및 챌린지 기여 (통과 시)
+      if (passed) {
+        _postActivityAndChallenge(
+          isStage3: _currentStage == LearningStage.realSpeak,
+        );
+      }
+
       setState(() {
         _pronunciationResult = result;
         _feedback = feedback;
         _isProcessing = false;
       });
 
-      if (passed) {
-        if (_currentStage.isFinalStage) {
-          _showSnackBar(
-            '축하합니다! 암송 완료! (${result.overallScore.toStringAsFixed(0)}%)',
-            isError: false,
-          );
-        } else {
-          _showSnackBar(
-            '${_currentStage.koreanName} 통과! (${result.overallScore.toStringAsFixed(0)}%)',
-            isError: false,
-          );
-        }
-      }
+      // Speak 스타일 바텀시트로 결과 표시
+      _showResultBottomSheet(result, passed);
     } catch (e) {
       _showSnackBar('처리 중 오류: $e', isError: true);
       setState(() => _isProcessing = false);
     }
+  }
+
+  /// Speak 스타일 결과 바텀시트
+  void _showResultBottomSheet(PronunciationResult result, bool passed) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      isDismissible: true,
+      builder: (context) => _ResultBottomSheet(
+        result: result,
+        passed: passed,
+        stage: _currentStage,
+        aiFeedback: _aiFeedback,
+        isLoadingAiFeedback: _isLoadingAiFeedback,
+        onRetry: () {
+          Navigator.pop(context);
+          _resetState();
+        },
+        onNextStage: () {
+          Navigator.pop(context);
+          _goToNextStage();
+        },
+        onPlayMyVoice: _playMyVoice,
+        isPlayingMyVoice: _isPlayingMyVoice,
+      ),
+    );
   }
 
   /// Gemini AI 피드백 비동기 요청 (기존 발음 결과 사용)
@@ -413,6 +441,8 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
           _aiFeedback = aiFeedback;
           _isLoadingAiFeedback = false;
         });
+        // AI 피드백 팁 토스트 표시
+        _showAiTipToast(aiFeedback);
       } else {
         setState(() => _isLoadingAiFeedback = false);
       }
@@ -422,6 +452,48 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
         setState(() => _isLoadingAiFeedback = false);
       }
     }
+  }
+
+  /// AI 코치 팁 토스트 표시
+  void _showAiTipToast(TutorFeedback feedback) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(Icons.auto_awesome, color: Colors.amber.shade300, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    feedback.encouragement,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  if (feedback.detailedFeedback.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      feedback.detailedFeedback,
+                      style: const TextStyle(fontSize: 12),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.indigo.shade700,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        duration: const Duration(seconds: 5),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
   }
 
   void _goToNextStage() {
@@ -458,6 +530,28 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
       setState(() => _isPlayingMyVoice = false);
       _showSnackBar('재생 오류', isError: true);
     }
+  }
+
+  /// 그룹 활동 게시 및 챌린지 기여 (비동기, UI 블로킹 없음)
+  Future<void> _postActivityAndChallenge({bool isStage3 = false}) async {
+    final user = widget.authService.currentUser;
+    if (user == null || user.groupId.isEmpty || _currentVerse == null) return;
+
+    final verseRef = '$_bookNameKo ${widget.chapter}:${_currentVerse!.verse}';
+
+    // 비동기로 처리 (await 없이 fire-and-forget)
+    _activityService.postVerseComplete(
+      groupId: user.groupId,
+      userName: user.name,
+      verseRef: verseRef,
+      isStage3: isStage3,
+    );
+
+    // 챌린지 기여도 추가
+    _challengeService.addContribution(
+      groupId: user.groupId,
+      userName: user.name,
+    );
   }
 
   void _showSnackBar(String message, {bool isError = false}) {
@@ -1512,6 +1606,280 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
             ),
           ),
         ],
+      ],
+    );
+  }
+}
+
+/// Speak 스타일 결과 바텀시트
+class _ResultBottomSheet extends StatelessWidget {
+  final PronunciationResult result;
+  final bool passed;
+  final LearningStage stage;
+  final TutorFeedback? aiFeedback;
+  final bool isLoadingAiFeedback;
+  final VoidCallback onRetry;
+  final VoidCallback onNextStage;
+  final VoidCallback onPlayMyVoice;
+  final bool isPlayingMyVoice;
+
+  const _ResultBottomSheet({
+    required this.result,
+    required this.passed,
+    required this.stage,
+    required this.aiFeedback,
+    required this.isLoadingAiFeedback,
+    required this.onRetry,
+    required this.onNextStage,
+    required this.onPlayMyVoice,
+    required this.isPlayingMyVoice,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 핸들 바
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // 점수 표시 (Speak 스타일)
+              _buildScoreCircle(),
+              const SizedBox(height: 16),
+
+              // 통과/실패 텍스트
+              Text(
+                passed ? '${stage.koreanName} 통과!' : '다시 도전해보세요',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: passed ? Colors.green.shade700 : Colors.orange.shade700,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '통과 기준: ${stage.passThreshold.toStringAsFixed(0)}%',
+                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+              ),
+              const SizedBox(height: 24),
+
+              // AI 코치 피드백
+              _buildAiFeedbackSection(),
+              const SizedBox(height: 24),
+
+              // 액션 버튼들
+              _buildActionButtons(context),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildScoreCircle() {
+    final scoreColor = passed ? Colors.green : Colors.orange;
+
+    return Container(
+      width: 120,
+      height: 120,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [scoreColor.shade300, scoreColor.shade600],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: scoreColor.withValues(alpha: 0.4),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            '${result.overallScore.toStringAsFixed(0)}',
+            style: const TextStyle(
+              fontSize: 42,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          const Text(
+            '%',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w500,
+              color: Colors.white70,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAiFeedbackSection() {
+    if (isLoadingAiFeedback) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.blue.shade50,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.blue.shade400,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'AI 코치가 분석 중...',
+              style: TextStyle(color: Colors.blue.shade700),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (aiFeedback != null && aiFeedback!.isSuccess) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.blue.shade50, Colors.purple.shade50],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.blue.shade100),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.auto_awesome, size: 18, color: Colors.blue.shade600),
+                const SizedBox(width: 8),
+                Text(
+                  'AI 코치',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue.shade600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              aiFeedback!.encouragement,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            if (aiFeedback!.detailedFeedback.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                aiFeedback!.detailedFeedback,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey.shade700,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ],
+        ),
+      );
+    }
+
+    // 기본 피드백 (AI 없을 때)
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Text(
+        passed
+            ? '잘하셨어요! 다음 단계로 넘어가세요.'
+            : '천천히 또박또박 다시 읽어보세요.',
+        style: const TextStyle(fontSize: 15),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+
+  Widget _buildActionButtons(BuildContext context) {
+    return Row(
+      children: [
+        // 내 목소리 듣기
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: onPlayMyVoice,
+            icon: Icon(
+              isPlayingMyVoice ? Icons.stop : Icons.headphones,
+              size: 20,
+            ),
+            label: Text(isPlayingMyVoice ? '중지' : '내 목소리'),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+
+        // 다시 시도 / 다음 단계
+        Expanded(
+          flex: 2,
+          child: ElevatedButton.icon(
+            onPressed: passed && stage.nextStage != null ? onNextStage : onRetry,
+            icon: Icon(
+              passed && stage.nextStage != null
+                  ? Icons.arrow_forward
+                  : Icons.refresh,
+              size: 20,
+            ),
+            label: Text(
+              passed && stage.nextStage != null ? '다음 단계' : '다시 도전',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: passed ? Colors.green : Colors.indigo,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        ),
       ],
     );
   }

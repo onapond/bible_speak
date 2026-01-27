@@ -6,7 +6,7 @@ import '../../services/notification/notification_service.dart';
 import '../../services/notification/notification_settings_service.dart';
 import '../../widgets/notification/notification_permission_dialog.dart';
 
-/// 알림 설정 화면
+/// 알림 설정 화면 (다크 테마)
 class NotificationSettingsScreen extends StatefulWidget {
   const NotificationSettingsScreen({super.key});
 
@@ -21,6 +21,11 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
   app_settings.NotificationSettings _settings = const app_settings.NotificationSettings();
   bool _isLoading = true;
   bool _hasPermission = false;
+
+  // 디자인 상수
+  static const _bgColor = Color(0xFF0F0F1A);
+  static const _cardColor = Color(0xFF1E1E2E);
+  static const _accentColor = Color(0xFF6C63FF);
 
   @override
   void initState() {
@@ -59,7 +64,12 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
 
       if (result && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('알림이 활성화되었습니다')),
+          SnackBar(
+            content: const Text('알림이 활성화되었습니다'),
+            backgroundColor: Colors.green.shade700,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
         );
       }
     }
@@ -80,6 +90,17 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
       context: context,
       initialTime: currentTime,
       helpText: '아침 만나 알림 시간',
+      builder: (context, child) {
+        return Theme(
+          data: ThemeData.dark().copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: _accentColor,
+              surface: _cardColor,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (newTime != null) {
@@ -91,205 +112,361 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('알림 설정')),
-        body: const Center(child: CircularProgressIndicator()),
-      );
-    }
-
     return Scaffold(
+      backgroundColor: _bgColor,
       appBar: AppBar(
-        title: const Text('알림 설정'),
+        backgroundColor: _bgColor,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        title: const Text(
+          '알림 설정',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
-      body: ListView(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: _accentColor))
+          : ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                // 권한 상태 배너
+                if (!_hasPermission && !kIsWeb) _buildPermissionBanner(),
+
+                // 웹 알림 안내
+                if (kIsWeb) _buildWebNotice(),
+
+                // 전체 알림 토글
+                _buildMainToggle(),
+                const SizedBox(height: 16),
+
+                // 알림 유형 섹션
+                _buildSectionTitle('알림 유형'),
+                const SizedBox(height: 12),
+                _buildNotificationTypeCard(),
+                const SizedBox(height: 16),
+
+                // 알림 옵션 섹션
+                _buildSectionTitle('알림 옵션'),
+                const SizedBox(height: 12),
+                _buildNotificationOptionsCard(),
+                const SizedBox(height: 32),
+              ],
+            ),
+    );
+  }
+
+  Widget _buildPermissionBanner() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade900.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.orange.shade700.withValues(alpha: 0.5)),
+      ),
+      child: Row(
         children: [
-          // 권한 상태 배너
-          if (!_hasPermission && !kIsWeb)
-            Container(
-              color: Colors.orange.shade100,
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  const Icon(Icons.warning_amber, color: Colors.orange),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          '알림 권한이 필요합니다',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        Text(
-                          '푸시 알림을 받으려면 권한을 허용해주세요',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade700,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: _requestPermission,
-                    child: const Text('허용'),
-                  ),
-                ],
-              ),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.orange.withValues(alpha: 0.2),
+              shape: BoxShape.circle,
             ),
-
-          // 웹 알림 안내
-          if (kIsWeb)
-            Container(
-              color: Colors.blue.shade50,
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  const Icon(Icons.info_outline, color: Colors.blue),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      '웹에서는 브라우저 알림으로 제공됩니다. 브라우저 설정에서 알림을 허용해주세요.',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade700,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-          // 전체 알림 토글
-          SwitchListTile(
-            title: const Text('알림 받기'),
-            subtitle: const Text('모든 푸시 알림을 켜거나 끕니다'),
-            value: _settings.enabled,
-            onChanged: (value) => _updateSetting('enabled', value),
-            secondary: const Icon(Icons.notifications),
+            child: const Icon(Icons.warning_amber, color: Colors.orange, size: 24),
           ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '알림 권한이 필요합니다',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '푸시 알림을 받으려면 권한을 허용해주세요',
+                  style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.7)),
+                ),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: _requestPermission,
+            style: TextButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('허용'),
+          ),
+        ],
+      ),
+    );
+  }
 
-          const Divider(),
-
-          // 알림 유형별 설정
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+  Widget _buildWebNotice() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: _accentColor.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.info_outline, color: _accentColor.withValues(alpha: 0.8), size: 24),
+          const SizedBox(width: 12),
+          Expanded(
             child: Text(
-              '알림 유형',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).primaryColor,
-              ),
+              '웹에서는 브라우저 알림으로 제공됩니다.',
+              style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.8)),
             ),
           ),
+        ],
+      ),
+    );
+  }
 
-          // 아침 만나
-          SwitchListTile(
-            title: const Text('아침 만나'),
-            subtitle: Text(
-              _settings.morningMannaEnabled
-                  ? '매일 ${_settings.morningMannaTime}에 알림'
-                  : '비활성화됨',
-            ),
+  Widget _buildMainToggle() {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: _cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: SwitchListTile(
+        title: const Text(
+          '알림 받기',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        ),
+        subtitle: Text(
+          '모든 푸시 알림을 켜거나 끕니다',
+          style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 13),
+        ),
+        value: _settings.enabled,
+        onChanged: (value) => _updateSetting('enabled', value),
+        activeColor: _accentColor,
+        secondary: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: _accentColor.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(Icons.notifications, color: _accentColor, size: 24),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.bold,
+          color: Colors.white.withValues(alpha: 0.6),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNotificationTypeCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: _cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Column(
+        children: [
+          _buildNotificationTile(
+            icon: Icons.wb_sunny,
+            iconColor: Colors.amber,
+            title: '아침 만나',
+            subtitle: _settings.morningMannaEnabled
+                ? '매일 ${_settings.morningMannaTime}에 알림'
+                : '비활성화됨',
             value: _settings.morningMannaEnabled,
             onChanged: _settings.enabled
                 ? (value) => _settingsService.setMorningManna(enabled: value).then((_) => _loadSettings())
                 : null,
-            secondary: const Icon(Icons.wb_sunny),
+            showTimePicker: _settings.morningMannaEnabled && _settings.enabled,
+            onTimeTap: _showTimePickerDialog,
           ),
-
-          // 아침 만나 시간 설정
-          if (_settings.morningMannaEnabled && _settings.enabled)
-            ListTile(
-              title: const Text('알림 시간'),
-              subtitle: Text(_settings.morningMannaTime),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: _showTimePickerDialog,
-              contentPadding: const EdgeInsets.only(left: 72, right: 16),
-            ),
-
-          // 스트릭 경고
-          SwitchListTile(
-            title: const Text('스트릭 경고'),
-            subtitle: const Text('학습하지 않은 날 저녁 9시에 알림'),
+          _buildDivider(),
+          _buildNotificationTile(
+            icon: Icons.local_fire_department,
+            iconColor: Colors.deepOrange,
+            title: '스트릭 경고',
+            subtitle: '학습하지 않은 날 저녁 9시에 알림',
             value: _settings.streakWarningEnabled,
             onChanged: _settings.enabled
                 ? (value) => _updateSetting('streakWarningEnabled', value)
                 : null,
-            secondary: const Icon(Icons.local_fire_department),
           ),
-
-          // 찌르기 알림
-          SwitchListTile(
-            title: const Text('찌르기 알림'),
-            subtitle: const Text('그룹 멤버의 격려 메시지'),
+          _buildDivider(),
+          _buildNotificationTile(
+            icon: Icons.pan_tool,
+            iconColor: Colors.pink,
+            title: '찌르기 알림',
+            subtitle: '그룹 멤버의 격려 메시지',
             value: _settings.nudgeEnabled,
             onChanged: _settings.enabled
                 ? (value) => _updateSetting('nudgeEnabled', value)
                 : null,
-            secondary: const Icon(Icons.pan_tool),
           ),
-
-          // 반응 알림
-          SwitchListTile(
-            title: const Text('반응 알림'),
-            subtitle: const Text('내 활동에 대한 반응'),
+          _buildDivider(),
+          _buildNotificationTile(
+            icon: Icons.favorite,
+            iconColor: Colors.red,
+            title: '반응 알림',
+            subtitle: '내 활동에 대한 반응',
             value: _settings.reactionEnabled,
             onChanged: _settings.enabled
                 ? (value) => _updateSetting('reactionEnabled', value)
                 : null,
-            secondary: const Icon(Icons.favorite),
           ),
-
-          // 주간 리포트
-          SwitchListTile(
-            title: const Text('주간 리포트'),
-            subtitle: const Text('매주 일요일 저녁 6시'),
+          _buildDivider(),
+          _buildNotificationTile(
+            icon: Icons.bar_chart,
+            iconColor: Colors.teal,
+            title: '주간 리포트',
+            subtitle: '매주 일요일 저녁 6시',
             value: _settings.weeklySummaryEnabled,
             onChanged: _settings.enabled
                 ? (value) => _updateSetting('weeklySummaryEnabled', value)
                 : null,
-            secondary: const Icon(Icons.bar_chart),
+            isLast: true,
           ),
+        ],
+      ),
+    );
+  }
 
-          const Divider(),
-
-          // 소리 및 진동 설정
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Text(
-              '알림 설정',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).primaryColor,
-              ),
-            ),
-          ),
-
-          SwitchListTile(
-            title: const Text('소리'),
+  Widget _buildNotificationOptionsCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: _cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Column(
+        children: [
+          _buildNotificationTile(
+            icon: Icons.volume_up,
+            iconColor: Colors.blue,
+            title: '소리',
+            subtitle: '알림 소리 켜기/끄기',
             value: _settings.soundEnabled,
             onChanged: _settings.enabled
                 ? (value) => _updateSetting('soundEnabled', value)
                 : null,
-            secondary: const Icon(Icons.volume_up),
           ),
-
-          SwitchListTile(
-            title: const Text('진동'),
+          _buildDivider(),
+          _buildNotificationTile(
+            icon: Icons.vibration,
+            iconColor: Colors.purple,
+            title: '진동',
+            subtitle: '알림 진동 켜기/끄기',
             value: _settings.vibrationEnabled,
             onChanged: _settings.enabled
                 ? (value) => _updateSetting('vibrationEnabled', value)
                 : null,
-            secondary: const Icon(Icons.vibration),
+            isLast: true,
           ),
-
-          const SizedBox(height: 32),
         ],
       ),
+    );
+  }
+
+  Widget _buildNotificationTile({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool>? onChanged,
+    bool isLast = false,
+    bool showTimePicker = false,
+    VoidCallback? onTimeTap,
+  }) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+          child: SwitchListTile(
+            title: Text(
+              title,
+              style: TextStyle(
+                color: onChanged != null ? Colors.white : Colors.white54,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            subtitle: Text(
+              subtitle,
+              style: TextStyle(
+                color: onChanged != null ? Colors.white60 : Colors.white38,
+                fontSize: 12,
+              ),
+            ),
+            value: value,
+            onChanged: onChanged,
+            activeColor: _accentColor,
+            secondary: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: iconColor.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: iconColor, size: 20),
+            ),
+          ),
+        ),
+        if (showTimePicker)
+          Padding(
+            padding: const EdgeInsets.only(left: 72, right: 16, bottom: 8),
+            child: InkWell(
+              onTap: onTimeTap,
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: _accentColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '알림 시간: ${_settings.morningMannaTime}',
+                      style: TextStyle(color: _accentColor, fontSize: 13),
+                    ),
+                    Icon(Icons.edit, color: _accentColor, size: 16),
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildDivider() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Divider(color: Colors.white.withValues(alpha: 0.1), height: 1),
     );
   }
 }

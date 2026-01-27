@@ -1,7 +1,7 @@
 # Bible Speak Development Progress
 
-**Last Updated**: 2026-01-26
-**Last Commit**: `1b6ecf8` - feat: Add Speak-style verse roadmap UI
+**Last Updated**: 2026-01-27
+**Last Commit**: Web deployment with Cloudflare Worker audio proxy
 
 ---
 
@@ -10,9 +10,13 @@
 **Bible Speak** (바이블 스픽) is an AI-powered English Bible memorization app built with Flutter. The app uses a 3-stage learning system inspired by language learning apps like "Speak".
 
 ### Core Learning Flow
-1. **Stage 1: Listen & Repeat** (듣고 따라하기) - 70% pass threshold
-2. **Stage 2: Key Expressions** (핵심 표현) - 80% pass threshold
-3. **Stage 3: Real Speak** (실전 암송) - 85% pass threshold
+1. **Stage 1: Listen & Repeat** (듣고 따라하기) - 75% pass threshold
+2. **Stage 2: Key Expressions** (핵심 표현) - 78% pass threshold
+3. **Stage 3: Real Speak** (실전 암송) - 80% pass threshold
+
+### Deployment URLs
+- **Web App**: https://bible-speak.web.app
+- **Audio Proxy**: https://bible-speak-proxy.tlsdygksdev.workers.dev
 
 ---
 
@@ -38,118 +42,157 @@
 - [x] Modified `ChapterSelectionScreen` navigation flow
 - [x] Added `initialVerse` parameter to `VersePracticeScreen`
 
+### Task 2: Azure Speech API Integration (2026-01-27)
+- [x] Azure Speech Services 연동 (Korea Central)
+- [x] 발음 평가 기능 구현 (Pronunciation Assessment)
+- [x] 녹음 형식 WAV로 변경 (PCM 16-bit, 16kHz, mono)
+- [x] 점수 계산 로직 최적화 (정확도 80% 가중치)
+- [x] 통과 기준 조정 (75/78/80점)
+
+### Task 3: Web Deployment (2026-01-27)
+- [x] Flutter Web 빌드 설정
+- [x] Firebase Hosting 배포
+- [x] AppConfig 생성 (웹/모바일 설정 분기)
+- [x] 웹용 녹음 서비스 (`record` 패키지)
+- [x] 플랫폼별 오디오 로더 (conditional imports)
+- [x] Cloudflare Worker 오디오 프록시 구현
+- [x] CORS 문제 해결
+
+---
+
+## Web Architecture
+
+```
+┌─────────────────────┐     ┌──────────────────────┐     ┌─────────────────┐
+│   Flutter Web App   │────▶│  Cloudflare Worker   │────▶│    ESV API      │
+│ (Firebase Hosting)  │     │   (Audio Proxy)      │     │  (Audio Data)   │
+└─────────────────────┘     └──────────────────────┘     └─────────────────┘
+         │
+         ▼
+┌─────────────────────┐
+│   Azure Speech API  │
+│ (Pronunciation)     │
+└─────────────────────┘
+```
+
 ---
 
 ## Pending Tasks
 
-### Task 2: Word Study Integration
+### Task 4: Word Study Integration
 **Status**: Not started
 **Description**: Integrate Gemini API for keyword extraction from verses
-- Extract key vocabulary from each verse
-- Show word definitions and usage examples
-- Track vocabulary learning progress
 
-### Task 3: Advanced Feedback UI
+### Task 5: Advanced Feedback UI
 **Status**: Not started
 **Description**: Enhanced pronunciation feedback display
-- Visual waveform comparison
-- Word-by-word accuracy breakdown
-- Improvement suggestions
 
-### Task 4: Daily Streak Gamification
+### Task 6: Daily Streak Gamification
 **Status**: Not started
 **Description**: Implement streak tracking and rewards
-- Daily login streak counter
-- Talent (달란트) reward system
-- Achievement badges
 
 ---
 
-## Pronunciation API: Azure Speech Services ✓
+## API Configuration
 
-### Status: Connected (2026-01-27)
+### Azure Speech Services ✓
+- **Region**: Korea Central
+- **Pricing**: F0 (Free - 5 hours/month)
+- **Features**: Pronunciation Assessment, Prosody, Miscue Detection
 
-**Configuration**:
-- Service: Azure Speech Services (Korea Central)
-- Pricing Tier: F0 (Free - 5 hours/month)
-- API Key: Configured in `.env`
+### ESV API ✓
+- **Audio**: Via Cloudflare Worker proxy (web), Direct (mobile)
+- **Text**: Direct API call
 
-**Features Enabled**:
-- Pronunciation Assessment (음소 단위 평가)
-- Prosody Assessment (억양/리듬 평가)
-- Miscue Detection (오류 감지)
+### Gemini API ✓
+- **Usage**: AI 튜터 피드백 생성
 
-**File**: `lib/services/pronunciation/azure_pronunciation_service.dart`
+### ElevenLabs API ✓
+- **Usage**: 일반 TTS (단어 학습용)
 
 ---
 
 ## Key Files Reference
+
+### Config
+| File | Purpose |
+|------|---------|
+| `lib/config/app_config.dart` | **NEW** 웹/모바일 설정 분기 |
+| `.env` | API 키 (모바일용) |
+| `firebase.json` | Firebase 설정 |
 
 ### Models
 | File | Purpose |
 |------|---------|
 | `lib/models/learning_stage.dart` | 3-stage learning enum with thresholds |
 | `lib/models/verse_progress.dart` | Verse-level progress tracking |
-| `lib/domain/models/bible/bible_models.dart` | Bible data structures |
-
-### Screens
-| File | Purpose |
-|------|---------|
-| `lib/screens/study/chapter_selection_screen.dart` | Chapter roadmap with curved path |
-| `lib/screens/study/verse_roadmap_screen.dart` | **NEW** Verse-level roadmap UI |
-| `lib/screens/practice/verse_practice_screen.dart` | Main practice screen with 3 stages |
 
 ### Services
 | File | Purpose |
 |------|---------|
-| `lib/services/progress_service.dart` | Firestore progress sync |
-| `lib/services/bible_data_service.dart` | Bible data from Firestore |
-| `lib/services/tts_service.dart` | Text-to-speech |
-| `lib/services/pronunciation/azure_pronunciation_service.dart` | **NEEDS REPLACEMENT** |
+| `lib/services/tts_service.dart` | TTS with web proxy support |
+| `lib/services/recording_service.dart` | 웹/모바일 녹음 (record 패키지) |
+| `lib/services/pronunciation/azure_pronunciation_service.dart` | 발음 평가 |
+| `lib/services/pronunciation/audio_loader.dart` | 플랫폼별 오디오 로딩 |
+
+### Proxy
+| File | Purpose |
+|------|---------|
+| `cloudflare-worker/worker.js` | ESV Audio CORS 프록시 |
 
 ---
 
-## Build Commands
+## Build & Deploy Commands
 
 ```bash
-# Android build
+# Android 빌드
 flutter build apk
 
-# Run on connected device
+# 연결된 기기에서 실행
 flutter run
 
-# Analyze code
-flutter analyze
+# Web 빌드
+flutter build web --release
 
-# iOS build (requires macOS)
-cd ios && pod install && cd ..
-flutter build ios --no-codesign
+# Firebase Hosting 배포
+firebase deploy --only hosting --project bible-speak
+
+# Cloudflare Worker 배포
+# dash.cloudflare.com에서 Quick Edit 사용
 ```
 
 ---
 
 ## Environment Variables
 
-Required in `.env` file:
+`.env` 파일 (모바일용):
 ```
-FIREBASE_API_KEY=...
-GOOGLE_CLOUD_API_KEY=...  # Pending setup
+ESV_API_KEY=...
+GEMINI_API_KEY=...
+ELEVENLABS_API_KEY=...
+AZURE_SPEECH_KEY=...
+AZURE_SPEECH_REGION=koreacentral
 ```
+
+웹에서는 `AppConfig`에 하드코딩된 값 사용 (dotenv 미지원)
 
 ---
 
-## Next Steps for Future Sessions
+## Web Limitations
 
-1. **If Google Cloud API key is ready**: Implement Google Speech service
-2. **If API not ready**: Continue with Task 2 (Word Study) or Task 4 (Gamification)
-3. **For iOS testing**: Need macOS environment
+| 기능 | 웹 지원 | 비고 |
+|------|---------|------|
+| 성경 텍스트 로딩 | ✅ | Firestore |
+| 오디오 재생 | ✅ | Cloudflare Worker 프록시 |
+| 녹음 | ✅ | Web Audio API |
+| 발음 평가 | ✅ | Azure Speech API |
+| 로컬 캐시 | ❌ | 웹 미지원 |
 
 ---
 
-## Architecture Notes
+## Next Steps
 
-- **State Management**: StatefulWidget with setState (no external state management)
-- **Backend**: Firebase/Firestore
-- **Authentication**: Firebase Auth via `AuthService`
-- **Navigation**: Standard Navigator push/pop
-- **Theme**: Dark theme with blue/purple gradient accents
+1. **단어 학습**: Gemini API로 핵심 단어 추출
+2. **게이미피케이션**: 연속 학습 스트릭, 달란트 시스템
+3. **피드백 UI 개선**: 음파 시각화, 단어별 정확도 표시
+4. **iOS 배포**: macOS 환경 필요

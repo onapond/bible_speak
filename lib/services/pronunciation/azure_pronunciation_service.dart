@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'dart:typed_data';
 import 'package:http/http.dart' as http;
+
+import '../../config/app_config.dart';
+import 'audio_loader.dart';
 
 /// Azure Pronunciation Assessment 서비스 (최적화 버전)
 /// - 재시도 로직 (최대 3회)
@@ -11,8 +13,8 @@ import 'package:http/http.dart' as http;
 /// - 상세한 오류 메시지
 class AzurePronunciationService {
   // Azure Speech 설정
-  String get _subscriptionKey => dotenv.env['AZURE_SPEECH_KEY'] ?? '';
-  String get _region => dotenv.env['AZURE_SPEECH_REGION'] ?? 'koreacentral';
+  String get _subscriptionKey => AppConfig.azureSpeechKey;
+  String get _region => AppConfig.azureSpeechRegion;
 
   String get _endpoint =>
       'https://$_region.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1';
@@ -39,28 +41,20 @@ class AzurePronunciationService {
       );
     }
 
-    // 파일 확인
-    final file = File(audioFilePath);
-    if (!await file.exists()) {
-      return PronunciationResult.error('오디오 파일을 찾을 수 없습니다.');
+    // 오디오 로드 (웹/모바일 자동 처리)
+    final audioBytes = await AudioLoader.load(audioFilePath);
+    if (audioBytes == null) {
+      return PronunciationResult.error('오디오 파일을 로드할 수 없습니다.');
     }
 
-    // 파일 크기 확인 (너무 작으면 녹음 실패)
-    final fileSize = await file.length();
-    if (fileSize < 1000) {
-      return PronunciationResult.error(
-        '녹음이 너무 짧습니다. 다시 녹음해주세요.',
-      );
+    // 크기 확인
+    if (audioBytes.length < 1000) {
+      return PronunciationResult.error('녹음이 너무 짧습니다. 다시 녹음해주세요.');
     }
 
-    // 파일 크기 제한 (10MB)
-    if (fileSize > 10 * 1024 * 1024) {
-      return PronunciationResult.error(
-        '녹음이 너무 깁니다. 구절을 나눠서 녹음해주세요.',
-      );
+    if (audioBytes.length > 10 * 1024 * 1024) {
+      return PronunciationResult.error('녹음이 너무 깁니다. 구절을 나눠서 녹음해주세요.');
     }
-
-    final audioBytes = await file.readAsBytes();
 
     // 재시도 로직
     Exception? lastException;
@@ -78,27 +72,17 @@ class AzurePronunciationService {
           await Future.delayed(_retryDelay * attempt);
           continue;
         }
-      } on SocketException catch (e) {
-        // 네트워크 연결 오류
-        if (e.message.contains('Failed host lookup') ||
-            e.message.contains('No address associated')) {
+      } catch (e) {
+        // 네트워크/HTTP 오류 처리
+        final errorMsg = e.toString().toLowerCase();
+        if (errorMsg.contains('failed host lookup') ||
+            errorMsg.contains('no address associated') ||
+            errorMsg.contains('network') ||
+            errorMsg.contains('socketexception')) {
           return PronunciationResult.error(
             '인터넷 연결을 확인해주세요.\n네트워크에 연결되어 있지 않습니다.',
           );
         }
-        lastException = Exception('네트워크 오류: ${e.message}');
-        if (attempt < _maxRetries) {
-          await Future.delayed(_retryDelay * attempt);
-          continue;
-        }
-      } on HttpException catch (e) {
-        lastException = Exception('HTTP 오류: ${e.message}');
-        if (attempt < _maxRetries) {
-          await Future.delayed(_retryDelay * attempt);
-          continue;
-        }
-      } catch (e) {
-        // 재시도할 수 없는 오류
         if (e.toString().contains('API 키') ||
             e.toString().contains('인식 결과')) {
           return PronunciationResult.error(e.toString());

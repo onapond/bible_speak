@@ -63,3 +63,15 @@ ios/*.p12
 
 # Local configuration
 .claude/
+
+# Firebase
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+
+# Node modules (Firebase Functions, Cloudflare Worker)
+**/node_modules/
+
+# Temporary files
+nul
+*.tmp

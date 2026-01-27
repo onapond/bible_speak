@@ -5,9 +5,10 @@ import 'dart:typed_data';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
+
+import '../config/app_config.dart';
 
 /// TTS 서비스 (최적화 버전)
 /// - ESV API 오디오 (성경 구절 전용)
@@ -35,8 +36,8 @@ class TTSService {
   double get playbackRate => _playbackRate;
 
   // API 키
-  String get _esvApiKey => dotenv.env['ESV_API_KEY'] ?? '';
-  String get _elevenLabsApiKey => dotenv.env['ELEVENLABS_API_KEY'] ?? '';
+  String get _esvApiKey => AppConfig.esvApiKey;
+  String get _elevenLabsApiKey => AppConfig.elevenLabsApiKey;
 
   // ESV API 설정
   static const String _esvBaseUrl = 'https://api.esv.org/v3/passage/audio/';
@@ -60,23 +61,70 @@ class TTSService {
   }) async {
     final reference = '$book+$chapter:$verse';
 
-    if (_esvApiKey.isEmpty) {
+    if (!kIsWeb && _esvApiKey.isEmpty) {
       throw Exception('ESV API 키가 설정되지 않았습니다.');
     }
 
     try {
       _isPlaying = true;
-      final audioUrl = '$_esvBaseUrl?q=$reference';
 
       if (kIsWeb) {
-        await _playFromUrlWeb(audioUrl);
+        // 웹에서는 프록시를 통해 오디오 재생
+        await _playFromProxyWeb(reference);
       } else {
+        final audioUrl = '$_esvBaseUrl?q=$reference';
         await _playFromUrlWithCache(audioUrl, reference);
       }
     } catch (e) {
       _isPlaying = false;
       rethrow;
     }
+  }
+
+  /// 웹에서 프록시를 통해 오디오 재생
+  Future<void> _playFromProxyWeb(String reference) async {
+    Exception? lastException;
+
+    for (int attempt = 1; attempt <= _maxRetries; attempt++) {
+      try {
+        final proxyUrl = AppConfig.getEsvAudioUrl(reference);
+        print('🌐 웹 오디오 프록시 요청: $proxyUrl');
+
+        final response = await http.get(
+          Uri.parse(proxyUrl),
+        ).timeout(const Duration(seconds: 30));
+
+        if (response.statusCode == 200) {
+          final bytes = response.bodyBytes;
+          await _audioPlayer.setPlaybackRate(_playbackRate);
+          await _audioPlayer.play(BytesSource(Uint8List.fromList(bytes)));
+          await _audioPlayer.onPlayerComplete.first;
+          _isPlaying = false;
+          return;
+        } else if (response.statusCode >= 500 && attempt < _maxRetries) {
+          lastException = Exception('서버 오류: ${response.statusCode}');
+          await Future.delayed(_retryDelay * attempt);
+          continue;
+        } else {
+          throw Exception('오디오 로드 오류: ${response.statusCode}');
+        }
+      } on TimeoutException {
+        lastException = Exception('요청 시간 초과');
+        if (attempt < _maxRetries) {
+          await Future.delayed(_retryDelay * attempt);
+          continue;
+        }
+      } catch (e) {
+        lastException = Exception('재생 오류: $e');
+        if (attempt < _maxRetries) {
+          await Future.delayed(_retryDelay * attempt);
+          continue;
+        }
+      }
+    }
+
+    _isPlaying = false;
+    throw lastException ?? Exception('알 수 없는 오류');
   }
 
   /// 다음 구절 프리로드 (백그라운드)
@@ -186,50 +234,6 @@ class TTSService {
       }
     }
 
-    throw lastException ?? Exception('알 수 없는 오류');
-  }
-
-  /// 웹 오디오 재생
-  Future<void> _playFromUrlWeb(String url) async {
-    Exception? lastException;
-
-    for (int attempt = 1; attempt <= _maxRetries; attempt++) {
-      try {
-        final response = await http.get(
-          Uri.parse(url),
-          headers: {'Authorization': 'Token $_esvApiKey'},
-        ).timeout(const Duration(seconds: 30));
-
-        if (response.statusCode == 200) {
-          final bytes = response.bodyBytes;
-          await _audioPlayer.setPlaybackRate(_playbackRate);
-          await _audioPlayer.play(BytesSource(Uint8List.fromList(bytes)));
-          await _audioPlayer.onPlayerComplete.first;
-          _isPlaying = false;
-          return;
-        } else if (response.statusCode >= 500 && attempt < _maxRetries) {
-          lastException = Exception('서버 오류: ${response.statusCode}');
-          await Future.delayed(_retryDelay * attempt);
-          continue;
-        } else {
-          throw Exception('ESV API 오류: ${response.statusCode}');
-        }
-      } on TimeoutException {
-        lastException = Exception('요청 시간 초과');
-        if (attempt < _maxRetries) {
-          await Future.delayed(_retryDelay * attempt);
-          continue;
-        }
-      } catch (e) {
-        lastException = Exception('재생 오류: $e');
-        if (attempt < _maxRetries) {
-          await Future.delayed(_retryDelay * attempt);
-          continue;
-        }
-      }
-    }
-
-    _isPlaying = false;
     throw lastException ?? Exception('알 수 없는 오류');
   }
 

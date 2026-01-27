@@ -1,14 +1,13 @@
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter_sound/flutter_sound.dart';
+import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-/// 마이크 녹음 서비스
-/// - flutter_sound 사용
-/// - 웹에서는 제한됨
+/// 마이크 녹음 서비스 (웹/모바일 통합)
+/// - record 패키지 사용 (모든 플랫폼 지원)
 class RecordingService {
-  FlutterSoundRecorder? _recorder;
+  AudioRecorder? _recorder;
 
   bool _isInitialized = false;
   bool _isRecording = false;
@@ -18,21 +17,18 @@ class RecordingService {
   String? _lastRecordingPath;
   String? get lastRecordingPath => _lastRecordingPath;
 
+  // 웹에서 사용할 녹음 데이터 (Blob URL)
+  Uint8List? _webRecordingData;
+  Uint8List? get webRecordingData => _webRecordingData;
+
   /// 초기화
   Future<bool> init() async {
     if (_isInitialized) return true;
 
-    // 웹 환경 체크
-    if (kIsWeb) {
-      print('⚠️ 웹에서는 녹음 기능이 제한됩니다.');
-      return false;
-    }
-
     print('🎤 녹음기 초기화 중...');
 
     try {
-      _recorder = FlutterSoundRecorder();
-      await _recorder!.openRecorder();
+      _recorder = AudioRecorder();
       _isInitialized = true;
       print('✅ 녹음기 초기화 완료');
       return true;
@@ -47,10 +43,17 @@ class RecordingService {
     print('🔐 마이크 권한 확인 중...');
 
     if (kIsWeb) {
-      print('🌐 웹 환경: 브라우저 권한 필요');
-      return true; // 웹은 별도 처리
+      // 웹에서는 record 패키지가 자동으로 권한 요청
+      final hasPermission = await _recorder?.hasPermission() ?? false;
+      if (hasPermission) {
+        print('✅ 마이크 권한 허용됨 (웹)');
+        return true;
+      }
+      print('❌ 마이크 권한 거부됨 (웹)');
+      return false;
     }
 
+    // 모바일
     final status = await Permission.microphone.request();
 
     if (status.isGranted) {
@@ -70,41 +73,52 @@ class RecordingService {
   Future<bool> startRecording() async {
     print('\n🎤 녹음 시작 요청');
 
-    if (kIsWeb) {
-      print('❌ 웹에서는 녹음이 지원되지 않습니다.');
-      return false;
-    }
-
     if (_isRecording) {
       print('⚠️ 이미 녹음 중입니다');
       return false;
     }
-
-    final hasPermission = await requestPermission();
-    if (!hasPermission) return false;
 
     if (!_isInitialized) {
       final ok = await init();
       if (!ok) return false;
     }
 
-    try {
-      final directory = await getTemporaryDirectory();
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final filePath = '${directory.path}/recording_$timestamp.wav';
+    final hasPermission = await requestPermission();
+    if (!hasPermission) return false;
 
-      await _recorder!.startRecorder(
-        toFile: filePath,
-        codec: Codec.pcm16WAV,
-        sampleRate: 16000,
-        numChannels: 1,
-      );
+    try {
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+
+      if (kIsWeb) {
+        // 웹: 메모리에 녹음
+        await _recorder!.start(
+          const RecordConfig(
+            encoder: AudioEncoder.wav,
+            sampleRate: 16000,
+            numChannels: 1,
+          ),
+          path: '', // 웹에서는 빈 경로 (Blob 사용)
+        );
+        _lastRecordingPath = 'web_recording_$timestamp.wav';
+      } else {
+        // 모바일: 파일로 녹음
+        final directory = await getTemporaryDirectory();
+        final filePath = '${directory.path}/recording_$timestamp.wav';
+
+        await _recorder!.start(
+          const RecordConfig(
+            encoder: AudioEncoder.wav,
+            sampleRate: 16000,
+            numChannels: 1,
+          ),
+          path: filePath,
+        );
+        _lastRecordingPath = filePath;
+      }
 
       _isRecording = true;
-      _lastRecordingPath = filePath;
-
       print('✅ 녹음 시작됨!');
-      print('📁 경로: $filePath\n');
+      print('📁 경로: $_lastRecordingPath\n');
 
       return true;
     } catch (e) {
@@ -124,21 +138,26 @@ class RecordingService {
     }
 
     try {
-      await _recorder!.stopRecorder();
+      final result = await _recorder!.stop();
       _isRecording = false;
 
-      final path = _lastRecordingPath;
-      if (path != null) {
-        final file = File(path);
-        if (await file.exists()) {
-          final size = await file.length();
-          print('✅ 녹음 완료!');
-          print('📁 경로: $path');
-          print('📊 크기: ${(size / 1024).toStringAsFixed(2)} KB\n');
+      if (kIsWeb) {
+        // 웹: Blob URL 반환
+        if (result != null) {
+          print('✅ 녹음 완료! (웹)');
+          print('📁 Blob URL: $result\n');
+          return result;
         }
-        return path;
+      } else {
+        // 모바일: 파일 경로 반환
+        if (result != null) {
+          print('✅ 녹음 완료!');
+          print('📁 경로: $result\n');
+          return result;
+        }
       }
-      return null;
+
+      return _lastRecordingPath;
     } catch (e) {
       print('❌ 녹음 중지 실패: $e');
       _isRecording = false;
@@ -149,11 +168,12 @@ class RecordingService {
   /// 리소스 정리
   Future<void> dispose() async {
     if (_isRecording) {
-      await _recorder?.stopRecorder();
+      await _recorder?.stop();
     }
-    await _recorder?.closeRecorder();
+    await _recorder?.dispose();
     _recorder = null;
     _isInitialized = false;
+    _webRecordingData = null;
     print('🧹 녹음 서비스 정리 완료');
   }
 }

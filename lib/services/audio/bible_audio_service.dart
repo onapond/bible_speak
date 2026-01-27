@@ -7,10 +7,10 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:crypto/crypto.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 
+import '../../config/app_config.dart';
 import '../bible_data_service.dart';
 
 /// 오디오 소스 타입
@@ -53,7 +53,7 @@ class BibleAudioService {
   static const Duration _retryDelay = Duration(seconds: 1);
 
   // API 키
-  String get _esvApiKey => dotenv.env['ESV_API_KEY'] ?? '';
+  String get _esvApiKey => AppConfig.esvApiKey;
 
   // Firebase Storage 경로 패턴
   // bible_audio/{bookId}/{chapter}/{verse}.mp3
@@ -167,17 +167,18 @@ class BibleAudioService {
       }
 
       // 3. ESV API 폴백
-      if (_esvApiKey.isEmpty) {
+      if (!kIsWeb && _esvApiKey.isEmpty) {
         throw Exception('ESV API 키가 설정되지 않았습니다.');
       }
 
       final bookNameEn = await BibleDataService.instance.getBookNameEn(bookId);
       final reference = '$bookNameEn+$chapter:$verse';
-      final audioUrl = '$_esvBaseUrl?q=$reference';
 
       if (kIsWeb) {
-        await _playEsvApiWeb(audioUrl);
+        // 웹에서는 프록시를 통해 오디오 재생
+        await _playFromProxyWeb(reference);
       } else {
+        final audioUrl = '$_esvBaseUrl?q=$reference';
         await _downloadEsvAndCache(audioUrl, bookId, chapter, verse);
         final cacheFile = await _getCacheFile(bookId, chapter, verse);
         await _playFile(cacheFile);
@@ -327,11 +328,13 @@ class BibleAudioService {
     throw lastException ?? Exception('알 수 없는 오류');
   }
 
-  /// ESV API 웹 재생
-  Future<void> _playEsvApiWeb(String url) async {
+  /// 웹에서 프록시를 통해 오디오 재생
+  Future<void> _playFromProxyWeb(String reference) async {
+    final proxyUrl = AppConfig.getEsvAudioUrl(reference);
+    print('🌐 웹 오디오 프록시 요청: $proxyUrl');
+
     final response = await http.get(
-      Uri.parse(url),
-      headers: {'Authorization': 'Token $_esvApiKey'},
+      Uri.parse(proxyUrl),
     ).timeout(const Duration(seconds: 30));
 
     if (response.statusCode == 200) {
@@ -340,7 +343,7 @@ class BibleAudioService {
         BytesSource(Uint8List.fromList(response.bodyBytes)),
       );
     } else {
-      throw Exception('ESV API 오류: ${response.statusCode}');
+      throw Exception('오디오 로드 오류: ${response.statusCode}');
     }
   }
 

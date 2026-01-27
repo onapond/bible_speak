@@ -1,6 +1,7 @@
 import 'dart:convert';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+
+import '../config/app_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// ESV API 서비스
@@ -9,7 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class EsvService {
   static const String _baseUrl = 'https://api.esv.org/v3/passage/text/';
 
-  String get _apiKey => dotenv.env['ESV_API_KEY'] ?? '';
+  String get _apiKey => AppConfig.esvApiKey;
 
   /// 성경 구절 가져오기 (캐싱 포함)
   Future<List<VerseText>> getChapter({

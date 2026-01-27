@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
+import '../../config/app_config.dart';
 import '../pronunciation/azure_pronunciation_service.dart';
 
 /// AI 튜터 피드백 결과
@@ -85,8 +85,8 @@ class TutorCoordinator {
   final AzurePronunciationService _azureService = AzurePronunciationService();
 
   // API 키
-  String get _geminiApiKey => dotenv.env['GEMINI_API_KEY'] ?? '';
-  String get _elevenLabsApiKey => dotenv.env['ELEVENLABS_API_KEY'] ?? '';
+  String get _geminiApiKey => AppConfig.geminiApiKey;
+  String get _elevenLabsApiKey => AppConfig.elevenLabsApiKey;
 
   // Gemini 설정
   static const String _geminiModel = 'gemini-1.5-flash';

@@ -9,7 +9,21 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // 환경 변수 로드
-  await dotenv.load(fileName: '.env');
+  try {
+    // 웹에서는 assets/ 경로 필요
+    await dotenv.load(fileName: 'assets/.env');
+    print('✅ .env 로드 성공 (assets/.env)');
+  } catch (e) {
+    print('⚠️ assets/.env 실패, .env 시도...');
+    try {
+      await dotenv.load(fileName: '.env');
+      print('✅ .env 로드 성공 (.env)');
+    } catch (e2) {
+      print('❌ .env 로드 실패: $e2');
+    }
+  }
+  print('📌 ESV_API_KEY: ${dotenv.env['ESV_API_KEY']?.substring(0, 10) ?? 'null'}...');
+  print('📌 AZURE_SPEECH_KEY: ${dotenv.env['AZURE_SPEECH_KEY']?.substring(0, 10) ?? 'null'}...');
 
   // Firebase 초기화
   await Firebase.initializeApp(

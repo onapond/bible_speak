@@ -1,13 +1,14 @@
 import 'dart:convert';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+
+import '../config/app_config.dart';
 
 /// Gemini AI 튜터 서비스
 /// - 발음 평가 결과 분석
 /// - 맞춤형 피드백 제공
 class GeminiService {
-  // API 키 (.env에서 로드)
-  String get _apiKey => dotenv.env['GEMINI_API_KEY'] ?? '';
+  // API 키
+  String get _apiKey => AppConfig.geminiApiKey;
   static const String _model = 'gemini-1.5-flash';
   static const String _baseUrl =
       'https://generativelanguage.googleapis.com/v1beta/models';

@@ -91,11 +91,13 @@ class RecordingService {
     try {
       final directory = await getTemporaryDirectory();
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final filePath = '${directory.path}/recording_$timestamp.aac';
+      final filePath = '${directory.path}/recording_$timestamp.wav';
 
       await _recorder!.startRecorder(
         toFile: filePath,
-        codec: Codec.aacADTS,
+        codec: Codec.pcm16WAV,
+        sampleRate: 16000,
+        numChannels: 1,
       );
 
       _isRecording = true;

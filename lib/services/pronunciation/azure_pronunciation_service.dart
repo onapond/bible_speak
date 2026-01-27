@@ -134,6 +134,11 @@ class AzurePronunciationService {
     final configBase64 = base64Encode(utf8.encode(jsonEncode(pronunciationConfig)));
 
     // API 호출
+    print('🎯 Azure API 호출 시작');
+    print('📍 엔드포인트: $_endpoint');
+    print('📊 오디오 크기: ${audioBytes.length} bytes');
+    print('📝 참조 텍스트: $referenceText');
+
     final response = await http.post(
       Uri.parse('$_endpoint?language=$language&format=detailed'),
       headers: {
@@ -145,9 +150,13 @@ class AzurePronunciationService {
       body: audioBytes,
     ).timeout(_timeout);
 
+    print('📬 응답 상태: ${response.statusCode}');
+    print('📄 응답 내용: ${response.body.substring(0, response.body.length > 500 ? 500 : response.body.length)}');
+
     // 응답 처리
     if (response.statusCode == 200) {
       final jsonResponse = jsonDecode(response.body);
+      print('✅ JSON 파싱 성공');
       return _parseResponse(jsonResponse, referenceText);
     } else if (response.statusCode == 401) {
       throw Exception('API 키가 유효하지 않습니다. Azure Portal에서 키를 확인해주세요.');
@@ -198,19 +207,22 @@ class AzurePronunciationService {
       return PronunciationResult.error('인식 결과가 없습니다.');
     }
 
-    final best = nBest[0];
-    final assessment = best['PronunciationAssessment'] as Map<String, dynamic>?;
+    final best = nBest[0] as Map<String, dynamic>;
 
-    if (assessment == null) {
-      return PronunciationResult.error('발음 평가 결과가 없습니다.');
-    }
+    // PronunciationAssessment 객체가 있으면 사용, 없으면 best에서 직접 가져옴
+    final assessment = best['PronunciationAssessment'] as Map<String, dynamic>? ?? best;
 
-    // 전체 점수
-    final accuracyScore = (assessment['AccuracyScore'] as num?)?.toDouble() ?? 0;
-    final fluencyScore = (assessment['FluencyScore'] as num?)?.toDouble() ?? 0;
-    final completenessScore = (assessment['CompletenessScore'] as num?)?.toDouble() ?? 0;
-    final prosodyScore = (assessment['ProsodyScore'] as num?)?.toDouble() ?? 0;
-    final pronScore = (assessment['PronScore'] as num?)?.toDouble() ?? 0;
+    // 전체 점수 (PronunciationAssessment 또는 best에서 가져옴)
+    final accuracyScore = (assessment['AccuracyScore'] as num?)?.toDouble() ??
+                          (best['AccuracyScore'] as num?)?.toDouble() ?? 0;
+    final fluencyScore = (assessment['FluencyScore'] as num?)?.toDouble() ??
+                         (best['FluencyScore'] as num?)?.toDouble() ?? 0;
+    final completenessScore = (assessment['CompletenessScore'] as num?)?.toDouble() ??
+                              (best['CompletenessScore'] as num?)?.toDouble() ?? 0;
+    final prosodyScore = (assessment['ProsodyScore'] as num?)?.toDouble() ??
+                         (best['ProsodyScore'] as num?)?.toDouble() ?? 0;
+    final pronScore = (assessment['PronScore'] as num?)?.toDouble() ??
+                      (best['PronScore'] as num?)?.toDouble() ?? accuracyScore;
 
     // 단어별 결과
     final words = <WordPronunciation>[];
@@ -239,11 +251,29 @@ class AzurePronunciationService {
       ));
     }
 
+    // 점수 계산 (정확도 중심)
+    // 유창성/운율이 0이면 정확도로 대체
+    final effectiveFluency = fluencyScore > 0 ? fluencyScore : accuracyScore;
+    final effectiveProsody = prosodyScore > 0 ? prosodyScore : accuracyScore;
+    final effectiveCompleteness = completenessScore > 0 ? completenessScore : accuracyScore;
+
+    // 가중 평균: 정확도 80%, 나머지 20%
+    final weightedScore = (accuracyScore * 0.8) +
+                          (effectiveFluency * 0.07) +
+                          (effectiveCompleteness * 0.07) +
+                          (effectiveProsody * 0.06);
+
+    // 최종 점수 (페널티 없음)
+    final finalScore = weightedScore.clamp(0.0, 100.0);
+
+    print('📊 점수 상세: Acc=$accuracyScore, Flu=$fluencyScore, Comp=$completenessScore, Pro=$prosodyScore');
+    print('📊 최종 점수: $finalScore');
+
     return PronunciationResult(
       isSuccess: true,
       recognizedText: best['Display'] ?? '',
       referenceText: referenceText,
-      overallScore: pronScore,
+      overallScore: finalScore,
       accuracyScore: accuracyScore,
       fluencyScore: fluencyScore,
       completenessScore: completenessScore,

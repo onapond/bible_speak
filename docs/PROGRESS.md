@@ -65,31 +65,21 @@
 
 ---
 
-## Current Blocker: Pronunciation API
+## Pronunciation API: Azure Speech Services ✓
 
-### Issue
-The app needs a pronunciation assessment API for speech recognition and scoring.
+### Status: Connected (2026-01-27)
 
-### Original Plan: Azure Speech Services
-- Microsoft authentication was failing with user's credit card
-- Azure setup abandoned
+**Configuration**:
+- Service: Azure Speech Services (Korea Central)
+- Pricing Tier: F0 (Free - 5 hours/month)
+- API Key: Configured in `.env`
 
-### New Plan: Google Cloud Speech-to-Text
-**Status**: User setting up Google Cloud account
+**Features Enabled**:
+- Pronunciation Assessment (음소 단위 평가)
+- Prosody Assessment (억양/리듬 평가)
+- Miscue Detection (오류 감지)
 
-**Setup Steps**:
-1. Go to https://console.cloud.google.com
-2. Create project "bible-speak"
-3. Link billing (new accounts get $300 free credits)
-4. Enable Speech-to-Text API
-5. Create API key
-6. Add to `.env`: `GOOGLE_CLOUD_API_KEY=your_key_here`
-
-**Code Changes Required**:
-Once API key is obtained, modify:
-- `lib/services/pronunciation/azure_pronunciation_service.dart` → rename/replace
-- Create `lib/services/pronunciation/google_speech_service.dart`
-- Update service registration in app initialization
+**File**: `lib/services/pronunciation/azure_pronunciation_service.dart`
 
 ---
 

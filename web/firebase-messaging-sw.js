@@ -2,14 +2,14 @@
 importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js');
 
-// Firebase 설정 (firebase_options.dart와 동일하게 설정 필요)
+// Firebase 설정 (firebase_options.dart와 동일)
 firebase.initializeApp({
-  apiKey: "AIzaSyAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-  authDomain: "bible-speak-xxxxx.firebaseapp.com",
-  projectId: "bible-speak-xxxxx",
-  storageBucket: "bible-speak-xxxxx.appspot.com",
-  messagingSenderId: "xxxxxxxxxxxx",
-  appId: "1:xxxxxxxxxxxx:web:xxxxxxxxxxxxxxxxxxxxxx",
+  apiKey: "AIzaSyBODFoaNlf9uPJ3AN1EdoBW1I50A9vRF3M",
+  authDomain: "bible-speak.firebaseapp.com",
+  projectId: "bible-speak",
+  storageBucket: "bible-speak.firebasestorage.app",
+  messagingSenderId: "438057570983",
+  appId: "1:438057570983:web:b81e23c3c36da802004182",
 });
 
 const messaging = firebase.messaging();

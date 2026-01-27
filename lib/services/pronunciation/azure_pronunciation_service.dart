@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 
 import '../../config/app_config.dart';
@@ -56,6 +57,9 @@ class AzurePronunciationService {
       return PronunciationResult.error('녹음이 너무 깁니다. 구절을 나눠서 녹음해주세요.');
     }
 
+    // 웹 여부 확인 (Blob URL이면 웹)
+    final isWebAudio = kIsWeb || audioFilePath.startsWith('blob:');
+
     // 재시도 로직
     Exception? lastException;
 
@@ -65,6 +69,7 @@ class AzurePronunciationService {
           audioBytes: audioBytes,
           referenceText: referenceText,
           language: language,
+          isWebAudio: isWebAudio,
         );
       } on TimeoutException {
         lastException = Exception('서버 응답 시간 초과');
@@ -105,6 +110,7 @@ class AzurePronunciationService {
     required List<int> audioBytes,
     required String referenceText,
     required String language,
+    bool isWebAudio = false,
   }) async {
     // Pronunciation Assessment 설정
     final pronunciationConfig = {
@@ -117,17 +123,21 @@ class AzurePronunciationService {
 
     final configBase64 = base64Encode(utf8.encode(jsonEncode(pronunciationConfig)));
 
+    // 오디오 형식 결정 (웹: webm, 모바일: wav)
+    final contentType = isWebAudio ? 'audio/webm; codecs=opus' : 'audio/wav';
+
     // API 호출
     print('🎯 Azure API 호출 시작');
     print('📍 엔드포인트: $_endpoint');
     print('📊 오디오 크기: ${audioBytes.length} bytes');
     print('📝 참조 텍스트: $referenceText');
+    print('🎵 오디오 형식: $contentType');
 
     final response = await http.post(
       Uri.parse('$_endpoint?language=$language&format=detailed'),
       headers: {
         'Ocp-Apim-Subscription-Key': _subscriptionKey,
-        'Content-Type': 'audio/wav',
+        'Content-Type': contentType,
         'Pronunciation-Assessment': configBase64,
         'Accept': 'application/json',
       },

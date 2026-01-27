@@ -83,9 +83,8 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
   }
 
   Future<void> _initServices() async {
-    if (!kIsWeb) {
-      await _recorder.init();
-    }
+    // 웹과 모바일 모두 녹음기 초기화
+    await _recorder.init();
     await _progress.init();
     await _loadVerses();
   }
@@ -271,11 +270,6 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
   }
 
   Future<void> _toggleRecording() async {
-    if (kIsWeb) {
-      _showSnackBar('웹에서는 녹음이 지원되지 않습니다.', isError: true);
-      return;
-    }
-
     if (_isRecording) {
       await _stopAndEvaluate();
     } else {
@@ -398,7 +392,12 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
 
     try {
       setState(() => _isPlayingMyVoice = true);
-      await _myVoicePlayer.play(DeviceFileSource(_lastRecordingPath!));
+      // 웹에서는 blob URL을 UrlSource로 재생
+      if (kIsWeb) {
+        await _myVoicePlayer.play(UrlSource(_lastRecordingPath!));
+      } else {
+        await _myVoicePlayer.play(DeviceFileSource(_lastRecordingPath!));
+      }
       _myVoicePlayer.onPlayerComplete.listen((_) {
         if (mounted) setState(() => _isPlayingMyVoice = false);
       });
@@ -983,14 +982,12 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
   }
 
   Widget _buildControlButtons() {
-    final isWebDisabled = kIsWeb;
-
     return Row(
       children: [
         Expanded(
           child: ElevatedButton.icon(
             onPressed:
-                (_isProcessing || _isTTSPlaying || isWebDisabled || _currentVerse == null)
+                (_isProcessing || _isTTSPlaying || _currentVerse == null)
                     ? null
                     : _toggleRecording,
             icon: _isProcessing
@@ -1000,11 +997,9 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
                   )
                 : Icon(_isRecording ? Icons.stop : Icons.mic, size: 24),
             label: Text(
-              isWebDisabled
-                  ? '웹 미지원'
-                  : (_isProcessing
-                      ? '발음 분석 중...'
-                      : (_isRecording ? '녹음 중지' : '암송 시작')),
+              _isProcessing
+                  ? '발음 분석 중...'
+                  : (_isRecording ? '녹음 중지' : '암송 시작'),
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             style: ElevatedButton.styleFrom(

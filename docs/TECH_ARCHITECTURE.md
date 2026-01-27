@@ -548,25 +548,42 @@ void setupDependencies() {
 
 ```dart
 class RecordingService {
-  late final Record _recorder;
+  AudioRecorder? _recorder;
 
   Future<void> init() async {
-    _recorder = Record();
+    _recorder = AudioRecorder();
   }
 
   Future<void> start() async {
-    if (await _recorder.hasPermission()) {
-      await _recorder.start(
-        encoder: AudioEncoder.wav,    // Azure 호환
-        samplingRate: 16000,          // Azure 권장
-        numChannels: 1,               // 모노
-        bitRate: 256000,
-      );
+    if (await _recorder!.hasPermission()) {
+      if (kIsWeb) {
+        // 웹: opus/webm 포맷 (브라우저 기본 지원)
+        await _recorder!.start(
+          const RecordConfig(
+            encoder: AudioEncoder.opus,
+            sampleRate: 16000,
+            numChannels: 1,
+            bitRate: 64000,
+          ),
+          path: '',
+        );
+      } else {
+        // 모바일: WAV 포맷 (Azure 호환)
+        await _recorder!.start(
+          const RecordConfig(
+            encoder: AudioEncoder.wav,
+            sampleRate: 16000,
+            numChannels: 1,
+          ),
+          path: filePath,
+        );
+      }
     }
   }
 
   Future<String?> stop() async {
-    return await _recorder.stop();    // 파일 경로 반환
+    // 모바일: 파일 경로, 웹: Blob URL 반환
+    return await _recorder!.stop();
   }
 }
 ```
@@ -827,3 +844,76 @@ jobs:
 - [ ] Android: 서명 키 적용
 - [ ] iOS: 프로비저닝 프로파일 확인
 - [ ] 스토어 메타데이터 업데이트
+
+---
+
+## 12. 웹 플랫폼 지원
+
+### 12.1 웹 아키텍처
+
+```
+┌─────────────────────┐     ┌──────────────────────┐     ┌─────────────────┐
+│   Flutter Web App   │────▶│  Cloudflare Worker   │────▶│    ESV API      │
+│ (Firebase Hosting)  │     │   (Audio Proxy)      │     │  (Audio Data)   │
+└─────────────────────┘     └──────────────────────┘     └─────────────────┘
+         │
+         ▼
+┌─────────────────────┐
+│   Azure Speech API  │
+│ (Pronunciation)     │
+└─────────────────────┘
+```
+
+### 12.2 CORS 프록시 (Cloudflare Worker)
+
+ESV API는 CORS 헤더가 없어 브라우저에서 직접 호출이 불가능합니다.
+Cloudflare Worker가 프록시 역할을 합니다.
+
+```javascript
+// cloudflare-worker/worker.js
+export default {
+  async fetch(request) {
+    const corsHeaders = {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    };
+
+    // ESV API 호출 후 CORS 헤더 추가하여 반환
+    const response = await fetch(esvUrl, { headers: { Authorization } });
+    return new Response(response.body, { headers: corsHeaders });
+  }
+};
+```
+
+### 12.3 빌드 시 환경 변수 주입
+
+웹에서 `flutter_dotenv`가 작동하지 않으므로 `--dart-define`으로 빌드 시점에 주입:
+
+```dart
+// lib/config/app_config.dart
+class AppConfig {
+  static const String _envEsvApiKey = String.fromEnvironment('ESV_API_KEY');
+
+  static String get esvApiKey => kIsWeb
+      ? _envEsvApiKey
+      : dotenv.env['ESV_API_KEY'] ?? '';
+}
+```
+
+```bash
+# build_web.ps1 / build_web.sh
+flutter build web --release \
+  --dart-define=ESV_API_KEY=$ESV_API_KEY \
+  --dart-define=AZURE_SPEECH_KEY=$AZURE_SPEECH_KEY
+```
+
+### 12.4 웹/모바일 차이점
+
+| 기능 | 모바일 | 웹 |
+|------|--------|-----|
+| 환경 변수 | `.env` (런타임) | `--dart-define` (빌드 시) |
+| 녹음 포맷 | WAV | WebM/Opus |
+| 녹음 결과 | 파일 경로 | Blob URL |
+| ESV 오디오 | 직접 호출 | Cloudflare Worker 프록시 |
+| 로컬 캐시 | ✅ 지원 | ❌ 미지원 |

@@ -1,7 +1,7 @@
 # Bible Speak Development Progress
 
 **Last Updated**: 2026-01-27
-**Last Commit**: Web deployment with Cloudflare Worker audio proxy
+**Last Commit**: Web recording support + secure API key management
 
 ---
 
@@ -58,6 +58,15 @@
 - [x] Cloudflare Worker 오디오 프록시 구현
 - [x] CORS 문제 해결
 
+### Task 4: Web Recording Support (2026-01-27)
+- [x] VersePracticeScreen 웹 녹음 활성화
+- [x] opus/webm 오디오 포맷 지원 (웹용)
+- [x] blob URL에서 오디오 데이터 로드 (`AudioLoader`)
+- [x] Azure Speech API 웹 오디오 Content-Type 처리
+- [x] 웹에서 "내 목소리" 재생 기능 (`UrlSource`)
+- [x] `--dart-define`으로 보안 API 키 관리
+- [x] 빌드 스크립트 생성 (`build_web.ps1`, `build_web.sh`)
+
 ---
 
 ## Web Architecture
@@ -79,17 +88,21 @@
 
 ## Pending Tasks
 
-### Task 4: Word Study Integration
+### Task 5: Word Study Integration
 **Status**: Not started
 **Description**: Integrate Gemini API for keyword extraction from verses
 
-### Task 5: Advanced Feedback UI
+### Task 6: Advanced Feedback UI
 **Status**: Not started
 **Description**: Enhanced pronunciation feedback display
 
-### Task 6: Daily Streak Gamification
+### Task 7: Daily Streak Gamification
 **Status**: Not started
 **Description**: Implement streak tracking and rewards
+
+### Task 8: iOS App Store Deployment
+**Status**: Not started
+**Description**: macOS 환경에서 iOS 빌드 및 앱스토어 배포
 
 ---
 
@@ -135,10 +148,12 @@
 | `lib/services/pronunciation/azure_pronunciation_service.dart` | 발음 평가 |
 | `lib/services/pronunciation/audio_loader.dart` | 플랫폼별 오디오 로딩 |
 
-### Proxy
+### Proxy & Build
 | File | Purpose |
 |------|---------|
 | `cloudflare-worker/worker.js` | ESV Audio CORS 프록시 |
+| `build_web.ps1` | Windows 웹 빌드 스크립트 |
+| `build_web.sh` | Mac/Linux 웹 빌드 스크립트 |
 
 ---
 
@@ -165,7 +180,7 @@ firebase deploy --only hosting --project bible-speak
 
 ## Environment Variables
 
-`.env` 파일 (모바일용):
+`.env` 파일:
 ```
 ESV_API_KEY=...
 GEMINI_API_KEY=...
@@ -174,7 +189,18 @@ AZURE_SPEECH_KEY=...
 AZURE_SPEECH_REGION=koreacentral
 ```
 
-웹에서는 `AppConfig`에 하드코딩된 값 사용 (dotenv 미지원)
+### 빌드 시 환경 변수 주입
+웹 빌드 시 `--dart-define`으로 API 키를 주입합니다:
+
+```bash
+# Windows (PowerShell)
+.\build_web.ps1
+
+# Mac/Linux
+./build_web.sh
+```
+
+빌드 스크립트가 `.env` 파일에서 자동으로 키를 읽어 주입합니다.
 
 ---
 
@@ -196,3 +222,52 @@ AZURE_SPEECH_REGION=koreacentral
 2. **게이미피케이션**: 연속 학습 스트릭, 달란트 시스템
 3. **피드백 UI 개선**: 음파 시각화, 단어별 정확도 표시
 4. **iOS 배포**: macOS 환경 필요
+
+---
+
+## Session Continuity (다음 세션용 요약)
+
+### 마지막 세션 작업 (2026-01-27)
+
+**목표**: iPhone 사용자가 웹 브라우저로 앱 테스트 가능하게 하기
+
+**완료된 작업**:
+
+1. **웹 배포 완료**
+   - Firebase Hosting: https://bible-speak.web.app
+   - Cloudflare Worker (CORS 프록시): https://bible-speak-proxy.tlsdygksdev.workers.dev
+
+2. **웹 녹음 기능 구현**
+   - `record` 패키지로 웹 녹음 (opus/webm 포맷)
+   - `AudioLoader`로 blob URL에서 오디오 바이트 추출
+   - Azure Speech API 웹 오디오 처리 (Content-Type: audio/webm; codecs=opus)
+   - VersePracticeScreen 웹 녹음 활성화
+
+3. **보안 개선**
+   - API 키 하드코딩 제거 (GitHub push 차단 해결)
+   - `--dart-define`으로 빌드 시점 주입
+   - 빌드 스크립트 생성 (`build_web.ps1`, `build_web.sh`)
+
+### 주요 파일 변경
+
+| 파일 | 변경 내용 |
+|------|----------|
+| `lib/config/app_config.dart` | `String.fromEnvironment` 사용 |
+| `lib/screens/practice/verse_practice_screen.dart` | 웹 녹음 활성화, blob URL 재생 |
+| `lib/services/recording_service.dart` | opus/webm 포맷 지원 |
+| `lib/services/pronunciation/azure_pronunciation_service.dart` | 웹 오디오 Content-Type |
+| `build_web.ps1`, `build_web.sh` | 빌드 스크립트 생성 |
+
+### 테스트 상태
+
+- ✅ 웹 오디오 재생 (ESV API via Cloudflare Worker)
+- ✅ 웹 녹음 (opus/webm)
+- ✅ 웹 발음 평가 (Azure Speech API)
+- ⚠️ iOS 앱 미배포 (macOS 환경 필요)
+
+### 다음 작업 제안
+
+1. 웹에서 녹음 테스트 및 발음 평가 확인
+2. 단어 학습 기능 구현 (Gemini API)
+3. 게이미피케이션 (스트릭, 달란트)
+4. iOS 앱스토어 배포 준비 (macOS 필요)

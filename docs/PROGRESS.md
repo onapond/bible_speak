@@ -1,7 +1,7 @@
 # Bible Speak Development Progress
 
 **Last Updated**: 2026-01-27
-**Last Commit**: Web recording support + secure API key management
+**Last Commit**: Web audio format fix + loading performance optimization
 
 ---
 
@@ -10,13 +10,62 @@
 **Bible Speak** (바이블 스픽) is an AI-powered English Bible memorization app built with Flutter. The app uses a 3-stage learning system inspired by language learning apps like "Speak".
 
 ### Core Learning Flow
-1. **Stage 1: Listen & Repeat** (듣고 따라하기) - 75% pass threshold
-2. **Stage 2: Key Expressions** (핵심 표현) - 78% pass threshold
+1. **Stage 1: Listen & Repeat** (듣고 따라하기) - 70% pass threshold
+2. **Stage 2: Key Expressions** (핵심 표현) - 75% pass threshold
 3. **Stage 3: Real Speak** (실전 암송) - 80% pass threshold
 
 ### Deployment URLs
 - **Web App**: https://bible-speak.web.app
 - **Audio Proxy**: https://bible-speak-proxy.tlsdygksdev.workers.dev
+
+---
+
+## Development Roadmap
+
+```
+Phase 1-4: 기본 인프라 ✅
+    │
+    ├── iOS/Android 권한 설정
+    ├── Firestore 데이터 구조
+    ├── 3단계 학습 모델
+    └── 기획/기술 문서화
+
+Task 1: Roadmap UI ✅ (2026-01-26)
+    │
+    └── Speak 스타일 구절 로드맵 화면
+
+Task 2: Azure Speech API ✅ (2026-01-27)
+    │
+    └── 발음 평가 기능 구현
+
+Task 3: Web Deployment ✅ (2026-01-27)
+    │
+    ├── Firebase Hosting 배포
+    ├── Cloudflare Worker (CORS 프록시)
+    └── 보안 API 키 관리 (--dart-define)
+
+Task 4: Web Recording ✅ (2026-01-27)
+    │
+    └── 웹 브라우저 녹음 기능 활성화
+
+Task 5: Audio Fix & Optimization ✅ (2026-01-27)
+    │
+    ├── WAV 포맷으로 웹 녹음 (Azure 호환)
+    ├── 통과 기준 조정 (70/75/80%)
+    └── 병렬 로딩 최적화
+
+Task 6: Word Study (예정)
+    │
+    └── Gemini API 핵심 단어 추출
+
+Task 7: Gamification (예정)
+    │
+    └── 스트릭, 달란트 시스템
+
+Task 8: iOS Deployment (예정)
+    │
+    └── App Store 배포 (macOS 필요)
+```
 
 ---
 
@@ -47,7 +96,6 @@
 - [x] 발음 평가 기능 구현 (Pronunciation Assessment)
 - [x] 녹음 형식 WAV로 변경 (PCM 16-bit, 16kHz, mono)
 - [x] 점수 계산 로직 최적화 (정확도 80% 가중치)
-- [x] 통과 기준 조정 (75/78/80점)
 
 ### Task 3: Web Deployment (2026-01-27)
 - [x] Flutter Web 빌드 설정
@@ -60,12 +108,19 @@
 
 ### Task 4: Web Recording Support (2026-01-27)
 - [x] VersePracticeScreen 웹 녹음 활성화
-- [x] opus/webm 오디오 포맷 지원 (웹용)
 - [x] blob URL에서 오디오 데이터 로드 (`AudioLoader`)
-- [x] Azure Speech API 웹 오디오 Content-Type 처리
 - [x] 웹에서 "내 목소리" 재생 기능 (`UrlSource`)
 - [x] `--dart-define`으로 보안 API 키 관리
 - [x] 빌드 스크립트 생성 (`build_web.ps1`, `build_web.sh`)
+
+### Task 5: Web Audio Fix & Performance Optimization (2026-01-27)
+- [x] 웹 녹음 형식 WAV로 변경 (opus/webm → wav)
+- [x] Azure가 웹 오디오 정상 인식 (0점 → 90점)
+- [x] 통과 기준 조정: Stage 1 (70%), Stage 2 (75%), Stage 3 (80%)
+- [x] API 타임아웃 단축: 45초 → 15초
+- [x] 재시도 최적화: 3회/2초 → 2회/1초
+- [x] 한글 번역 병렬 로딩 (`Future.wait`)
+- [x] 진행도 데이터 병렬 로딩 (`Future.wait`)
 
 ---
 
@@ -88,19 +143,19 @@
 
 ## Pending Tasks
 
-### Task 5: Word Study Integration
+### Task 6: Word Study Integration
 **Status**: Not started
 **Description**: Integrate Gemini API for keyword extraction from verses
 
-### Task 6: Advanced Feedback UI
+### Task 7: Advanced Feedback UI
 **Status**: Not started
 **Description**: Enhanced pronunciation feedback display
 
-### Task 7: Daily Streak Gamification
+### Task 8: Daily Streak Gamification
 **Status**: Not started
 **Description**: Implement streak tracking and rewards
 
-### Task 8: iOS App Store Deployment
+### Task 9: iOS App Store Deployment
 **Status**: Not started
 **Description**: macOS 환경에서 iOS 빌드 및 앱스토어 배포
 
@@ -112,6 +167,7 @@
 - **Region**: Korea Central
 - **Pricing**: F0 (Free - 5 hours/month)
 - **Features**: Pronunciation Assessment, Prosody, Miscue Detection
+- **Audio Format**: WAV (PCM 16-bit, 16kHz, mono)
 
 ### ESV API ✓
 - **Audio**: Via Cloudflare Worker proxy (web), Direct (mobile)
@@ -130,22 +186,22 @@
 ### Config
 | File | Purpose |
 |------|---------|
-| `lib/config/app_config.dart` | **NEW** 웹/모바일 설정 분기 |
+| `lib/config/app_config.dart` | 웹/모바일 설정 분기 |
 | `.env` | API 키 (모바일용) |
 | `firebase.json` | Firebase 설정 |
 
 ### Models
 | File | Purpose |
 |------|---------|
-| `lib/models/learning_stage.dart` | 3-stage learning enum with thresholds |
+| `lib/models/learning_stage.dart` | 3-stage learning enum (70/75/80%) |
 | `lib/models/verse_progress.dart` | Verse-level progress tracking |
 
 ### Services
 | File | Purpose |
 |------|---------|
 | `lib/services/tts_service.dart` | TTS with web proxy support |
-| `lib/services/recording_service.dart` | 웹/모바일 녹음 (record 패키지) |
-| `lib/services/pronunciation/azure_pronunciation_service.dart` | 발음 평가 |
+| `lib/services/recording_service.dart` | 웹(WAV)/모바일(WAV) 녹음 |
+| `lib/services/pronunciation/azure_pronunciation_service.dart` | 발음 평가 (15초 타임아웃) |
 | `lib/services/pronunciation/audio_loader.dart` | 플랫폼별 오디오 로딩 |
 
 ### Proxy & Build
@@ -160,20 +216,21 @@
 ## Build & Deploy Commands
 
 ```bash
+# Web 빌드 (권장 - API 키 자동 주입)
+# Windows
+.\build_web.ps1
+
+# Mac/Linux
+./build_web.sh
+
+# Firebase Hosting 배포
+firebase deploy --only hosting
+
 # Android 빌드
 flutter build apk
 
 # 연결된 기기에서 실행
 flutter run
-
-# Web 빌드
-flutter build web --release
-
-# Firebase Hosting 배포
-firebase deploy --only hosting --project bible-speak
-
-# Cloudflare Worker 배포
-# dash.cloudflare.com에서 Quick Edit 사용
 ```
 
 ---
@@ -189,39 +246,19 @@ AZURE_SPEECH_KEY=...
 AZURE_SPEECH_REGION=koreacentral
 ```
 
-### 빌드 시 환경 변수 주입
-웹 빌드 시 `--dart-define`으로 API 키를 주입합니다:
-
-```bash
-# Windows (PowerShell)
-.\build_web.ps1
-
-# Mac/Linux
-./build_web.sh
-```
-
-빌드 스크립트가 `.env` 파일에서 자동으로 키를 읽어 주입합니다.
+빌드 스크립트가 `.env` 파일에서 자동으로 키를 읽어 `--dart-define`으로 주입합니다.
 
 ---
 
-## Web Limitations
+## Platform Support
 
-| 기능 | 웹 지원 | 비고 |
-|------|---------|------|
-| 성경 텍스트 로딩 | ✅ | Firestore |
-| 오디오 재생 | ✅ | Cloudflare Worker 프록시 |
-| 녹음 | ✅ | Web Audio API |
-| 발음 평가 | ✅ | Azure Speech API |
-| 로컬 캐시 | ❌ | 웹 미지원 |
-
----
-
-## Next Steps
-
-1. **단어 학습**: Gemini API로 핵심 단어 추출
-2. **게이미피케이션**: 연속 학습 스트릭, 달란트 시스템
-3. **피드백 UI 개선**: 음파 시각화, 단어별 정확도 표시
-4. **iOS 배포**: macOS 환경 필요
+| 기능 | Android | iOS | Web |
+|------|---------|-----|-----|
+| 성경 텍스트 | ✅ | ✅ | ✅ |
+| 오디오 재생 | ✅ | ✅ | ✅ (프록시) |
+| 녹음 | ✅ WAV | ✅ WAV | ✅ WAV |
+| 발음 평가 | ✅ | ✅ | ✅ |
+| 로컬 캐시 | ✅ | ✅ | ❌ |
 
 ---
 
@@ -229,45 +266,43 @@ AZURE_SPEECH_REGION=koreacentral
 
 ### 마지막 세션 작업 (2026-01-27)
 
-**목표**: iPhone 사용자가 웹 브라우저로 앱 테스트 가능하게 하기
+**목표**: 웹에서 발음 평가가 제대로 작동하고, 로딩 속도 개선
 
-**완료된 작업**:
+**해결한 문제**:
 
-1. **웹 배포 완료**
-   - Firebase Hosting: https://bible-speak.web.app
-   - Cloudflare Worker (CORS 프록시): https://bible-speak-proxy.tlsdygksdev.workers.dev
+1. **웹 녹음 0점 문제**
+   - 원인: Azure가 WebM/Opus 형식 미지원
+   - 해결: WAV 형식으로 변경
 
-2. **웹 녹음 기능 구현**
-   - `record` 패키지로 웹 녹음 (opus/webm 포맷)
-   - `AudioLoader`로 blob URL에서 오디오 바이트 추출
-   - Azure Speech API 웹 오디오 처리 (Content-Type: audio/webm; codecs=opus)
-   - VersePracticeScreen 웹 녹음 활성화
+2. **로딩 속도 개선**
+   - API 타임아웃: 45초 → 15초
+   - 재시도: 3회/2초 → 2회/1초
+   - 데이터 로딩: 순차 → 병렬 (`Future.wait`)
 
-3. **보안 개선**
-   - API 키 하드코딩 제거 (GitHub push 차단 해결)
-   - `--dart-define`으로 빌드 시점 주입
-   - 빌드 스크립트 생성 (`build_web.ps1`, `build_web.sh`)
+3. **통과 기준 조정**
+   - Stage 1: 70% (이전 75%)
+   - Stage 2: 75% (이전 78%)
+   - Stage 3: 80% (유지)
 
-### 주요 파일 변경
+### 주요 커밋
 
-| 파일 | 변경 내용 |
-|------|----------|
-| `lib/config/app_config.dart` | `String.fromEnvironment` 사용 |
-| `lib/screens/practice/verse_practice_screen.dart` | 웹 녹음 활성화, blob URL 재생 |
-| `lib/services/recording_service.dart` | opus/webm 포맷 지원 |
-| `lib/services/pronunciation/azure_pronunciation_service.dart` | 웹 오디오 Content-Type |
-| `build_web.ps1`, `build_web.sh` | 빌드 스크립트 생성 |
+```
+94e9c53 feat: Fix web audio format and optimize loading performance
+789581e feat: Enable web recording and improve documentation
+51acda3 feat: Add web deployment with Cloudflare Worker audio proxy
+```
 
 ### 테스트 상태
 
 - ✅ 웹 오디오 재생 (ESV API via Cloudflare Worker)
-- ✅ 웹 녹음 (opus/webm)
-- ✅ 웹 발음 평가 (Azure Speech API)
+- ✅ 웹 녹음 (WAV 형식)
+- ✅ 웹 발음 평가 (Azure Speech API) - 90점 정상 작동
+- ✅ 로딩 속도 개선
 - ⚠️ iOS 앱 미배포 (macOS 환경 필요)
 
 ### 다음 작업 제안
 
-1. 웹에서 녹음 테스트 및 발음 평가 확인
-2. 단어 학습 기능 구현 (Gemini API)
-3. 게이미피케이션 (스트릭, 달란트)
+1. 단어 학습 기능 구현 (Gemini API)
+2. 게이미피케이션 (스트릭, 달란트)
+3. 피드백 UI 개선 (음파 시각화)
 4. iOS 앱스토어 배포 준비 (macOS 필요)

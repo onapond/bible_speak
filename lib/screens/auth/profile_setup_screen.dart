@@ -2,18 +2,17 @@ import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import '../../services/group_service.dart';
 import '../../models/group_model.dart';
+import '../home/main_menu_screen.dart';
 
 /// 프로필 설정 화면
 /// - 이름 입력
 /// - 그룹 선택
 class ProfileSetupScreen extends StatefulWidget {
   final AuthService authService;
-  final VoidCallback onComplete;
 
   const ProfileSetupScreen({
     super.key,
     required this.authService,
-    required this.onComplete,
   });
 
   @override
@@ -63,8 +62,13 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       groupId: _selectedGroupId!,
     );
 
-    if (user != null) {
-      widget.onComplete();
+    if (user != null && mounted) {
+      // 메인 화면으로 이동 (뒤로가기 방지)
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => MainMenuScreen(authService: widget.authService),
+        ),
+      );
     } else {
       _showError('등록 중 오류가 발생했습니다');
       setState(() => _isSubmitting = false);

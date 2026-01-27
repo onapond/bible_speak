@@ -18,6 +18,8 @@ import '../ranking/ranking_screen.dart';
 import '../word_study/word_study_home_screen.dart';
 import '../practice/verse_practice_screen.dart';
 import '../admin/migration_screen.dart';
+import '../splash_screen.dart';
+import '../settings/notification_settings_screen.dart';
 
 /// 메인 메뉴 화면
 /// - 각 기능으로 이동하는 허브
@@ -561,6 +563,17 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
             ),
             const Divider(),
             ListTile(
+              leading: const Icon(Icons.notifications_outlined),
+              title: const Text('알림 설정'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const NotificationSettingsScreen()),
+                );
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.delete_outline),
               title: const Text('TTS 캐시 삭제'),
               onTap: () {
@@ -587,7 +600,10 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                 Navigator.pop(context);
                 await widget.authService.signOut();
                 if (mounted) {
-                  Navigator.of(context).pushNamedAndRemoveUntil('/', (_) => false);
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (_) => const SplashScreen()),
+                    (_) => false,
+                  );
                 }
               },
             ),

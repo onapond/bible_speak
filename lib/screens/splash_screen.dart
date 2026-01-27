@@ -36,18 +36,7 @@ class _SplashScreenState extends State<SplashScreen> {
       MaterialPageRoute(
         builder: (_) => isLoggedIn
             ? MainMenuScreen(authService: _authService)
-            : ProfileSetupScreen(
-                authService: _authService,
-                onComplete: () => _navigateToMainMenu(),
-              ),
-      ),
-    );
-  }
-
-  void _navigateToMainMenu() {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (_) => MainMenuScreen(authService: _authService),
+            : ProfileSetupScreen(authService: _authService),
       ),
     );
   }

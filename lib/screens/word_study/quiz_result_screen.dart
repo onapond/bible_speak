@@ -3,6 +3,7 @@ import '../../models/bible_word.dart';
 import '../../models/quiz_type.dart';
 import 'quiz_screen.dart';
 import 'fill_blank_quiz_screen.dart';
+import 'listening_quiz_screen.dart';
 
 /// 퀴즈 결과 화면
 class QuizResultScreen extends StatelessWidget {
@@ -315,19 +316,26 @@ class QuizResultScreen extends StatelessWidget {
   }
 
   Widget _createQuizScreen(List<BibleWord> words) {
-    if (quizType == QuizType.fillInBlank) {
-      return FillBlankQuizScreen(
-        words: words,
-        bookName: bookName,
-        chapter: chapter,
-      );
-    } else {
-      return QuizScreen(
-        words: words,
-        bookName: bookName,
-        chapter: chapter,
-        quizType: quizType,
-      );
+    switch (quizType) {
+      case QuizType.fillInBlank:
+        return FillBlankQuizScreen(
+          words: words,
+          bookName: bookName,
+          chapter: chapter,
+        );
+      case QuizType.listening:
+        return ListeningQuizScreen(
+          words: words,
+          bookName: bookName,
+          chapter: chapter,
+        );
+      default:
+        return QuizScreen(
+          words: words,
+          bookName: bookName,
+          chapter: chapter,
+          quizType: quizType,
+        );
     }
   }
 

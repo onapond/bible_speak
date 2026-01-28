@@ -58,9 +58,8 @@ extension QuizTypeExtension on QuizType {
       case QuizType.englishToKorean:
       case QuizType.koreanToEnglish:
       case QuizType.fillInBlank:
-        return true;
       case QuizType.listening:
-        return false; // 추후 구현
+        return true;
     }
   }
 }

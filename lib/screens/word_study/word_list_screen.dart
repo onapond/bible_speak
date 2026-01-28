@@ -11,6 +11,7 @@ import 'word_detail_screen.dart';
 import 'flashcard_screen.dart';
 import 'quiz_screen.dart';
 import 'fill_blank_quiz_screen.dart';
+import 'listening_quiz_screen.dart';
 
 /// 단어 목록 화면
 class WordListScreen extends StatefulWidget {
@@ -267,19 +268,28 @@ class _WordListScreenState extends State<WordListScreen> {
     final bookName = BibleData.getBookName(widget.bookId);
 
     Widget quizScreen;
-    if (quizType == QuizType.fillInBlank) {
-      quizScreen = FillBlankQuizScreen(
-        words: _words,
-        bookName: bookName,
-        chapter: widget.chapter,
-      );
-    } else {
-      quizScreen = QuizScreen(
-        words: _words,
-        bookName: bookName,
-        chapter: widget.chapter,
-        quizType: quizType,
-      );
+    switch (quizType) {
+      case QuizType.fillInBlank:
+        quizScreen = FillBlankQuizScreen(
+          words: _words,
+          bookName: bookName,
+          chapter: widget.chapter,
+        );
+        break;
+      case QuizType.listening:
+        quizScreen = ListeningQuizScreen(
+          words: _words,
+          bookName: bookName,
+          chapter: widget.chapter,
+        );
+        break;
+      default:
+        quizScreen = QuizScreen(
+          words: _words,
+          bookName: bookName,
+          chapter: widget.chapter,
+          quizType: quizType,
+        );
     }
 
     Navigator.push(

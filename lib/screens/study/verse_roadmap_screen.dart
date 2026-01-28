@@ -88,7 +88,7 @@ class _VerseRoadmapScreenState extends State<VerseRoadmapScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1a1a2e),
+      backgroundColor: const Color(0xFF0F0F1A),
       body: _isLoading
           ? const Center(
               child: CircularProgressIndicator(color: Colors.amber),
@@ -128,7 +128,7 @@ class _VerseRoadmapScreenState extends State<VerseRoadmapScreen>
     return SliverAppBar(
       expandedHeight: 120,
       pinned: true,
-      backgroundColor: const Color(0xFF1a1a2e),
+      backgroundColor: const Color(0xFF0F0F1A),
       flexibleSpace: FlexibleSpaceBar(
         title: Text(
           '${widget.book.nameKo} ${widget.chapter}장',
@@ -144,7 +144,7 @@ class _VerseRoadmapScreenState extends State<VerseRoadmapScreen>
               end: Alignment.bottomCenter,
               colors: [
                 Colors.indigo.shade800,
-                const Color(0xFF1a1a2e),
+                const Color(0xFF0F0F1A),
               ],
             ),
           ),
@@ -556,7 +556,7 @@ class _VerseRoadmapScreenState extends State<VerseRoadmapScreen>
         bottom: MediaQuery.of(context).padding.bottom + 20,
       ),
       decoration: const BoxDecoration(
-        color: Color(0xFF2a2a4e),
+        color: Color(0xFF1E1E2E),
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(

@@ -640,14 +640,29 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
     super.dispose();
   }
 
+  // 디자인 상수
+  static const _bgColor = Color(0xFF0F0F1A);
+  static const _cardColor = Color(0xFF1E1E2E);
+  static const _accentColor = Color(0xFF6C63FF);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: _bgColor,
       appBar: AppBar(
-        title: Text(_currentVerse != null
-            ? '$_bookNameKo ${widget.chapter}장 ${_currentVerse!.verse}절'
-            : '$_bookNameKo ${widget.chapter}장'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        title: Text(
+          _currentVerse != null
+              ? '$_bookNameKo ${widget.chapter}장 ${_currentVerse!.verse}절'
+              : '$_bookNameKo ${widget.chapter}장',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: _bgColor,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: _buildBody(),
     );
@@ -655,13 +670,16 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
 
   Widget _buildBody() {
     if (_isLoadingVerses) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('성경 구절을 불러오는 중...'),
+            const CircularProgressIndicator(color: _accentColor),
+            const SizedBox(height: 16),
+            Text(
+              '성경 구절을 불러오는 중...',
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+            ),
           ],
         ),
       );
@@ -674,14 +692,22 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline, size: 64, color: Colors.red),
+              Icon(Icons.error_outline, size: 64, color: Colors.red.shade400),
               const SizedBox(height: 16),
-              Text(_loadingError!, textAlign: TextAlign.center),
+              Text(
+                _loadingError!,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+              ),
               const SizedBox(height: 24),
               ElevatedButton.icon(
                 onPressed: _loadVerses,
                 icon: const Icon(Icons.refresh),
                 label: const Text('다시 시도'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _accentColor,
+                  foregroundColor: Colors.white,
+                ),
               ),
             ],
           ),
@@ -690,7 +716,12 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
     }
 
     if (_verses.isEmpty) {
-      return const Center(child: Text('구절 데이터가 없습니다.'));
+      return Center(
+        child: Text(
+          '구절 데이터가 없습니다.',
+          style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+        ),
+      );
     }
 
     return Column(
@@ -720,11 +751,22 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
 
   Widget _buildProgressBar() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.indigo.shade700, Colors.indigo.shade500],
+          colors: [_accentColor, Colors.purple.shade700],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: _accentColor.withValues(alpha: 0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -759,7 +801,7 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      color: Colors.grey.shade100,
+      color: _cardColor,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: LearningStage.values.map((stage) {
@@ -779,13 +821,13 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 decoration: BoxDecoration(
                   color: isCurrentStage
-                      ? Colors.indigo
-                      : (isPassed ? Colors.green.shade100 : Colors.white),
+                      ? _accentColor
+                      : (isPassed ? Colors.green.withValues(alpha: 0.2) : _bgColor),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: isCurrentStage
-                        ? Colors.indigo
-                        : (isPassed ? Colors.green : Colors.grey.shade300),
+                        ? _accentColor
+                        : (isPassed ? Colors.green : Colors.white.withValues(alpha: 0.2)),
                     width: 2,
                   ),
                 ),
@@ -800,7 +842,7 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
                           ? Colors.white
                           : (isPassed
                               ? Colors.green
-                              : (isUnlocked ? Colors.indigo : Colors.grey)),
+                              : (isUnlocked ? _accentColor : Colors.grey)),
                       size: 24,
                     ),
                     const SizedBox(height: 4),
@@ -810,7 +852,7 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
-                        color: isCurrentStage ? Colors.white70 : Colors.grey,
+                        color: isCurrentStage ? Colors.white70 : Colors.white54,
                       ),
                     ),
                     // 스테이지 이름
@@ -821,7 +863,7 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
                         fontWeight: FontWeight.bold,
                         color: isCurrentStage
                             ? Colors.white
-                            : (isPassed ? Colors.green.shade700 : Colors.black87),
+                            : (isPassed ? Colors.green : Colors.white70),
                       ),
                     ),
                     // 최고 점수
@@ -865,22 +907,23 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(color: Colors.indigo.shade50),
+      decoration: const BoxDecoration(color: _bgColor),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
             onPressed: _currentVerseIndex > 0 ? _goToPreviousVerse : null,
             icon: const Icon(Icons.chevron_left, size: 30),
-            color: Colors.indigo,
+            color: _accentColor,
+            disabledColor: Colors.white24,
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              color: isCompleted ? Colors.green.shade100 : Colors.white,
+              color: isCompleted ? Colors.green.withValues(alpha: 0.2) : _cardColor,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: isCompleted ? Colors.green : Colors.indigo.shade200,
+                color: isCompleted ? Colors.green : _accentColor.withValues(alpha: 0.5),
                 width: 2,
               ),
             ),
@@ -897,7 +940,7 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: isCompleted ? Colors.green.shade700 : Colors.indigo.shade700,
+                    color: isCompleted ? Colors.green : _accentColor,
                   ),
                 ),
               ],
@@ -906,7 +949,8 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
           IconButton(
             onPressed: _currentVerseIndex < _verses.length - 1 ? _goToNextVerse : null,
             icon: const Icon(Icons.chevron_right, size: 30),
-            color: Colors.indigo,
+            color: _accentColor,
+            disabledColor: Colors.white24,
           ),
         ],
       ),
@@ -918,8 +962,12 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
 
     final korean = _currentVerse!.korean;
 
-    return Card(
-      elevation: 4,
+    return Container(
+      decoration: BoxDecoration(
+        color: _cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white10),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -932,7 +980,7 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Colors.indigo, Colors.indigo.shade700],
+                      colors: [_accentColor, Colors.purple.shade600],
                     ),
                     borderRadius: BorderRadius.circular(16),
                   ),
@@ -957,12 +1005,16 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade200,
+                    color: Colors.white.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     '통과 기준: ${_currentStage.passThreshold.toStringAsFixed(0)}%',
-                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white.withValues(alpha: 0.7),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -971,12 +1023,15 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
                   icon: _isTTSLoading
                       ? const SizedBox(
                           width: 24, height: 24,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: _accentColor,
+                          ),
                         )
                       : Icon(
                           _isTTSPlaying ? Icons.stop_circle : Icons.play_circle,
                           size: 32,
-                          color: _isTTSPlaying ? Colors.red : Colors.indigo,
+                          color: _isTTSPlaying ? Colors.red : _accentColor,
                         ),
                   tooltip: _isTTSPlaying ? '중지' : '듣기',
                 ),
@@ -1000,36 +1055,37 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text('English',
-                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo)),
+                style: TextStyle(fontWeight: FontWeight.bold, color: _accentColor)),
             const SizedBox(height: 8),
             Text(_currentVerse!.english,
-                style: const TextStyle(fontSize: 18, height: 1.6)),
+                style: const TextStyle(fontSize: 18, height: 1.6, color: Colors.white)),
             const SizedBox(height: 16),
             const Text('한국어',
-                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo)),
+                style: TextStyle(fontWeight: FontWeight.bold, color: _accentColor)),
             const SizedBox(height: 8),
             Text(
               korean ?? '(한글 번역 준비 중)',
               style: TextStyle(
                 fontSize: 16, height: 1.6,
-                color: korean != null ? Colors.black : Colors.grey,
+                color: korean != null ? Colors.white70 : Colors.grey,
               ),
             ),
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.blue.shade50,
+                color: Colors.blue.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(Icons.lightbulb, color: Colors.blue, size: 20),
-                  SizedBox(width: 8),
+                  Icon(Icons.lightbulb, color: Colors.blue.shade300, size: 20),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       '전체 문장을 보면서 원어민 발음을 듣고 따라해보세요.',
-                      style: TextStyle(fontSize: 13, color: Colors.blue),
+                      style: TextStyle(fontSize: 13, color: Colors.blue.shade300),
                     ),
                   ),
                 ],
@@ -1046,48 +1102,49 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text('빈칸을 채우며 말해보세요',
-                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo)),
+                style: TextStyle(fontWeight: FontWeight.bold, color: _accentColor)),
             const SizedBox(height: 8),
-            Text(blankText, style: const TextStyle(fontSize: 18, height: 1.6)),
+            Text(blankText, style: const TextStyle(fontSize: 18, height: 1.6, color: Colors.white)),
             const SizedBox(height: 16),
             Wrap(
               spacing: 8,
               children: [
-                const Text('힌트: ', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text('힌트: ', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70)),
                 ...keyWords.map((word) => Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.amber.shade100,
+                    color: Colors.amber.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: Text(word, style: const TextStyle(fontWeight: FontWeight.w500)),
+                  child: Text(word, style: const TextStyle(fontWeight: FontWeight.w500, color: Colors.amber)),
                 )),
               ],
             ),
             const SizedBox(height: 16),
             const Text('한국어',
-                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo)),
+                style: TextStyle(fontWeight: FontWeight.bold, color: _accentColor)),
             const SizedBox(height: 8),
             Text(
               korean ?? '(한글 번역 준비 중)',
               style: TextStyle(fontSize: 16, height: 1.6,
-                  color: korean != null ? Colors.black : Colors.grey),
+                  color: korean != null ? Colors.white70 : Colors.grey),
             ),
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.orange.shade50,
+                color: Colors.orange.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(Icons.edit_note, color: Colors.orange, size: 20),
-                  SizedBox(width: 8),
+                  Icon(Icons.edit_note, color: Colors.orange.shade300, size: 20),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       '핵심 단어를 기억하며 전체 문장을 말해보세요.',
-                      style: TextStyle(fontSize: 13, color: Colors.orange),
+                      style: TextStyle(fontSize: 13, color: Colors.orange.shade300),
                     ),
                   ),
                 ],
@@ -1105,44 +1162,46 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: Colors.grey.shade200,
+                color: Colors.white.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
               ),
-              child: const Column(
+              child: Column(
                 children: [
-                  Icon(Icons.visibility_off, size: 48, color: Colors.grey),
-                  SizedBox(height: 12),
+                  Icon(Icons.visibility_off, size: 48, color: Colors.white.withValues(alpha: 0.4)),
+                  const SizedBox(height: 12),
                   Text(
                     '영어 텍스트 없이 암송하세요',
-                    style: TextStyle(fontSize: 16, color: Colors.grey, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 16, color: Colors.white.withValues(alpha: 0.6), fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 16),
             const Text('한국어 (참고용)',
-                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo)),
+                style: TextStyle(fontWeight: FontWeight.bold, color: _accentColor)),
             const SizedBox(height: 8),
             Text(
               korean ?? '(한글 번역 준비 중)',
               style: TextStyle(fontSize: 16, height: 1.6,
-                  color: korean != null ? Colors.black54 : Colors.grey),
+                  color: korean != null ? Colors.white54 : Colors.grey),
             ),
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.purple.shade50,
+                color: Colors.purple.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.purple.withValues(alpha: 0.3)),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(Icons.emoji_events, color: Colors.purple, size: 20),
-                  SizedBox(width: 8),
+                  Icon(Icons.emoji_events, color: Colors.purple.shade300, size: 20),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       '최종 단계입니다! 85% 이상 달성하면 암송 완료!',
-                      style: TextStyle(fontSize: 13, color: Colors.purple),
+                      style: TextStyle(fontSize: 13, color: Colors.purple.shade300),
                     ),
                   ),
                 ],
@@ -1175,10 +1234,11 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: _isRecording ? Colors.red : Colors.indigo,
+              backgroundColor: _isRecording ? Colors.red : _accentColor,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 5,
             ),
           ),
         ),
@@ -1190,19 +1250,20 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: _cardColor,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white10),
       ),
       child: Column(
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('재생 속도', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text('재생 속도', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.indigo,
+                  color: _accentColor,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
@@ -1214,20 +1275,22 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
           ),
           Row(
             children: [
-              const Text('0.5x', style: TextStyle(fontSize: 12)),
+              const Text('0.5x', style: TextStyle(fontSize: 12, color: Colors.white54)),
               Expanded(
                 child: Slider(
                   value: _playbackSpeed,
                   min: 0.5,
                   max: 1.5,
                   divisions: 10,
+                  activeColor: _accentColor,
+                  inactiveColor: Colors.white24,
                   onChanged: (value) {
                     setState(() => _playbackSpeed = value);
                     _tts.setPlaybackRate(value);
                   },
                 ),
               ),
-              const Text('1.5x', style: TextStyle(fontSize: 12)),
+              const Text('1.5x', style: TextStyle(fontSize: 12, color: Colors.white54)),
             ],
           ),
         ],
@@ -1240,8 +1303,12 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
     final feedback = _feedback;
     final passed = _currentStage.isPassed(result.overallScore);
 
-    return Card(
-      elevation: 4,
+    return Container(
+      decoration: BoxDecoration(
+        color: _cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white10),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -1259,24 +1326,24 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Colors.blue.shade50, Colors.purple.shade50],
+                    colors: [Colors.blue.withValues(alpha: 0.15), Colors.purple.withValues(alpha: 0.15)],
                   ),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.blue.shade200),
+                  border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.auto_awesome, size: 16, color: Colors.blue.shade600),
+                        Icon(Icons.auto_awesome, size: 16, color: Colors.blue.shade300),
                         const SizedBox(width: 6),
                         Text(
                           'AI 코치 피드백',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
-                            color: Colors.blue.shade600,
+                            color: Colors.blue.shade300,
                           ),
                         ),
                       ],
@@ -1284,13 +1351,13 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
                     const SizedBox(height: 8),
                     Text(
                       _aiFeedback!.encouragement,
-                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Colors.white),
                     ),
                     if (_aiFeedback!.detailedFeedback.isNotEmpty) ...[
                       const SizedBox(height: 8),
                       Text(
                         _aiFeedback!.detailedFeedback,
-                        style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                        style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.7)),
                       ),
                     ],
                   ],
@@ -1302,17 +1369,17 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
+                  color: Colors.white.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   children: [
                     SizedBox(
                       width: 16, height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.blue.shade400),
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.blue.shade300),
                     ),
                     const SizedBox(width: 10),
-                    Text('AI 코치가 분석 중...', style: TextStyle(color: Colors.grey.shade600)),
+                    Text('AI 코치가 분석 중...', style: TextStyle(color: Colors.white.withValues(alpha: 0.6))),
                   ],
                 ),
               ),
@@ -1324,13 +1391,13 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Colors.purple.shade50, Colors.indigo.shade50],
+                    colors: [Colors.purple.withValues(alpha: 0.15), _accentColor.withValues(alpha: 0.15)],
                   ),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   feedback.encouragement,
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Colors.white),
                 ),
               ),
             ],
@@ -1360,8 +1427,9 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: passed ? Colors.green.shade100 : Colors.orange.shade100,
+        color: passed ? Colors.green.withValues(alpha: 0.2) : Colors.orange.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: passed ? Colors.green.withValues(alpha: 0.4) : Colors.orange.withValues(alpha: 0.4)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1373,7 +1441,7 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
                 children: [
                   Text(
                     '등급: ${result.grade}',
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
                   ),
                   if (passed)
                     Container(
@@ -1396,7 +1464,7 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
                     : '${_currentStage.passThreshold.toStringAsFixed(0)}% 이상 필요',
                 style: TextStyle(
                   fontSize: 12,
-                  color: passed ? Colors.green.shade700 : Colors.orange.shade700,
+                  color: passed ? Colors.green : Colors.orange,
                 ),
               ),
             ],
@@ -1404,7 +1472,7 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: _bgColor,
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(

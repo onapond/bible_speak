@@ -6,7 +6,7 @@ import '../../services/progress_service.dart';
 import '../../models/verse_progress.dart';
 import 'verse_roadmap_screen.dart';
 
-/// 장 선택 화면 - Speak 스타일 로드맵 UI
+/// 장 선택 화면 - Speak 스타일 로드맵 UI (다크 테마)
 class ChapterSelectionScreen extends StatefulWidget {
   final AuthService authService;
   final Book book;
@@ -28,6 +28,11 @@ class _ChapterSelectionScreenState extends State<ChapterSelectionScreen> {
   Map<int, int> _verseCountCache = {}; // Cache verse counts
   bool _isLoading = true;
   int? _selectedChapter;
+
+  // 디자인 상수
+  static const _bgColor = Color(0xFF0F0F1A);
+  static const _cardColor = Color(0xFF1E1E2E);
+  static const _accentColor = Color(0xFF6C63FF);
 
   @override
   void initState() {
@@ -87,10 +92,19 @@ class _ChapterSelectionScreenState extends State<ChapterSelectionScreen> {
     final totalProgress = _calculateTotalProgress();
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: _bgColor,
       appBar: AppBar(
-        title: Text(widget.book.nameKo),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        title: Text(
+          widget.book.nameKo,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: _bgColor,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios),
+          onPressed: () => Navigator.pop(context),
+        ),
         actions: [
           if (totalProgress > 0)
             Center(
@@ -98,14 +112,14 @@ class _ChapterSelectionScreenState extends State<ChapterSelectionScreen> {
                 margin: const EdgeInsets.only(right: 16),
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: _accentColor.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Text(
                   '${(totalProgress * 100).toStringAsFixed(0)}%',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Colors.indigo,
+                    color: _accentColor,
                   ),
                 ),
               ),
@@ -113,7 +127,7 @@ class _ChapterSelectionScreenState extends State<ChapterSelectionScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: _accentColor))
           : Column(
               children: [
                 // 전체 진행률 바
@@ -148,11 +162,22 @@ class _ChapterSelectionScreenState extends State<ChapterSelectionScreen> {
         .length;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.indigo.shade600, Colors.indigo.shade400],
+          colors: [_accentColor, Colors.purple.shade700],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: _accentColor.withValues(alpha: 0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -268,10 +293,10 @@ class _ChapterSelectionScreenState extends State<ChapterSelectionScreen> {
             width: isSelected ? 160 : 140,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: isSelected ? nodeColor.withValues(alpha: 0.1) : Colors.white,
+              color: isSelected ? nodeColor.withValues(alpha: 0.15) : _cardColor,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: nodeColor,
+                color: isSelected ? nodeColor : nodeColor.withValues(alpha: 0.5),
                 width: isSelected ? 3 : 2,
               ),
               boxShadow: isSelected
@@ -284,7 +309,7 @@ class _ChapterSelectionScreenState extends State<ChapterSelectionScreen> {
                     ]
                   : [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
+                        color: Colors.black.withValues(alpha: 0.2),
                         blurRadius: 4,
                         offset: const Offset(0, 2),
                       ),
@@ -309,7 +334,7 @@ class _ChapterSelectionScreenState extends State<ChapterSelectionScreen> {
                   '$verseCount절',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey.shade600,
+                    color: Colors.white.withValues(alpha: 0.5),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -321,7 +346,7 @@ class _ChapterSelectionScreenState extends State<ChapterSelectionScreen> {
                         borderRadius: BorderRadius.circular(4),
                         child: LinearProgressIndicator(
                           value: progress.progressRate,
-                          backgroundColor: Colors.grey.shade200,
+                          backgroundColor: Colors.white.withValues(alpha: 0.1),
                           valueColor: AlwaysStoppedAnimation<Color>(nodeColor),
                           minHeight: 6,
                         ),
@@ -342,7 +367,7 @@ class _ChapterSelectionScreenState extends State<ChapterSelectionScreen> {
                     status == ChapterStatus.notStarted ? '미시작' : '',
                     style: TextStyle(
                       fontSize: 11,
-                      color: Colors.grey.shade500,
+                      color: Colors.white.withValues(alpha: 0.4),
                     ),
                   ),
               ],
@@ -387,15 +412,20 @@ class _ChapterSelectionScreenState extends State<ChapterSelectionScreen> {
     final status = _getChapterStatus(chapter);
 
     return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 20,
+        bottom: MediaQuery.of(context).padding.bottom + 20,
+      ),
+      decoration: const BoxDecoration(
+        color: _cardColor,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
+            color: Colors.black45,
+            blurRadius: 20,
+            offset: Offset(0, -5),
           ),
         ],
       ),
@@ -408,7 +438,7 @@ class _ChapterSelectionScreenState extends State<ChapterSelectionScreen> {
             height: 4,
             margin: const EdgeInsets.only(bottom: 16),
             decoration: BoxDecoration(
-              color: Colors.grey.shade300,
+              color: Colors.grey.shade600,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -419,7 +449,7 @@ class _ChapterSelectionScreenState extends State<ChapterSelectionScreen> {
                 width: 56,
                 height: 56,
                 decoration: BoxDecoration(
-                  color: _getStatusColor(status).withValues(alpha: 0.1),
+                  color: _getStatusColor(status).withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Center(
@@ -443,6 +473,7 @@ class _ChapterSelectionScreenState extends State<ChapterSelectionScreen> {
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
+                        color: Colors.white,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -450,7 +481,7 @@ class _ChapterSelectionScreenState extends State<ChapterSelectionScreen> {
                       '$verseCount절 | ${progress?.completedVerses ?? 0}절 완료',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey.shade600,
+                        color: Colors.white.withValues(alpha: 0.6),
                       ),
                     ),
                   ],
@@ -467,14 +498,17 @@ class _ChapterSelectionScreenState extends State<ChapterSelectionScreen> {
               children: [
                 const Text(
                   '학습 진행 상태',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
                   child: LinearProgressIndicator(
                     value: progress.progressRate,
-                    backgroundColor: Colors.grey.shade200,
+                    backgroundColor: Colors.white.withValues(alpha: 0.1),
                     valueColor: AlwaysStoppedAnimation<Color>(_getStatusColor(status)),
                     minHeight: 12,
                   ),
@@ -485,15 +519,15 @@ class _ChapterSelectionScreenState extends State<ChapterSelectionScreen> {
                   children: [
                     Text(
                       '${progress.completedVerses}절 완료',
-                      style: TextStyle(fontSize: 12, color: Colors.green.shade600),
+                      style: const TextStyle(fontSize: 12, color: Colors.green),
                     ),
                     Text(
                       '${progress.inProgressVerses}절 진행중',
-                      style: TextStyle(fontSize: 12, color: Colors.blue.shade600),
+                      style: const TextStyle(fontSize: 12, color: Colors.blue),
                     ),
                     Text(
                       '${verseCount - progress.completedVerses - progress.inProgressVerses}절 미시작',
-                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                      style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.5)),
                     ),
                   ],
                 ),
@@ -521,6 +555,7 @@ class _ChapterSelectionScreenState extends State<ChapterSelectionScreen> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
+                elevation: 5,
               ),
             ),
           ),
@@ -551,7 +586,7 @@ class _ChapterSelectionScreenState extends State<ChapterSelectionScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: color.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color),
       ),

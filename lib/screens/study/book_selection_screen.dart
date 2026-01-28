@@ -4,7 +4,7 @@ import '../../services/auth_service.dart';
 import '../../services/bible_data_service.dart';
 import 'chapter_selection_screen.dart';
 
-/// 성경책 선택 화면
+/// 성경책 선택 화면 (다크 테마)
 class BookSelectionScreen extends StatefulWidget {
   final AuthService authService;
 
@@ -20,6 +20,11 @@ class BookSelectionScreen extends StatefulWidget {
 class _BookSelectionScreenState extends State<BookSelectionScreen> {
   late Future<List<Book>> _booksFuture;
 
+  // 디자인 상수
+  static const _bgColor = Color(0xFF0F0F1A);
+  static const _cardColor = Color(0xFF1E1E2E);
+  static const _accentColor = Color(0xFF6C63FF);
+
   @override
   void initState() {
     super.initState();
@@ -29,15 +34,27 @@ class _BookSelectionScreenState extends State<BookSelectionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: _bgColor,
       appBar: AppBar(
-        title: const Text('성경책 선택'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        title: const Text(
+          '성경책 선택',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: _bgColor,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: FutureBuilder<List<Book>>(
         future: _booksFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: CircularProgressIndicator(color: _accentColor),
+            );
           }
 
           if (snapshot.hasError) {
@@ -45,9 +62,13 @@ class _BookSelectionScreenState extends State<BookSelectionScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.error_outline, size: 48, color: Colors.red.shade300),
+                  Icon(Icons.error_outline, size: 48, color: Colors.red.shade400),
                   const SizedBox(height: 16),
-                  Text('데이터를 불러올 수 없습니다\n${snapshot.error}'),
+                  Text(
+                    '데이터를 불러올 수 없습니다\n${snapshot.error}',
+                    style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+                    textAlign: TextAlign.center,
+                  ),
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () {
@@ -55,6 +76,10 @@ class _BookSelectionScreenState extends State<BookSelectionScreen> {
                         _booksFuture = BibleDataService.instance.getBooks();
                       });
                     },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _accentColor,
+                      foregroundColor: Colors.white,
+                    ),
                     child: const Text('다시 시도'),
                   ),
                 ],
@@ -71,27 +96,31 @@ class _BookSelectionScreenState extends State<BookSelectionScreen> {
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              // Firestore 상태 표시 (디버그용, 나중에 제거)
+              // Firestore 상태 표시 (디버그용)
               if (BibleDataService.instance.isUsingLocalFallback)
                 Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(12),
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
-                    color: Colors.amber.shade100,
-                    borderRadius: BorderRadius.circular(8),
+                    color: Colors.amber.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
-                      Icon(Icons.info_outline, size: 16, color: Colors.amber),
-                      SizedBox(width: 8),
-                      Text('로컬 데이터 사용 중', style: TextStyle(fontSize: 12)),
+                      Icon(Icons.info_outline, size: 16, color: Colors.amber.shade300),
+                      const SizedBox(width: 8),
+                      Text(
+                        '로컬 데이터 사용 중',
+                        style: TextStyle(fontSize: 12, color: Colors.amber.shade300),
+                      ),
                     ],
                   ),
                 ),
 
               // 구약
               if (oldTestament.isNotEmpty) ...[
-                _buildSectionHeader('구약성경', Icons.menu_book, Colors.brown),
+                _buildSectionHeader('구약성경', Icons.menu_book, Colors.amber),
                 const SizedBox(height: 12),
                 ...oldTestament.map((book) => _buildBookCard(context, book)),
                 const SizedBox(height: 24),
@@ -99,7 +128,7 @@ class _BookSelectionScreenState extends State<BookSelectionScreen> {
 
               // 신약
               if (newTestament.isNotEmpty) ...[
-                _buildSectionHeader('신약성경', Icons.auto_stories, Colors.indigo),
+                _buildSectionHeader('신약성경', Icons.auto_stories, _accentColor),
                 const SizedBox(height: 12),
                 ...newTestament.map((book) => _buildBookCard(context, book)),
               ],
@@ -114,10 +143,10 @@ class _BookSelectionScreenState extends State<BookSelectionScreen> {
     return Row(
       children: [
         Container(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
+            color: color.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(icon, color: color, size: 24),
         ),
@@ -137,12 +166,16 @@ class _BookSelectionScreenState extends State<BookSelectionScreen> {
   Widget _buildBookCard(BuildContext context, Book book) {
     final isOldTestament = book.testament == 'OT';
 
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      elevation: 2,
+      decoration: BoxDecoration(
+        color: _cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white10),
+      ),
       child: InkWell(
         onTap: () => _navigateToChapterSelection(context, book),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
@@ -154,8 +187,8 @@ class _BookSelectionScreenState extends State<BookSelectionScreen> {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: isOldTestament
-                        ? [Colors.brown.shade300, Colors.brown.shade600]
-                        : [Colors.indigo.shade300, Colors.indigo.shade600],
+                        ? [Colors.amber.shade400, Colors.amber.shade700]
+                        : [_accentColor, Colors.purple.shade600],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -186,6 +219,7 @@ class _BookSelectionScreenState extends State<BookSelectionScreen> {
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
+                            color: Colors.white,
                           ),
                         ),
                         if (book.isFree) ...[
@@ -193,14 +227,14 @@ class _BookSelectionScreenState extends State<BookSelectionScreen> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
-                              color: Colors.green.shade100,
+                              color: Colors.green.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(4),
                             ),
-                            child: Text(
+                            child: const Text(
                               '무료',
                               style: TextStyle(
                                 fontSize: 10,
-                                color: Colors.green.shade700,
+                                color: Colors.green,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -213,7 +247,7 @@ class _BookSelectionScreenState extends State<BookSelectionScreen> {
                       '${book.nameEn} - ${book.chapterCount}장',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey.shade600,
+                        color: Colors.white.withValues(alpha: 0.6),
                       ),
                     ),
                   ],
@@ -223,7 +257,7 @@ class _BookSelectionScreenState extends State<BookSelectionScreen> {
               // 화살표
               Icon(
                 Icons.chevron_right,
-                color: Colors.grey.shade400,
+                color: Colors.white.withValues(alpha: 0.4),
                 size: 28,
               ),
             ],

@@ -7,6 +7,7 @@ import 'screens/splash_screen.dart';
 import 'services/bible_data_service.dart';
 import 'services/notification/notification_service.dart';
 import 'services/notification/notification_handler.dart';
+import 'services/offline/offline_services.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,6 +42,9 @@ void main() async {
 
   // BibleDataService 초기화 (Firestore 연결 확인)
   await BibleDataService.instance.init();
+
+  // 오프라인 매니저 초기화
+  await initializeOfflineManager();
 
   runApp(const BibleSpeakApp());
 }

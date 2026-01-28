@@ -29,6 +29,7 @@ import '../social/friend_screen.dart';
 import '../quiz/daily_quiz_screen.dart';
 import '../settings/theme_settings_screen.dart';
 import '../stats/stats_dashboard_screen.dart';
+import '../review/review_screen.dart';
 
 /// 메인 메뉴 화면
 /// - 각 기능으로 이동하는 허브
@@ -255,6 +256,13 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                     subtitle: '매일 도전',
                     color: Colors.orange,
                     onTap: () => _navigateToDailyQuiz(),
+                  ),
+                  _buildMenuCard(
+                    icon: Icons.replay,
+                    title: '복습',
+                    subtitle: '스페이스드 리피티션',
+                    color: Colors.teal,
+                    onTap: () => _navigateToReview(),
                   ),
                   _buildMenuCard(
                     icon: Icons.groups,
@@ -573,6 +581,15 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
       context,
       MaterialPageRoute(
         builder: (_) => const StatsDashboardScreen(),
+      ),
+    );
+  }
+
+  void _navigateToReview() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const ReviewScreen(),
       ),
     );
   }

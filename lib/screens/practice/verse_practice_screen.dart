@@ -13,6 +13,7 @@ import '../../services/tutor/tutor_coordinator.dart';
 import '../../services/social/group_activity_service.dart';
 import '../../services/social/group_challenge_service.dart';
 import '../../services/social/streak_service.dart';
+import '../../services/review_service.dart';
 import '../../widgets/social/streak_widget.dart';
 import '../../models/learning_stage.dart';
 import '../../models/verse_progress.dart';
@@ -50,6 +51,7 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
   final GroupActivityService _activityService = GroupActivityService();
   final GroupChallengeService _challengeService = GroupChallengeService();
   final StreakService _streakService = StreakService();
+  final ReviewService _reviewService = ReviewService();
 
   // Cached book info
   String _bookNameKo = '';
@@ -371,6 +373,14 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
         if (added) {
           _showSnackBar('달란트 +1 획득! 암송 완료!', isError: false);
         }
+        // 복습 큐에 추가
+        await _reviewService.addReviewItem(
+          verseReference: '$_bookNameEn ${widget.chapter}:${_currentVerse!.verse}',
+          book: widget.book,
+          chapter: widget.chapter,
+          verse: _currentVerse!.verse,
+          verseText: _currentVerse!.english,
+        );
       }
 
       // 스테이지 통과 처리

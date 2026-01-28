@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/bible_word.dart';
 import '../../models/word_progress.dart';
+import '../../models/quiz_type.dart';
 import '../../services/auth_service.dart';
 import '../../services/word_service.dart';
 import '../../services/word_progress_service.dart';
@@ -28,6 +29,12 @@ class WordListScreen extends StatefulWidget {
 }
 
 class _WordListScreenState extends State<WordListScreen> {
+  // 다크 테마 상수
+  static const _bgColor = Color(0xFF0F0F1A);
+  static const _cardColor = Color(0xFF1E1E2E);
+  static const _accentColor = Color(0xFF6C63FF);
+  static const _successColor = Color(0xFF4CAF50);
+
   final WordService _wordService = WordService();
   final WordProgressService _progressService = WordProgressService();
   final TTSService _tts = TTSService();
@@ -124,6 +131,138 @@ class _WordListScreenState extends State<WordListScreen> {
 
   void _navigateToQuiz() {
     if (_words.isEmpty) return;
+    _showQuizTypeSelector();
+  }
+
+  void _showQuizTypeSelector() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: _cardColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                '퀴즈 유형 선택',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '원하는 퀴즈 유형을 선택하세요',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.white.withValues(alpha: 0.6),
+                ),
+              ),
+              const SizedBox(height: 24),
+              ...QuizType.values.map((type) => _buildQuizTypeOption(type)),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuizTypeOption(QuizType type) {
+    final isAvailable = type.isAvailable;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      child: Material(
+        color: isAvailable ? _accentColor.withValues(alpha: 0.1) : Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          onTap: isAvailable
+              ? () {
+                  Navigator.pop(context);
+                  _startQuiz(type);
+                }
+              : null,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Text(
+                  type.emoji,
+                  style: const TextStyle(fontSize: 28),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        type.displayName,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: isAvailable ? Colors.white : Colors.white.withValues(alpha: 0.4),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        type.description,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isAvailable
+                              ? Colors.white.withValues(alpha: 0.6)
+                              : Colors.white.withValues(alpha: 0.3),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (!isAvailable)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text(
+                      '준비중',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.orange,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  )
+                else
+                  Icon(
+                    Icons.chevron_right,
+                    color: _accentColor,
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _startQuiz(QuizType quizType) {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -131,6 +270,7 @@ class _WordListScreenState extends State<WordListScreen> {
           words: _words,
           bookName: BibleData.getBookName(widget.bookId),
           chapter: widget.chapter,
+          quizType: quizType,
         ),
       ),
     ).then((_) => _loadData());
@@ -142,10 +282,12 @@ class _WordListScreenState extends State<WordListScreen> {
     final stats = _calculateStats();
 
     return Scaffold(
+      backgroundColor: _bgColor,
       appBar: AppBar(
         title: Text('$bookName ${widget.chapter}장 단어'),
-        backgroundColor: Colors.green.shade600,
+        backgroundColor: _cardColor,
         foregroundColor: Colors.white,
+        elevation: 0,
       ),
       body: Column(
         children: [
@@ -155,9 +297,14 @@ class _WordListScreenState extends State<WordListScreen> {
           // 단어 목록
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? Center(child: CircularProgressIndicator(color: _accentColor))
                 : _words.isEmpty
-                    ? const Center(child: Text('단어 데이터가 없습니다.'))
+                    ? Center(
+                        child: Text(
+                          '단어 데이터가 없습니다.',
+                          style: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
+                        ),
+                      )
                     : ListView.builder(
                         padding: const EdgeInsets.all(16),
                         itemCount: _words.length,
@@ -180,14 +327,10 @@ class _WordListScreenState extends State<WordListScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, -2),
-          ),
-        ],
+        color: _cardColor,
+        border: Border(
+          top: BorderSide(color: _accentColor.withValues(alpha: 0.2)),
+        ),
       ),
       child: SafeArea(
         top: false,
@@ -199,12 +342,13 @@ class _WordListScreenState extends State<WordListScreen> {
                 icon: const Icon(Icons.style),
                 label: const Text('플래시카드'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green.shade600,
+                  backgroundColor: _accentColor,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
+                  elevation: 0,
                 ),
               ),
             ),
@@ -215,12 +359,13 @@ class _WordListScreenState extends State<WordListScreen> {
                 icon: const Icon(Icons.quiz),
                 label: const Text('퀴즈'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.indigo.shade600,
+                  backgroundColor: const Color(0xFF9C27B0),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
+                  elevation: 0,
                 ),
               ),
             ),
@@ -258,8 +403,9 @@ class _WordListScreenState extends State<WordListScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.green.shade600, Colors.green.shade500],
+        color: _cardColor,
+        border: Border(
+          bottom: BorderSide(color: _accentColor.withValues(alpha: 0.2)),
         ),
       ),
       child: Column(
@@ -276,8 +422,8 @@ class _WordListScreenState extends State<WordListScreen> {
               ),
               Text(
                 '${stats.mastered} / ${stats.total} 단어 암기',
-                style: const TextStyle(
-                  color: Colors.white70,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.6),
                   fontSize: 12,
                 ),
               ),
@@ -288,11 +434,9 @@ class _WordListScreenState extends State<WordListScreen> {
             borderRadius: BorderRadius.circular(8),
             child: LinearProgressIndicator(
               value: stats.progressPercent,
-              backgroundColor: Colors.white24,
+              backgroundColor: Colors.white.withValues(alpha: 0.1),
               valueColor: AlwaysStoppedAnimation<Color>(
-                stats.progressPercent >= 1.0
-                    ? Colors.amber
-                    : Colors.greenAccent,
+                stats.progressPercent >= 1.0 ? Colors.amber : _successColor,
               ),
               minHeight: 10,
             ),
@@ -312,9 +456,14 @@ class _WordListScreenState extends State<WordListScreen> {
 
     switch (status) {
       case WordStatus.mastered:
-        statusColor = Colors.green;
+        statusColor = _successColor;
         statusIcon = Icons.check_circle;
         statusText = '암기완료';
+        break;
+      case WordStatus.reviewing:
+        statusColor = Colors.blue;
+        statusIcon = Icons.replay;
+        statusText = '복습중';
         break;
       case WordStatus.learning:
         statusColor = Colors.orange;
@@ -327,14 +476,14 @@ class _WordListScreenState extends State<WordListScreen> {
         statusText = '미학습';
     }
 
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      elevation: 2,
-      shape: RoundedRectangleBorder(
+      decoration: BoxDecoration(
+        color: _cardColor,
         borderRadius: BorderRadius.circular(12),
-        side: status == WordStatus.mastered
-            ? BorderSide(color: Colors.green.shade200, width: 2)
-            : BorderSide.none,
+        border: status == WordStatus.mastered
+            ? Border.all(color: _successColor.withValues(alpha: 0.5), width: 2)
+            : null,
       ),
       child: InkWell(
         onTap: () => _navigateToDetail(word),
@@ -348,7 +497,7 @@ class _WordListScreenState extends State<WordListScreen> {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.1),
+                  color: statusColor.withValues(alpha: 0.2),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(statusIcon, color: statusColor, size: 20),
@@ -367,6 +516,7 @@ class _WordListScreenState extends State<WordListScreen> {
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
+                            color: Colors.white,
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -376,14 +526,14 @@ class _WordListScreenState extends State<WordListScreen> {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.grey.shade200,
+                            color: _accentColor.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
                             word.partOfSpeechKo,
                             style: TextStyle(
                               fontSize: 10,
-                              color: Colors.grey.shade600,
+                              color: _accentColor,
                             ),
                           ),
                         ),
@@ -394,7 +544,7 @@ class _WordListScreenState extends State<WordListScreen> {
                       word.allMeanings,
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey.shade700,
+                        color: Colors.white.withValues(alpha: 0.7),
                       ),
                     ),
                     if (progress != null && progress.totalAttempts > 0) ...[
@@ -415,14 +565,17 @@ class _WordListScreenState extends State<WordListScreen> {
               IconButton(
                 onPressed: () => _playWord(word),
                 icon: isPlaying
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 24,
                         height: 24,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: _accentColor,
+                        ),
                       )
                     : Icon(
                         Icons.volume_up,
-                        color: Colors.green.shade600,
+                        color: _accentColor,
                       ),
                 tooltip: '발음 듣기',
               ),
@@ -430,7 +583,7 @@ class _WordListScreenState extends State<WordListScreen> {
               // 화살표
               Icon(
                 Icons.chevron_right,
-                color: Colors.grey.shade400,
+                color: Colors.white.withValues(alpha: 0.4),
               ),
             ],
           ),

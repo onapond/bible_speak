@@ -4,6 +4,7 @@ import '../../services/word_service.dart';
 import '../../services/word_progress_service.dart';
 import '../../data/bible_data.dart';
 import 'word_list_screen.dart';
+import 'flashcard_screen.dart';
 
 /// 단어 공부 홈 화면
 /// - 책/장 선택
@@ -21,12 +22,19 @@ class WordStudyHomeScreen extends StatefulWidget {
 }
 
 class _WordStudyHomeScreenState extends State<WordStudyHomeScreen> {
+  // 다크 테마 상수
+  static const _bgColor = Color(0xFF0F0F1A);
+  static const _cardColor = Color(0xFF1E1E2E);
+  static const _accentColor = Color(0xFF6C63FF);
+  static const _successColor = Color(0xFF4CAF50);
+
   final WordService _wordService = WordService();
   final WordProgressService _progressService = WordProgressService();
 
   String _selectedBook = 'malachi';
   int _selectedChapter = 1;
   WordStudyStats? _stats;
+  int _todayReviewCount = 0;
 
   @override
   void initState() {
@@ -40,9 +48,15 @@ class _WordStudyHomeScreenState extends State<WordStudyHomeScreen> {
     final wordIds = words.map((w) => w.id).toList();
     final stats = await _progressService.getChapterStats(wordIds);
 
+    // 전체 단어에서 오늘 복습할 단어 수 계산
+    final allWords = _wordService.getAllWords();
+    final allWordIds = allWords.map((w) => w.id).toList();
+    final todayReview = await _progressService.getTodayReviewWords(allWordIds);
+
     if (mounted) {
       setState(() {
         _stats = stats;
+        _todayReviewCount = todayReview.length;
       });
     }
   }
@@ -84,60 +98,149 @@ class _WordStudyHomeScreenState extends State<WordStudyHomeScreen> {
     final hasWords = chaptersWithWords.contains(_selectedChapter);
 
     return Scaffold(
+      backgroundColor: _bgColor,
       appBar: AppBar(
         title: const Text('단어 공부'),
-        backgroundColor: Colors.green.shade600,
+        backgroundColor: _cardColor,
         foregroundColor: Colors.white,
+        elevation: 0,
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Colors.green.shade600, Colors.green.shade400],
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: MediaQuery.of(context).size.height -
+                  MediaQuery.of(context).padding.top -
+                  MediaQuery.of(context).padding.bottom -
+                  kToolbarHeight -
+                  40,
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  children: [
+                    // 헤더 카드
+                    _buildHeaderCard(),
+                    const SizedBox(height: 20),
+
+                    // 오늘의 복습 카드 (SRS)
+                    if (_todayReviewCount > 0) ...[
+                      _buildTodayReviewCard(),
+                      const SizedBox(height: 20),
+                    ],
+
+                    // 선택 카드
+                    _buildSelectionCard(book, chaptersWithWords),
+                    const SizedBox(height: 20),
+
+                    // 진행률 카드
+                    if (_stats != null && hasWords) _buildProgressCard(),
+                  ],
+                ),
+
+                // 시작 버튼
+                Column(
+                  children: [
+                    const SizedBox(height: 20),
+                    _buildStartButton(hasWords),
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight: MediaQuery.of(context).size.height -
-                    MediaQuery.of(context).padding.top -
-                    MediaQuery.of(context).padding.bottom -
-                    kToolbarHeight -
-                    40, // padding
+      ),
+    );
+  }
+
+  void _startTodayReview() async {
+    final allWords = _wordService.getAllWords();
+    final allWordIds = allWords.map((w) => w.id).toList();
+    final todayReviewIds = await _progressService.getTodayReviewWords(allWordIds);
+
+    if (todayReviewIds.isEmpty) return;
+
+    // 복습할 단어들 필터링
+    final reviewWords = allWords.where((w) => todayReviewIds.contains(w.id)).toList();
+
+    if (mounted && reviewWords.isNotEmpty) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => FlashcardScreen(
+            words: reviewWords,
+            bookName: '오늘의 복습',
+            chapter: 0,
+          ),
+        ),
+      ).then((_) => _loadStats());
+    }
+  }
+
+  Widget _buildTodayReviewCard() {
+    return GestureDetector(
+      onTap: _startTodayReview,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.orange.withValues(alpha: 0.3),
+              Colors.red.withValues(alpha: 0.2),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.orange.withValues(alpha: 0.5)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.3),
+                shape: BoxShape.circle,
               ),
+              child: const Icon(
+                Icons.local_fire_department,
+                color: Colors.orange,
+                size: 28,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Column(
-                    children: [
-                      // 헤더 카드
-                      _buildHeaderCard(),
-                      const SizedBox(height: 20),
-
-                      // 선택 카드
-                      _buildSelectionCard(book, chaptersWithWords),
-                      const SizedBox(height: 20),
-
-                      // 진행률 카드
-                      if (_stats != null && hasWords) _buildProgressCard(),
-                    ],
+                  const Text(
+                    '오늘의 복습',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
-
-                  // 시작 버튼
-                  Column(
-                    children: [
-                      const SizedBox(height: 20),
-                      _buildStartButton(hasWords),
-                      const SizedBox(height: 20),
-                    ],
+                  const SizedBox(height: 4),
+                  Text(
+                    '$_todayReviewCount개의 단어가 복습을 기다리고 있어요!',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.white.withValues(alpha: 0.8),
+                    ),
                   ),
                 ],
               ),
             ),
-          ),
+            Icon(
+              Icons.arrow_forward_ios,
+              color: Colors.white.withValues(alpha: 0.5),
+              size: 18,
+            ),
+          ],
         ),
       ),
     );
@@ -147,15 +250,18 @@ class _WordStudyHomeScreenState extends State<WordStudyHomeScreen> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.15),
+        color: _cardColor,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.3)),
       ),
       child: Column(
         children: [
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              gradient: LinearGradient(
+                colors: [_accentColor, _accentColor.withValues(alpha: 0.7)],
+              ),
               shape: BoxShape.circle,
             ),
             child: const Icon(
@@ -178,7 +284,7 @@ class _WordStudyHomeScreenState extends State<WordStudyHomeScreen> {
             '암송 전에 핵심 단어를 익혀보세요',
             style: TextStyle(
               fontSize: 14,
-              color: Colors.white.withOpacity(0.9),
+              color: Colors.white.withValues(alpha: 0.7),
             ),
           ),
         ],
@@ -187,112 +293,137 @@ class _WordStudyHomeScreenState extends State<WordStudyHomeScreen> {
   }
 
   Widget _buildSelectionCard(BibleBook? book, List<int> chaptersWithWords) {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              '학습할 범위 선택',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: _cardColor,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '학습할 범위 선택',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
             ),
-            const SizedBox(height: 16),
+          ),
+          const SizedBox(height: 16),
 
-            // 책 선택
-            Row(
-              children: [
-                const Icon(Icons.menu_book, color: Colors.green),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    value: _selectedBook,
-                    decoration: InputDecoration(
-                      labelText: '성경',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
+          // 책 선택
+          Row(
+            children: [
+              Icon(Icons.menu_book, color: _accentColor),
+              const SizedBox(width: 12),
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  value: _selectedBook,
+                  dropdownColor: _cardColor,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: '성경',
+                    labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: _accentColor.withValues(alpha: 0.5)),
                     ),
-                    items: _wordService.supportedBooks.map((bookId) {
-                      final b = BibleData.getBook(bookId);
-                      return DropdownMenuItem(
-                        value: bookId,
-                        child: Text(b?.nameKo ?? bookId),
-                      );
-                    }).toList(),
-                    onChanged: _onBookChanged,
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: _accentColor.withValues(alpha: 0.3)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: _accentColor),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                   ),
+                  items: _wordService.supportedBooks.map((bookId) {
+                    final b = BibleData.getBook(bookId);
+                    return DropdownMenuItem(
+                      value: bookId,
+                      child: Text(b?.nameKo ?? bookId),
+                    );
+                  }).toList(),
+                  onChanged: _onBookChanged,
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
 
-            // 장 선택
-            Row(
-              children: [
-                const Icon(Icons.format_list_numbered, color: Colors.green),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: DropdownButtonFormField<int>(
-                    value: _selectedChapter,
-                    decoration: InputDecoration(
-                      labelText: '장',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
+          // 장 선택
+          Row(
+            children: [
+              Icon(Icons.format_list_numbered, color: _accentColor),
+              const SizedBox(width: 12),
+              Expanded(
+                child: DropdownButtonFormField<int>(
+                  value: _selectedChapter,
+                  dropdownColor: _cardColor,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: '장',
+                    labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: _accentColor.withValues(alpha: 0.5)),
                     ),
-                    items: List.generate(book?.chapters ?? 1, (i) => i + 1)
-                        .map((ch) {
-                      final hasData = chaptersWithWords.contains(ch);
-                      return DropdownMenuItem(
-                        value: ch,
-                        child: Row(
-                          children: [
-                            Text('$ch장'),
-                            if (!hasData) ...[
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey.shade200,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: const Text(
-                                  '준비중',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: Colors.grey,
-                                  ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: _accentColor.withValues(alpha: 0.3)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: _accentColor),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                  ),
+                  items: List.generate(book?.chapters ?? 1, (i) => i + 1)
+                      .map((ch) {
+                    final hasData = chaptersWithWords.contains(ch);
+                    return DropdownMenuItem(
+                      value: ch,
+                      child: Row(
+                        children: [
+                          Text('$ch장'),
+                          if (!hasData) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                '준비중',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.white.withValues(alpha: 0.5),
                                 ),
                               ),
-                            ],
+                            ),
                           ],
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: _onChapterChanged,
-                  ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: _onChapterChanged,
                 ),
-              ],
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -300,84 +431,83 @@ class _WordStudyHomeScreenState extends State<WordStudyHomeScreen> {
   Widget _buildProgressCard() {
     final stats = _stats!;
 
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  '학습 진행률',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: _cardColor,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                '학습 진행률',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.green.shade100,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    '${stats.mastered} / ${stats.total}',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.green.shade700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // 진행률 바
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: LinearProgressIndicator(
-                value: stats.progressPercent,
-                backgroundColor: Colors.grey.shade200,
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  stats.progressPercent >= 1.0
-                      ? Colors.amber
-                      : Colors.green.shade600,
-                ),
-                minHeight: 12,
               ),
-            ),
-            const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: _successColor.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '${stats.mastered} / ${stats.total}',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: _successColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
 
-            // 상태별 카운트
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildStatItem(
-                  '미학습',
-                  stats.notStarted,
-                  Colors.grey,
-                ),
-                _buildStatItem(
-                  '학습중',
-                  stats.learning,
-                  Colors.orange,
-                ),
-                _buildStatItem(
-                  '암기완료',
-                  stats.mastered,
-                  Colors.green,
-                ),
-              ],
+          // 진행률 바
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: stats.progressPercent,
+              backgroundColor: Colors.white.withValues(alpha: 0.1),
+              valueColor: AlwaysStoppedAnimation<Color>(
+                stats.progressPercent >= 1.0 ? Colors.amber : _successColor,
+              ),
+              minHeight: 12,
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 16),
+
+          // 상태별 카운트
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildStatItem(
+                '미학습',
+                stats.notStarted,
+                Colors.grey,
+              ),
+              _buildStatItem(
+                '학습중',
+                stats.learning,
+                Colors.orange,
+              ),
+              _buildStatItem(
+                '암기완료',
+                stats.mastered,
+                _successColor,
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -389,7 +519,7 @@ class _WordStudyHomeScreenState extends State<WordStudyHomeScreen> {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.2),
             shape: BoxShape.circle,
           ),
           child: Center(
@@ -408,7 +538,7 @@ class _WordStudyHomeScreenState extends State<WordStudyHomeScreen> {
           label,
           style: TextStyle(
             fontSize: 12,
-            color: Colors.grey.shade600,
+            color: Colors.white.withValues(alpha: 0.6),
           ),
         ),
       ],
@@ -421,14 +551,15 @@ class _WordStudyHomeScreenState extends State<WordStudyHomeScreen> {
       child: ElevatedButton(
         onPressed: hasWords ? _navigateToWordList : null,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.green.shade700,
-          disabledBackgroundColor: Colors.white.withOpacity(0.5),
+          backgroundColor: _accentColor,
+          foregroundColor: Colors.white,
+          disabledBackgroundColor: _accentColor.withValues(alpha: 0.3),
+          disabledForegroundColor: Colors.white.withValues(alpha: 0.5),
           padding: const EdgeInsets.symmetric(vertical: 18),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          elevation: 4,
+          elevation: 0,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,

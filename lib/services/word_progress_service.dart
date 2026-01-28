@@ -2,10 +2,9 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/word_progress.dart';
 
-/// 단어 학습 진행 서비스
+/// 단어 학습 진행 서비스 (SRS 지원)
 class WordProgressService {
   static const String _keyPrefix = 'word_progress_';
-  static const int masteryThreshold = 3; // 연속 3회 정답 시 암기완료
 
   SharedPreferences? _prefs;
 
@@ -42,36 +41,38 @@ class WordProgressService {
     await _prefs!.setString(key, jsonStr);
   }
 
-  /// 정답 기록
+  /// SRS 기반 정답 기록
+  Future<WordProgress> recordAnswerWithSRS({
+    required String wordId,
+    required int quality, // 0-5
+  }) async {
+    final current = await getProgress(wordId);
+    final updated = SRSCalculator.calculate(current, quality);
+    await saveProgress(updated);
+    return updated;
+  }
+
+  /// 플래시카드 결과 기록 (known/vague/unknown)
+  Future<WordProgress> recordFlashcardAnswer({
+    required String wordId,
+    required String answer, // 'known', 'vague', 'unknown'
+  }) async {
+    final current = await getProgress(wordId);
+    final updated = SRSCalculator.calculateFromFlashcard(current, answer);
+    await saveProgress(updated);
+    return updated;
+  }
+
+  /// 퀴즈 정답/오답 기록 (SRS 적용)
   Future<WordProgress> recordAnswer({
     required String wordId,
     required bool isCorrect,
   }) async {
     final current = await getProgress(wordId);
-
-    final newStreak = isCorrect ? current.streak + 1 : 0;
-    final newStatus = _calculateStatus(newStreak, current.totalAttempts + 1);
-
-    final updated = current.copyWith(
-      correctCount: current.correctCount + (isCorrect ? 1 : 0),
-      totalAttempts: current.totalAttempts + 1,
-      lastStudied: DateTime.now(),
-      streak: newStreak,
-      status: newStatus,
-    );
-
+    // 퀴즈: 정답 = quality 4, 오답 = quality 1
+    final updated = SRSCalculator.calculateSimple(current, isCorrect);
     await saveProgress(updated);
     return updated;
-  }
-
-  /// 상태 계산
-  WordStatus _calculateStatus(int streak, int totalAttempts) {
-    if (streak >= masteryThreshold) {
-      return WordStatus.mastered;
-    } else if (totalAttempts > 0) {
-      return WordStatus.learning;
-    }
-    return WordStatus.notStarted;
   }
 
   /// 여러 단어의 진행 상황 가져오기
@@ -84,13 +85,64 @@ class WordProgressService {
     return result;
   }
 
+  /// 오늘 복습할 단어 ID 목록 (SRS 기반)
+  Future<List<String>> getTodayReviewWords(List<String> wordIds) async {
+    final progressMap = await getProgressBatch(wordIds);
+    final now = DateTime.now();
+
+    return progressMap.entries
+        .where((e) {
+          final p = e.value;
+          // 미학습은 제외
+          if (p.status == WordStatus.notStarted) return false;
+          // 다음 복습 시간이 지났으면 포함
+          if (p.nextReview == null) return true;
+          return now.isAfter(p.nextReview!);
+        })
+        .map((e) => e.key)
+        .toList();
+  }
+
+  /// 새로운 단어 목록 (미학습)
+  Future<List<String>> getNewWords(List<String> wordIds) async {
+    final progressMap = await getProgressBatch(wordIds);
+    return progressMap.entries
+        .where((e) => e.value.status == WordStatus.notStarted)
+        .map((e) => e.key)
+        .toList();
+  }
+
+  /// 학습 중인 단어 목록
+  Future<List<String>> getLearningWords(List<String> wordIds) async {
+    final progressMap = await getProgressBatch(wordIds);
+    return progressMap.entries
+        .where((e) =>
+            e.value.status == WordStatus.learning ||
+            e.value.status == WordStatus.reviewing)
+        .map((e) => e.key)
+        .toList();
+  }
+
+  /// 마스터한 단어 목록
+  Future<List<String>> getMasteredWords(List<String> wordIds) async {
+    final progressMap = await getProgressBatch(wordIds);
+    return progressMap.entries
+        .where((e) => e.value.status == WordStatus.mastered)
+        .map((e) => e.key)
+        .toList();
+  }
+
   /// 책/장별 학습 통계
   Future<WordStudyStats> getChapterStats(List<String> wordIds) async {
     final progressMap = await getProgressBatch(wordIds);
 
     int notStarted = 0;
     int learning = 0;
+    int reviewing = 0;
     int mastered = 0;
+    int dueToday = 0;
+
+    final now = DateTime.now();
 
     for (final progress in progressMap.values) {
       switch (progress.status) {
@@ -100,17 +152,28 @@ class WordProgressService {
         case WordStatus.learning:
           learning++;
           break;
+        case WordStatus.reviewing:
+          reviewing++;
+          break;
         case WordStatus.mastered:
           mastered++;
           break;
+      }
+
+      // 오늘 복습 필요 여부
+      if (progress.status != WordStatus.notStarted) {
+        if (progress.nextReview == null || now.isAfter(progress.nextReview!)) {
+          dueToday++;
+        }
       }
     }
 
     return WordStudyStats(
       total: wordIds.length,
       notStarted: notStarted,
-      learning: learning,
+      learning: learning + reviewing, // 기존 호환성
       mastered: mastered,
+      dueToday: dueToday,
     );
   }
 
@@ -139,19 +202,13 @@ class WordProgressService {
         .toList();
   }
 
-  /// 복습이 필요한 단어 (마지막 학습 후 일정 시간 경과)
+  /// 복습이 필요한 단어 (마지막 학습 후 일정 시간 경과) - 레거시 지원
   Future<List<String>> getWordsToReview(
     List<String> wordIds, {
     Duration reviewInterval = const Duration(days: 3),
   }) async {
-    final progressMap = await getProgressBatch(wordIds);
-    final now = DateTime.now();
-
-    return progressMap.entries.where((e) {
-      final lastStudied = e.value.lastStudied;
-      if (lastStudied == null) return false;
-      return now.difference(lastStudied) >= reviewInterval;
-    }).map((e) => e.key).toList();
+    // SRS 기반으로 변경
+    return getTodayReviewWords(wordIds);
   }
 }
 
@@ -161,12 +218,14 @@ class WordStudyStats {
   final int notStarted;
   final int learning;
   final int mastered;
+  final int dueToday; // 오늘 복습 필요
 
   const WordStudyStats({
     required this.total,
     required this.notStarted,
     required this.learning,
     required this.mastered,
+    this.dueToday = 0,
   });
 
   /// 진행률 (0.0 ~ 1.0)

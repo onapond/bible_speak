@@ -1,19 +1,23 @@
 import 'package:flutter/material.dart';
 import '../../models/bible_word.dart';
+import '../../models/quiz_type.dart';
 import '../../services/word_progress_service.dart';
+import '../../services/auth_service.dart';
 import 'quiz_result_screen.dart';
 
-/// 퀴즈 화면 (영→한 4지선다)
+/// 퀴즈 화면 (4지선다)
 class QuizScreen extends StatefulWidget {
   final List<BibleWord> words;
   final String bookName;
   final int chapter;
+  final QuizType quizType;
 
   const QuizScreen({
     super.key,
     required this.words,
     required this.bookName,
     required this.chapter,
+    this.quizType = QuizType.englishToKorean,
   });
 
   @override
@@ -21,6 +25,12 @@ class QuizScreen extends StatefulWidget {
 }
 
 class _QuizScreenState extends State<QuizScreen> {
+  // 다크 테마 상수
+  static const _bgColor = Color(0xFF0F0F1A);
+  static const _cardColor = Color(0xFF1E1E2E);
+  static const _accentColor = Color(0xFF6C63FF);
+  static const _successColor = Color(0xFF4CAF50);
+
   final WordProgressService _progressService = WordProgressService();
 
   late List<BibleWord> _quizWords;
@@ -38,6 +48,15 @@ class _QuizScreenState extends State<QuizScreen> {
   }
 
   List<String> _generateOptions(BibleWord correctWord) {
+    if (widget.quizType == QuizType.koreanToEnglish) {
+      return _generateEnglishOptions(correctWord);
+    } else {
+      return _generateKoreanOptions(correctWord);
+    }
+  }
+
+  /// Type A: 한글 뜻 선택지 생성 (영→한)
+  List<String> _generateKoreanOptions(BibleWord correctWord) {
     final correctMeaning = correctWord.primaryMeaning;
     final options = <String>[correctMeaning];
 
@@ -66,8 +85,41 @@ class _QuizScreenState extends State<QuizScreen> {
     return options;
   }
 
+  /// Type B: 영어 단어 선택지 생성 (한→영)
+  List<String> _generateEnglishOptions(BibleWord correctWord) {
+    final correctAnswer = correctWord.word;
+    final options = <String>[correctAnswer];
+
+    // 다른 단어들에서 오답 선택지 생성
+    final otherWords = widget.words.where((w) => w.id != correctWord.id).toList()
+      ..shuffle();
+
+    for (final word in otherWords) {
+      if (options.length >= 4) break;
+      if (!options.contains(word.word)) {
+        options.add(word.word);
+      }
+    }
+
+    // 부족하면 기본 오답 추가 (성경 관련 영단어)
+    final defaultWrongs = ['blessing', 'covenant', 'sacrifice', 'messenger', 'prophet', 'glory', 'grace', 'faith'];
+    for (final wrong in defaultWrongs) {
+      if (options.length >= 4) break;
+      if (!options.contains(wrong)) {
+        options.add(wrong);
+      }
+    }
+
+    options.shuffle();
+    return options;
+  }
+
   int _getCorrectIndex(List<String> options, BibleWord word) {
-    return options.indexOf(word.primaryMeaning);
+    if (widget.quizType == QuizType.koreanToEnglish) {
+      return options.indexOf(word.word);
+    } else {
+      return options.indexOf(word.primaryMeaning);
+    }
   }
 
   Future<void> _selectAnswer(int index, int correctIndex, BibleWord word) async {
@@ -104,7 +156,16 @@ class _QuizScreenState extends State<QuizScreen> {
     }
   }
 
-  void _showResult() {
+  void _showResult() async {
+    // 탈란트 적립
+    final earnedTalants = await AuthService().earnWordStudyTalant(
+      activityType: 'quiz',
+      totalWords: _quizWords.length,
+      correctCount: _correctCount,
+    );
+
+    if (!mounted) return;
+
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
@@ -115,6 +176,8 @@ class _QuizScreenState extends State<QuizScreen> {
           bookName: widget.bookName,
           chapter: widget.chapter,
           allWords: widget.words,
+          earnedTalants: earnedTalants,
+          quizType: widget.quizType,
         ),
       ),
     );
@@ -126,52 +189,49 @@ class _QuizScreenState extends State<QuizScreen> {
     final options = _generateOptions(word);
     final correctIndex = _getCorrectIndex(options, word);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('${widget.bookName} ${widget.chapter}장 퀴즈'),
-        backgroundColor: Colors.indigo.shade600,
-        foregroundColor: Colors.white,
-      ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Colors.indigo.shade600, Colors.indigo.shade400],
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // 진행률
-              _buildProgress(),
+    final quizTitle = widget.chapter > 0
+        ? '${widget.bookName} ${widget.chapter}장'
+        : widget.bookName;
 
-              // 문제
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    children: [
-                      _buildQuestionCard(word),
-                      const SizedBox(height: 24),
-                      ...List.generate(
-                        options.length,
-                        (i) => _buildOptionButton(
-                          i,
-                          options[i],
-                          correctIndex,
-                          word,
-                        ),
+    return Scaffold(
+      backgroundColor: _bgColor,
+      appBar: AppBar(
+        title: Text('$quizTitle ${widget.quizType.displayName}'),
+        backgroundColor: _cardColor,
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // 진행률
+            _buildProgress(),
+
+            // 문제
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    _buildQuestionCard(word),
+                    const SizedBox(height: 24),
+                    ...List.generate(
+                      options.length,
+                      (i) => _buildOptionButton(
+                        i,
+                        options[i],
+                        correctIndex,
+                        word,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
+            ),
 
-              // 다음 버튼
-              if (_hasAnswered) _buildNextButton(),
-            ],
-          ),
+            // 다음 버튼
+            if (_hasAnswered) _buildNextButton(),
+          ],
         ),
       ),
     );
@@ -180,6 +240,12 @@ class _QuizScreenState extends State<QuizScreen> {
   Widget _buildProgress() {
     return Container(
       padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: _cardColor,
+        border: Border(
+          bottom: BorderSide(color: _accentColor.withValues(alpha: 0.2)),
+        ),
+      ),
       child: Column(
         children: [
           Row(
@@ -194,22 +260,22 @@ class _QuizScreenState extends State<QuizScreen> {
               ),
               Row(
                 children: [
-                  const Icon(Icons.check_circle, size: 16, color: Colors.greenAccent),
+                  Icon(Icons.check_circle, size: 16, color: _successColor),
                   const SizedBox(width: 4),
                   Text(
                     '$_correctCount',
-                    style: const TextStyle(
-                      color: Colors.greenAccent,
+                    style: TextStyle(
+                      color: _successColor,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Icon(Icons.cancel, size: 16, color: Colors.redAccent),
+                  const Icon(Icons.cancel, size: 16, color: Colors.red),
                   const SizedBox(width: 4),
                   Text(
                     '${_wrongWords.length}',
                     style: const TextStyle(
-                      color: Colors.redAccent,
+                      color: Colors.red,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -222,8 +288,8 @@ class _QuizScreenState extends State<QuizScreen> {
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: (_currentIndex + 1) / _quizWords.length,
-              backgroundColor: Colors.white24,
-              valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+              backgroundColor: Colors.white.withValues(alpha: 0.1),
+              valueColor: AlwaysStoppedAnimation<Color>(_accentColor),
               minHeight: 6,
             ),
           ),
@@ -233,34 +299,78 @@ class _QuizScreenState extends State<QuizScreen> {
   }
 
   Widget _buildQuestionCard(BibleWord word) {
-    return Card(
-      elevation: 8,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.indigo.shade100,
-                borderRadius: BorderRadius.circular(20),
+    final isKoreanToEnglish = widget.quizType == QuizType.koreanToEnglish;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: _cardColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: _accentColor.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              isKoreanToEnglish ? '이 뜻의 영단어는?' : '이 단어의 뜻은?',
+              style: TextStyle(
+                color: _accentColor,
+                fontWeight: FontWeight.bold,
               ),
-              child: const Text(
-                '이 단어의 뜻은?',
+            ),
+          ),
+          const SizedBox(height: 24),
+          if (isKoreanToEnglish) ...[
+            // 한→영: 한글 뜻을 크게 표시
+            Text(
+              word.primaryMeaning,
+              style: const TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                word.partOfSpeechKo,
                 style: TextStyle(
-                  color: Colors.indigo,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                  color: Colors.white.withValues(alpha: 0.7),
                 ),
               ),
             ),
-            const SizedBox(height: 24),
+            if (word.meanings.length > 1) ...[
+              const SizedBox(height: 8),
+              Text(
+                '(${word.meanings.skip(1).join(", ")})',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.white.withValues(alpha: 0.5),
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ] else ...[
+            // 영→한: 영어 단어를 크게 표시
             Text(
               word.word,
               style: const TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
+                color: Colors.white,
               ),
             ),
             const SizedBox(height: 8),
@@ -268,7 +378,7 @@ class _QuizScreenState extends State<QuizScreen> {
               word.pronunciation,
               style: TextStyle(
                 fontSize: 16,
-                color: Colors.grey.shade600,
+                color: Colors.white.withValues(alpha: 0.6),
                 fontStyle: FontStyle.italic,
               ),
             ),
@@ -276,19 +386,19 @@ class _QuizScreenState extends State<QuizScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.grey.shade200,
+                color: Colors.white.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
                 word.partOfSpeechKo,
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.grey.shade700,
+                  color: Colors.white.withValues(alpha: 0.7),
                 ),
               ),
             ),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -299,22 +409,22 @@ class _QuizScreenState extends State<QuizScreen> {
     int correctIndex,
     BibleWord word,
   ) {
-    Color backgroundColor = Colors.white;
+    Color backgroundColor = _cardColor;
     Color borderColor = Colors.transparent;
-    Color textColor = Colors.black87;
+    Color textColor = Colors.white;
 
     if (_hasAnswered) {
       if (index == correctIndex) {
-        backgroundColor = Colors.green.shade100;
-        borderColor = Colors.green;
-        textColor = Colors.green.shade800;
+        backgroundColor = _successColor.withValues(alpha: 0.2);
+        borderColor = _successColor;
+        textColor = _successColor;
       } else if (index == _selectedAnswer) {
-        backgroundColor = Colors.red.shade100;
+        backgroundColor = Colors.red.withValues(alpha: 0.2);
         borderColor = Colors.red;
-        textColor = Colors.red.shade800;
+        textColor = Colors.red;
       }
     } else if (index == _selectedAnswer) {
-      borderColor = Colors.indigo;
+      borderColor = _accentColor;
     }
 
     return Padding(
@@ -330,7 +440,12 @@ class _QuizScreenState extends State<QuizScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: borderColor, width: 2),
+              border: Border.all(
+                color: borderColor == Colors.transparent
+                    ? Colors.white.withValues(alpha: 0.1)
+                    : borderColor,
+                width: 2,
+              ),
             ),
             child: Row(
               children: [
@@ -340,11 +455,11 @@ class _QuizScreenState extends State<QuizScreen> {
                   decoration: BoxDecoration(
                     color: _hasAnswered
                         ? (index == correctIndex
-                            ? Colors.green
+                            ? _successColor
                             : (index == _selectedAnswer
                                 ? Colors.red
-                                : Colors.grey.shade300))
-                        : Colors.indigo.shade100,
+                                : Colors.white.withValues(alpha: 0.1)))
+                        : _accentColor.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
                   child: Center(
@@ -362,7 +477,7 @@ class _QuizScreenState extends State<QuizScreen> {
                             '${index + 1}',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
-                              color: Colors.indigo.shade700,
+                              color: _accentColor,
                             ),
                           ),
                   ),
@@ -391,17 +506,24 @@ class _QuizScreenState extends State<QuizScreen> {
 
     return Container(
       padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: _cardColor,
+        border: Border(
+          top: BorderSide(color: _accentColor.withValues(alpha: 0.2)),
+        ),
+      ),
       child: SizedBox(
         width: double.infinity,
         child: ElevatedButton(
           onPressed: _nextQuestion,
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.white,
-            foregroundColor: Colors.indigo,
+            backgroundColor: _accentColor,
+            foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
+            elevation: 0,
           ),
           child: Text(
             isLast ? '결과 보기' : '다음 문제',

@@ -83,6 +83,14 @@ class WordService {
   /// 지원하는 책 목록
   List<String> get supportedBooks => ['malachi'];
 
+  /// 모든 단어 가져오기
+  List<BibleWord> getAllWords() {
+    return [
+      ...MalachiWords.allWords,
+      // 추후 다른 책 추가
+    ];
+  }
+
   /// 책에 단어 데이터가 있는 장 목록
   List<int> getChaptersWithWords(String bookId) {
     switch (bookId) {

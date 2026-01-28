@@ -234,4 +234,75 @@ class AuthService {
       return false;
     }
   }
+
+  /// 단어 학습 달란트 적립 (플래시카드/퀴즈 완료)
+  Future<int> earnWordStudyTalant({
+    required String activityType, // 'flashcard' or 'quiz'
+    required int totalWords,
+    required int correctCount,
+    int bonusMultiplier = 1,
+  }) async {
+    if (_currentUser == null) return 0;
+
+    try {
+      int earnedTalants = 0;
+
+      if (activityType == 'flashcard') {
+        // 플래시카드: 기본 2 + 암기율 보너스
+        final masteryRate = totalWords > 0 ? correctCount / totalWords : 0;
+        earnedTalants = 2;
+        if (masteryRate >= 0.8) earnedTalants += 2; // 80% 이상 보너스
+        if (masteryRate >= 1.0) earnedTalants += 1; // 100% 추가 보너스
+      } else if (activityType == 'quiz') {
+        // 퀴즈: 정답률에 따라 1-5 탈란트
+        final accuracy = totalWords > 0 ? correctCount / totalWords : 0;
+        if (accuracy >= 0.9) {
+          earnedTalants = 5;
+        } else if (accuracy >= 0.7) {
+          earnedTalants = 3;
+        } else if (accuracy >= 0.5) {
+          earnedTalants = 2;
+        } else {
+          earnedTalants = 1;
+        }
+      }
+
+      // 보너스 배율 적용
+      earnedTalants *= bonusMultiplier;
+
+      if (earnedTalants > 0) {
+        await _firestore.runTransaction((transaction) async {
+          // 사용자 달란트 증가
+          transaction.update(
+            _firestore.collection('users').doc(_currentUser!.uid),
+            {
+              'talants': FieldValue.increment(earnedTalants),
+            },
+          );
+
+          // 그룹 달란트 증가
+          if (_currentUser!.groupId.isNotEmpty) {
+            transaction.update(
+              _firestore.collection('groups').doc(_currentUser!.groupId),
+              {
+                'totalTalants': FieldValue.increment(earnedTalants),
+              },
+            );
+          }
+        });
+
+        // 로컬 캐시 업데이트
+        _currentUser = _currentUser!.copyWith(
+          talants: _currentUser!.talants + earnedTalants,
+        );
+
+        print('🏆 단어 학습 달란트 적립! +$earnedTalants ($activityType)');
+      }
+
+      return earnedTalants;
+    } catch (e) {
+      print('❌ 단어 학습 달란트 적립 오류: $e');
+      return 0;
+    }
+  }
 }

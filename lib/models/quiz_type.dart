@@ -57,8 +57,8 @@ extension QuizTypeExtension on QuizType {
     switch (this) {
       case QuizType.englishToKorean:
       case QuizType.koreanToEnglish:
-        return true;
       case QuizType.fillInBlank:
+        return true;
       case QuizType.listening:
         return false; // 추후 구현
     }

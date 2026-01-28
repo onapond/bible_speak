@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/bible_word.dart';
 import '../../models/quiz_type.dart';
 import 'quiz_screen.dart';
+import 'fill_blank_quiz_screen.dart';
 
 /// 퀴즈 결과 화면
 class QuizResultScreen extends StatelessWidget {
@@ -313,6 +314,23 @@ class QuizResultScreen extends StatelessWidget {
     );
   }
 
+  Widget _createQuizScreen(List<BibleWord> words) {
+    if (quizType == QuizType.fillInBlank) {
+      return FillBlankQuizScreen(
+        words: words,
+        bookName: bookName,
+        chapter: chapter,
+      );
+    } else {
+      return QuizScreen(
+        words: words,
+        bookName: bookName,
+        chapter: chapter,
+        quizType: quizType,
+      );
+    }
+  }
+
   Widget _buildActionButtons(BuildContext context) {
     return Column(
       children: [
@@ -325,12 +343,7 @@ class QuizResultScreen extends StatelessWidget {
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => QuizScreen(
-                      words: wrongWords,
-                      bookName: bookName,
-                      chapter: chapter,
-                      quizType: quizType,
-                    ),
+                    builder: (_) => _createQuizScreen(wrongWords),
                   ),
                 );
               },
@@ -357,12 +370,7 @@ class QuizResultScreen extends StatelessWidget {
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => QuizScreen(
-                    words: allWords,
-                    bookName: bookName,
-                    chapter: chapter,
-                    quizType: quizType,
-                  ),
+                  builder: (_) => _createQuizScreen(allWords),
                 ),
               );
             },

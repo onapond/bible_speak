@@ -7,6 +7,7 @@ import 'widgets/group_stats_card.dart';
 import 'widgets/leaderboard_card.dart';
 import 'widgets/activity_feed_card.dart';
 import 'widgets/member_list_card.dart';
+import '../chat/group_chat_screen.dart';
 
 /// 그룹 대시보드 화면
 class GroupDashboardScreen extends StatefulWidget {
@@ -95,6 +96,22 @@ class _GroupDashboardScreenState extends State<GroupDashboardScreen>
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.chat_bubble_outline),
+            onPressed: () {
+              if (_group != null) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => GroupChatScreen(
+                      groupId: widget.groupId,
+                      groupName: _group!.name,
+                    ),
+                  ),
+                );
+              }
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadData,

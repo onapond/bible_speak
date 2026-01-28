@@ -1,5 +1,6 @@
 import '../models/bible_word.dart';
 import '../data/words/malachi_words.dart';
+import '../data/words/philippians_words.dart';
 
 /// 단어 데이터 서비스
 class WordService {
@@ -8,9 +9,8 @@ class WordService {
     switch (bookId) {
       case 'malachi':
         return MalachiWords.allWords;
-      // 추후 다른 책 추가
-      // case 'philippians':
-      //   return PhilippiansWords.allWords;
+      case 'philippians':
+        return PhilippiansWords.allWords;
       default:
         return [];
     }
@@ -21,6 +21,8 @@ class WordService {
     switch (bookId) {
       case 'malachi':
         return MalachiWords.getChapterWords(chapter);
+      case 'philippians':
+        return PhilippiansWords.getChapter(chapter);
       default:
         return [];
     }
@@ -31,7 +33,7 @@ class WordService {
     // 모든 책에서 검색
     final allWords = [
       ...MalachiWords.allWords,
-      // 추후 다른 책 추가
+      ...PhilippiansWords.allWords,
     ];
 
     try {
@@ -56,7 +58,7 @@ class WordService {
 
   /// 검색
   List<BibleWord> search(String query, {String? bookId}) {
-    final words = bookId != null ? getBookWords(bookId) : MalachiWords.allWords;
+    final words = bookId != null ? getBookWords(bookId) : getAllWords();
     final lowerQuery = query.toLowerCase();
 
     return words.where((w) {
@@ -81,13 +83,13 @@ class WordService {
   }
 
   /// 지원하는 책 목록
-  List<String> get supportedBooks => ['malachi'];
+  List<String> get supportedBooks => ['malachi', 'philippians'];
 
   /// 모든 단어 가져오기
   List<BibleWord> getAllWords() {
     return [
       ...MalachiWords.allWords,
-      // 추후 다른 책 추가
+      ...PhilippiansWords.allWords,
     ];
   }
 
@@ -95,13 +97,21 @@ class WordService {
   List<int> getChaptersWithWords(String bookId) {
     switch (bookId) {
       case 'malachi':
-        final chapters = <int>[];
+        final malachiChapters = <int>[];
         for (int i = 1; i <= 4; i++) {
           if (MalachiWords.getChapterWords(i).isNotEmpty) {
-            chapters.add(i);
+            malachiChapters.add(i);
           }
         }
-        return chapters;
+        return malachiChapters;
+      case 'philippians':
+        final phpChapters = <int>[];
+        for (int i = 1; i <= 4; i++) {
+          if (PhilippiansWords.getChapter(i).isNotEmpty) {
+            phpChapters.add(i);
+          }
+        }
+        return phpChapters;
       default:
         return [];
     }

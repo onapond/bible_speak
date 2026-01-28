@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import '../../services/group_service.dart';
-import '../../models/group_model.dart';
 import '../home/main_menu_screen.dart';
+import '../group/group_select_screen.dart';
 
-/// 프로필 설정 화면
+/// 프로필 설정 화면 (개선된 다크 테마)
 /// - 이름 입력
-/// - 그룹 선택
+/// - 그룹 선택/생성/코드 가입
 class ProfileSetupScreen extends StatefulWidget {
   final AuthService authService;
 
@@ -20,25 +20,22 @@ class ProfileSetupScreen extends StatefulWidget {
 }
 
 class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
+  // 다크 테마 상수
+  static const _bgColor = Color(0xFF0F0F1A);
+  static const _cardColor = Color(0xFF1E1E2E);
+  static const _accentColor = Color(0xFF6C63FF);
+
   final _nameController = TextEditingController();
   final _groupService = GroupService();
 
   String? _selectedGroupId;
-  List<GroupModel> _groups = [];
-  bool _isLoading = true;
+  String? _selectedGroupName;
   bool _isSubmitting = false;
 
-  @override
-  void initState() {
-    super.initState();
-    _loadGroups();
-  }
-
-  Future<void> _loadGroups() async {
-    final groups = await _groupService.getGroups();
+  void _onGroupSelected(String groupId, String groupName) {
     setState(() {
-      _groups = groups;
-      _isLoading = false;
+      _selectedGroupId = groupId;
+      _selectedGroupName = groupName;
     });
   }
 
@@ -57,13 +54,15 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
     setState(() => _isSubmitting = true);
 
+    // 그룹 멤버 수 증가
+    await _groupService.incrementMemberCount(_selectedGroupId!);
+
     final user = await widget.authService.registerAnonymous(
       name: name,
       groupId: _selectedGroupId!,
     );
 
     if (user != null && mounted) {
-      // 메인 화면으로 이동 (뒤로가기 방지)
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (_) => MainMenuScreen(authService: widget.authService),
@@ -77,63 +76,118 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.red),
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red.shade700,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Colors.indigo.shade700, Colors.indigo.shade400],
+      backgroundColor: _bgColor,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 20),
+              // 로고 영역
+              _buildHeader(),
+              const SizedBox(height: 32),
+
+              // 이름 입력
+              _buildNameInput(),
+              const SizedBox(height: 20),
+
+              // 그룹 선택 (새로운 컴포넌트)
+              GroupSelectScreen(onGroupSelected: _onGroupSelected),
+              const SizedBox(height: 24),
+
+              // 선택된 그룹 표시
+              if (_selectedGroupName != null) _buildSelectedGroupBadge(),
+              const SizedBox(height: 16),
+
+              // 시작 버튼
+              _buildSubmitButton(),
+              const SizedBox(height: 20),
+            ],
           ),
         ),
-        child: SafeArea(
-          child: _isLoading
-              ? const Center(child: CircularProgressIndicator(color: Colors.white))
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const SizedBox(height: 40),
-                      const Icon(Icons.menu_book, size: 80, color: Colors.white),
-                      const SizedBox(height: 16),
-                      const Text(
-                        '바이블 스픽',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        '영어 성경 암송 챌린지',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 16, color: Colors.white70),
-                      ),
-                      const SizedBox(height: 48),
+      ),
+    );
+  }
 
-                      // 이름 입력
-                      _buildNameInput(),
-                      const SizedBox(height: 16),
+  Widget _buildHeader() {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: _accentColor.withValues(alpha: 0.2),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: const Icon(Icons.menu_book, size: 48, color: _accentColor),
+        ),
+        const SizedBox(height: 16),
+        const Text(
+          '바이블 스픽',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          '영어 성경 암송 챌린지',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.white.withValues(alpha: 0.6),
+          ),
+        ),
+      ],
+    );
+  }
 
-                      // 그룹 선택
-                      _buildGroupSelector(),
-                      const SizedBox(height: 32),
-
-                      // 시작 버튼
-                      _buildSubmitButton(),
-                    ],
+  Widget _buildSelectedGroupBadge() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.green.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.green.withValues(alpha: 0.5)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.check_circle, color: Colors.green),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '선택된 그룹',
+                  style: TextStyle(fontSize: 12, color: Colors.green),
+                ),
+                Text(
+                  _selectedGroupName!,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
                 ),
-        ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -142,124 +196,87 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        color: _cardColor,
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '내 이름 (닉네임)',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: Colors.indigo,
-            ),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: _accentColor.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.person, color: _accentColor, size: 20),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                '내 이름 (닉네임)',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 16),
           TextField(
             controller: _nameController,
+            style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
               hintText: '예: 김철수, 은혜, 믿음이',
+              hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
               filled: true,
-              fillColor: Colors.grey.shade100,
+              fillColor: _bgColor,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
               ),
-              prefixIcon: const Icon(Icons.person),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildGroupSelector() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            '내 그룹 선택',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: Colors.indigo,
-            ),
-          ),
-          const SizedBox(height: 12),
-          _groups.isEmpty
-              ? const Text('그룹을 불러오는 중...', style: TextStyle(color: Colors.grey))
-              : Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: _groups.map((group) {
-                    final isSelected = _selectedGroupId == group.id;
-                    return GestureDetector(
-                      onTap: () => setState(() => _selectedGroupId = group.id),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: isSelected ? Colors.indigo : Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: isSelected ? Colors.indigo : Colors.grey.shade300,
-                            width: 2,
-                          ),
-                        ),
-                        child: Column(
-                          children: [
-                            Text(
-                              group.name,
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: isSelected ? Colors.white : Colors.black87,
-                              ),
-                            ),
-                            Text(
-                              '${group.memberCount}명',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: isSelected ? Colors.white70 : Colors.grey,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
         ],
       ),
     );
   }
 
   Widget _buildSubmitButton() {
+    final canSubmit = _nameController.text.trim().isNotEmpty && _selectedGroupId != null;
+
     return ElevatedButton(
-      onPressed: _isSubmitting ? null : _submit,
+      onPressed: _isSubmitting || !canSubmit ? null : _submit,
       style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.amber,
-        foregroundColor: Colors.black87,
+        backgroundColor: canSubmit ? _accentColor : Colors.grey.shade700,
+        foregroundColor: Colors.white,
         padding: const EdgeInsets.symmetric(vertical: 16),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
         ),
+        elevation: 0,
       ),
       child: _isSubmitting
           ? const SizedBox(
               height: 24,
               width: 24,
-              child: CircularProgressIndicator(strokeWidth: 2),
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
             )
-          : const Text(
-              '암송 시작하기',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          : Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.play_arrow),
+                const SizedBox(width: 8),
+                const Text(
+                  '암송 시작하기',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ],
             ),
     );
   }

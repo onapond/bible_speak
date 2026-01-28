@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/group_model.dart';
@@ -5,9 +6,12 @@ import '../models/group_model.dart';
 /// 그룹 관리 서비스
 /// - 그룹 목록/랭킹 조회
 /// - 그룹별 멤버 관리
+/// - 그룹 생성/가입
 class GroupService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  static const _codeChars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // 혼동되는 문자 제외
 
   /// 그룹 목록 조회
   Future<List<GroupModel>> getGroups() async {
@@ -94,4 +98,172 @@ class GroupService {
       return false;
     }
   }
+
+  // ============================================================
+  // 그룹 생성/가입 (사용자용)
+  // ============================================================
+
+  /// 6자리 초대 코드 생성
+  String _generateInviteCode() {
+    final random = Random();
+    return List.generate(6, (_) => _codeChars[random.nextInt(_codeChars.length)]).join();
+  }
+
+  /// 초대 코드 중복 확인
+  Future<bool> _isCodeUnique(String code) async {
+    final snapshot = await _firestore
+        .collection('groups')
+        .where('inviteCode', isEqualTo: code)
+        .limit(1)
+        .get();
+    return snapshot.docs.isEmpty;
+  }
+
+  /// 유니크한 초대 코드 생성
+  Future<String> _generateUniqueCode() async {
+    String code;
+    int attempts = 0;
+    do {
+      code = _generateInviteCode();
+      attempts++;
+    } while (!await _isCodeUnique(code) && attempts < 10);
+    return code;
+  }
+
+  /// 사용자가 새 그룹 생성
+  Future<GroupCreateResult> createGroupByUser({
+    required String name,
+    String? description,
+  }) async {
+    final userId = _auth.currentUser?.uid;
+    if (userId == null) {
+      return GroupCreateResult(success: false, message: '로그인이 필요합니다');
+    }
+
+    // 이름 검증
+    if (name.trim().isEmpty) {
+      return GroupCreateResult(success: false, message: '그룹 이름을 입력해주세요');
+    }
+
+    if (name.length > 20) {
+      return GroupCreateResult(success: false, message: '그룹 이름은 20자 이내로 입력해주세요');
+    }
+
+    try {
+      // 유니크한 초대 코드 생성
+      final inviteCode = await _generateUniqueCode();
+
+      // 그룹 ID 생성 (영문 소문자 + 숫자)
+      final groupId = 'grp_${DateTime.now().millisecondsSinceEpoch}';
+
+      // 그룹 생성
+      await _firestore.collection('groups').doc(groupId).set({
+        'name': name.trim(),
+        'description': description?.trim() ?? '',
+        'inviteCode': inviteCode,
+        'totalTalants': 0,
+        'memberCount': 0,
+        'leaderId': userId,
+        'createdAt': FieldValue.serverTimestamp(),
+        'isPublic': true,
+      });
+
+      print('✅ 사용자 그룹 생성 완료: $name (코드: $inviteCode)');
+      return GroupCreateResult(
+        success: true,
+        message: '그룹이 생성되었습니다',
+        groupId: groupId,
+        inviteCode: inviteCode,
+      );
+    } catch (e) {
+      print('❌ 그룹 생성 오류: $e');
+      return GroupCreateResult(success: false, message: '그룹 생성 중 오류가 발생했습니다');
+    }
+  }
+
+  /// 초대 코드로 그룹 찾기
+  Future<GroupModel?> findGroupByCode(String code) async {
+    try {
+      final normalizedCode = code.trim().toUpperCase();
+      if (normalizedCode.length != 6) return null;
+
+      final snapshot = await _firestore
+          .collection('groups')
+          .where('inviteCode', isEqualTo: normalizedCode)
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isEmpty) return null;
+
+      final doc = snapshot.docs.first;
+      return GroupModel.fromFirestore(doc.id, doc.data());
+    } catch (e) {
+      print('❌ 코드로 그룹 찾기 오류: $e');
+      return null;
+    }
+  }
+
+  /// 그룹 멤버 수 증가
+  Future<void> incrementMemberCount(String groupId) async {
+    try {
+      await _firestore.collection('groups').doc(groupId).update({
+        'memberCount': FieldValue.increment(1),
+      });
+    } catch (e) {
+      print('❌ 멤버 수 증가 오류: $e');
+    }
+  }
+
+  /// 그룹 검색 (이름으로)
+  Future<List<GroupModel>> searchGroups(String query) async {
+    try {
+      final normalizedQuery = query.trim().toLowerCase();
+      if (normalizedQuery.isEmpty) return [];
+
+      // Firestore는 부분 문자열 검색을 지원하지 않으므로
+      // 클라이언트 측에서 필터링
+      final allGroups = await getGroups();
+      return allGroups
+          .where((g) => g.name.toLowerCase().contains(normalizedQuery))
+          .toList();
+    } catch (e) {
+      print('❌ 그룹 검색 오류: $e');
+      return [];
+    }
+  }
+
+  /// 공개 그룹만 가져오기
+  Future<List<GroupModel>> getPublicGroups() async {
+    try {
+      final snapshot = await _firestore
+          .collection('groups')
+          .where('isPublic', isEqualTo: true)
+          .orderBy('memberCount', descending: true)
+          .limit(20)
+          .get();
+
+      return snapshot.docs
+          .map((doc) => GroupModel.fromFirestore(doc.id, doc.data()))
+          .toList();
+    } catch (e) {
+      print('❌ 공개 그룹 조회 오류: $e');
+      // 쿼리 실패 시 기본 getGroups() 사용
+      return getGroups();
+    }
+  }
+}
+
+/// 그룹 생성 결과
+class GroupCreateResult {
+  final bool success;
+  final String message;
+  final String? groupId;
+  final String? inviteCode;
+
+  const GroupCreateResult({
+    required this.success,
+    required this.message,
+    this.groupId,
+    this.inviteCode,
+  });
 }

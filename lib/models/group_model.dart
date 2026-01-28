@@ -2,18 +2,24 @@
 class GroupModel {
   final String id;
   final String name;
+  final String? description;
+  final String? inviteCode;
   final int totalTalants;
   final int memberCount;
   final String? leaderId;
   final DateTime? createdAt;
+  final bool isPublic;
 
   const GroupModel({
     required this.id,
     required this.name,
+    this.description,
+    this.inviteCode,
     this.totalTalants = 0,
     this.memberCount = 0,
     this.leaderId,
     this.createdAt,
+    this.isPublic = true,
   });
 
   /// Firestore 문서에서 생성
@@ -21,10 +27,13 @@ class GroupModel {
     return GroupModel(
       id: id,
       name: data['name'] ?? id,
+      description: data['description'],
+      inviteCode: data['inviteCode'],
       totalTalants: data['totalTalants'] ?? 0,
       memberCount: data['memberCount'] ?? 0,
       leaderId: data['leaderId'],
       createdAt: data['createdAt']?.toDate(),
+      isPublic: data['isPublic'] ?? true,
     );
   }
 
@@ -32,27 +41,36 @@ class GroupModel {
   Map<String, dynamic> toFirestore() {
     return {
       'name': name,
+      'description': description,
+      'inviteCode': inviteCode,
       'totalTalants': totalTalants,
       'memberCount': memberCount,
       'leaderId': leaderId,
       'createdAt': createdAt,
+      'isPublic': isPublic,
     };
   }
 
   /// 복사본 생성
   GroupModel copyWith({
     String? name,
+    String? description,
+    String? inviteCode,
     int? totalTalants,
     int? memberCount,
     String? leaderId,
+    bool? isPublic,
   }) {
     return GroupModel(
       id: id,
       name: name ?? this.name,
+      description: description ?? this.description,
+      inviteCode: inviteCode ?? this.inviteCode,
       totalTalants: totalTalants ?? this.totalTalants,
       memberCount: memberCount ?? this.memberCount,
       leaderId: leaderId ?? this.leaderId,
       createdAt: createdAt,
+      isPublic: isPublic ?? this.isPublic,
     );
   }
 }

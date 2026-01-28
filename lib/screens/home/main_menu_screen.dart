@@ -21,6 +21,9 @@ import '../practice/verse_practice_screen.dart';
 import '../admin/migration_screen.dart';
 import '../splash_screen.dart';
 import '../settings/notification_settings_screen.dart';
+import '../group/group_dashboard_screen.dart';
+import '../shop/shop_screen.dart';
+import '../profile/profile_screen.dart';
 
 /// 메인 메뉴 화면
 /// - 각 기능으로 이동하는 허브
@@ -242,11 +245,25 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                     onTap: () => _navigateToWordStudy(),
                   ),
                   _buildMenuCard(
-                    icon: Icons.leaderboard,
-                    title: '랭킹',
-                    subtitle: '그룹별 달란트',
-                    color: Colors.amber,
-                    onTap: () => _navigateToRanking(),
+                    icon: Icons.groups,
+                    title: '그룹',
+                    subtitle: '활동 및 랭킹',
+                    color: Colors.purple,
+                    onTap: () => _navigateToGroupDashboard(),
+                  ),
+                  _buildMenuCard(
+                    icon: Icons.shopping_bag,
+                    title: '샵',
+                    subtitle: '아이템 구매',
+                    color: Colors.pink,
+                    onTap: () => _navigateToShop(),
+                  ),
+                  _buildMenuCard(
+                    icon: Icons.person,
+                    title: '프로필',
+                    subtitle: '내 정보 및 통계',
+                    color: Colors.teal,
+                    onTap: () => _navigateToProfile(),
                   ),
                   _buildMenuCard(
                     icon: Icons.settings,
@@ -450,6 +467,43 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
       context,
       MaterialPageRoute(
         builder: (_) => WordStudyHomeScreen(authService: widget.authService),
+      ),
+    );
+  }
+
+  void _navigateToGroupDashboard() {
+    final user = widget.authService.currentUser;
+    if (user == null || user.groupId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('그룹에 가입해야 이용할 수 있습니다.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => GroupDashboardScreen(groupId: user.groupId),
+      ),
+    );
+  }
+
+  void _navigateToShop() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const ShopScreen(),
+      ),
+    );
+  }
+
+  void _navigateToProfile() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const ProfileScreen(),
       ),
     );
   }

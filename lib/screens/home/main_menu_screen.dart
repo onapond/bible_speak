@@ -6,6 +6,7 @@ import '../../services/social/streak_service.dart';
 import '../../services/social/morning_manna_service.dart';
 import '../../services/social/nudge_service.dart';
 import '../../widgets/social/activity_ticker.dart';
+import '../../widgets/social/live_activity_ticker.dart';
 import '../../widgets/social/group_goal_widget.dart';
 import '../../widgets/social/streak_widget.dart';
 import '../../widgets/social/morning_manna_widget.dart';
@@ -136,6 +137,15 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
             SliverToBoxAdapter(
               child: _buildHeader(user?.name ?? '사용자', user?.talants ?? 0),
             ),
+
+            // 라이브 활동 티커 (그룹 있을 때만)
+            if (hasGroup)
+              SliverToBoxAdapter(
+                child: LiveActivityTicker(
+                  groupId: user!.groupId,
+                  onTap: () => _navigateToRanking(),
+                ),
+              ),
 
             // 스트릭 위젯
             SliverToBoxAdapter(

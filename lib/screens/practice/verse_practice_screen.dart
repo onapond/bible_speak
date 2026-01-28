@@ -1704,7 +1704,7 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
   }
 }
 
-/// Speak 스타일 결과 바텀시트
+/// Speak 스타일 결과 바텀시트 (다크 테마)
 class _ResultBottomSheet extends StatelessWidget {
   final PronunciationResult result;
   final bool passed;
@@ -1715,6 +1715,13 @@ class _ResultBottomSheet extends StatelessWidget {
   final VoidCallback onNextStage;
   final VoidCallback onPlayMyVoice;
   final bool isPlayingMyVoice;
+
+  // 다크 테마 색상 상수
+  static const _bgColor = Color(0xFF1E1E2E);
+  static const _cardColor = Color(0xFF2A2A3E);
+  static const _accentColor = Color(0xFF6C63FF);
+  static const _successColor = Color(0xFF4CAF50);
+  static const _warningColor = Color(0xFFFF9800);
 
   const _ResultBottomSheet({
     required this.result,
@@ -1732,7 +1739,7 @@ class _ResultBottomSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: _bgColor,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SafeArea(
@@ -1746,7 +1753,7 @@ class _ResultBottomSheet extends StatelessWidget {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
+                  color: Colors.white.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -1762,13 +1769,13 @@ class _ResultBottomSheet extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: passed ? Colors.green.shade700 : Colors.orange.shade700,
+                  color: passed ? _successColor : _warningColor,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
                 '통과 기준: ${stage.passThreshold.toStringAsFixed(0)}%',
-                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                style: TextStyle(fontSize: 14, color: Colors.white.withValues(alpha: 0.6)),
               ),
               const SizedBox(height: 24),
 
@@ -1786,7 +1793,7 @@ class _ResultBottomSheet extends StatelessWidget {
   }
 
   Widget _buildScoreCircle() {
-    final scoreColor = passed ? Colors.green : Colors.orange;
+    final scoreColor = passed ? _successColor : _warningColor;
 
     return Container(
       width: 120,
@@ -1796,7 +1803,10 @@ class _ResultBottomSheet extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [scoreColor.shade300, scoreColor.shade600],
+          colors: [
+            scoreColor.withValues(alpha: 0.8),
+            scoreColor,
+          ],
         ),
         boxShadow: [
           BoxShadow(
@@ -1835,7 +1845,7 @@ class _ResultBottomSheet extends StatelessWidget {
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.blue.shade50,
+          color: _accentColor.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Row(
@@ -1845,13 +1855,13 @@ class _ResultBottomSheet extends StatelessWidget {
               height: 20,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                color: Colors.blue.shade400,
+                color: _accentColor,
               ),
             ),
             const SizedBox(width: 12),
             Text(
               'AI 코치가 분석 중...',
-              style: TextStyle(color: Colors.blue.shade700),
+              style: TextStyle(color: _accentColor),
             ),
           ],
         ),
@@ -1863,24 +1873,29 @@ class _ResultBottomSheet extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Colors.blue.shade50, Colors.purple.shade50],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              _accentColor.withValues(alpha: 0.2),
+              const Color(0xFF9C27B0).withValues(alpha: 0.15),
+            ],
           ),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.blue.shade100),
+          border: Border.all(color: _accentColor.withValues(alpha: 0.3)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(Icons.auto_awesome, size: 18, color: Colors.blue.shade600),
+                Icon(Icons.auto_awesome, size: 18, color: _accentColor),
                 const SizedBox(width: 8),
                 Text(
                   'AI 코치',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: Colors.blue.shade600,
+                    color: _accentColor,
                   ),
                 ),
               ],
@@ -1891,6 +1906,7 @@ class _ResultBottomSheet extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
+                color: Colors.white,
               ),
             ),
             if (aiFeedback!.detailedFeedback.isNotEmpty) ...[
@@ -1899,7 +1915,7 @@ class _ResultBottomSheet extends StatelessWidget {
                 aiFeedback!.detailedFeedback,
                 style: TextStyle(
                   fontSize: 14,
-                  color: Colors.grey.shade700,
+                  color: Colors.white.withValues(alpha: 0.7),
                   height: 1.4,
                 ),
               ),
@@ -1913,14 +1929,17 @@ class _ResultBottomSheet extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: _cardColor,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Text(
         passed
             ? '잘하셨어요! 다음 단계로 넘어가세요.'
             : '천천히 또박또박 다시 읽어보세요.',
-        style: const TextStyle(fontSize: 15),
+        style: TextStyle(
+          fontSize: 15,
+          color: Colors.white.withValues(alpha: 0.8),
+        ),
         textAlign: TextAlign.center,
       ),
     );
@@ -1939,6 +1958,8 @@ class _ResultBottomSheet extends StatelessWidget {
             ),
             label: Text(isPlayingMyVoice ? '중지' : '내 목소리'),
             style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.white,
+              side: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -1964,7 +1985,7 @@ class _ResultBottomSheet extends StatelessWidget {
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: passed ? Colors.green : Colors.indigo,
+              backgroundColor: passed ? _successColor : _accentColor,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(

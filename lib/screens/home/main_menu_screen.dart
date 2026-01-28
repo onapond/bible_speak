@@ -26,6 +26,7 @@ import '../shop/shop_screen.dart';
 import '../profile/profile_screen.dart';
 import '../achievement/achievement_screen.dart';
 import '../social/friend_screen.dart';
+import '../quiz/daily_quiz_screen.dart';
 
 /// 메인 메뉴 화면
 /// - 각 기능으로 이동하는 허브
@@ -245,6 +246,13 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                     subtitle: '성경 영단어',
                     color: Colors.green,
                     onTap: () => _navigateToWordStudy(),
+                  ),
+                  _buildMenuCard(
+                    icon: Icons.quiz,
+                    title: '오늘의 퀴즈',
+                    subtitle: '매일 도전',
+                    color: Colors.orange,
+                    onTap: () => _navigateToDailyQuiz(),
                   ),
                   _buildMenuCard(
                     icon: Icons.groups,
@@ -538,6 +546,15 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
       context,
       MaterialPageRoute(
         builder: (_) => const FriendScreen(),
+      ),
+    );
+  }
+
+  void _navigateToDailyQuiz() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const DailyQuizScreen(),
       ),
     );
   }

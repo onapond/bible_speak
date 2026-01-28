@@ -4,6 +4,7 @@ import '../../models/bible_word.dart';
 import '../../services/tts_service.dart';
 import '../../services/word_progress_service.dart';
 import '../../services/auth_service.dart';
+import '../../services/daily_goal_service.dart';
 
 /// 플래시카드 화면
 class FlashcardScreen extends StatefulWidget {
@@ -134,6 +135,12 @@ class _FlashcardScreenState extends State<FlashcardScreen>
       totalWords: _shuffledWords.length,
       correctCount: _knownCount,
     );
+
+    // 일일 목표 진행 기록
+    final goalService = DailyGoalService();
+    await goalService.init();
+    await goalService.recordFlashcardCompletion();
+    await goalService.recordWordStudy(_shuffledWords.length);
 
     if (!mounted) return;
 

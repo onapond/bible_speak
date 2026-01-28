@@ -3,6 +3,7 @@ import '../../models/bible_word.dart';
 import '../../models/quiz_type.dart';
 import '../../services/word_progress_service.dart';
 import '../../services/auth_service.dart';
+import '../../services/daily_goal_service.dart';
 import 'quiz_result_screen.dart';
 
 /// 퀴즈 화면 (4지선다)
@@ -163,6 +164,12 @@ class _QuizScreenState extends State<QuizScreen> {
       totalWords: _quizWords.length,
       correctCount: _correctCount,
     );
+
+    // 일일 목표 진행 기록
+    final goalService = DailyGoalService();
+    await goalService.init();
+    await goalService.recordQuizCompletion();
+    await goalService.recordWordStudy(_quizWords.length);
 
     if (!mounted) return;
 

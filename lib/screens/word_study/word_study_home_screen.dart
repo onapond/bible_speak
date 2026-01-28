@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import '../../services/word_service.dart';
 import '../../services/word_progress_service.dart';
+import '../../services/daily_goal_service.dart';
+import '../../models/daily_goal.dart';
 import '../../data/bible_data.dart';
+import '../../widgets/word_study/daily_goal_card.dart';
 import 'word_list_screen.dart';
 import 'flashcard_screen.dart';
 
@@ -125,6 +128,12 @@ class _WordStudyHomeScreenState extends State<WordStudyHomeScreen> {
                     _buildHeaderCard(),
                     const SizedBox(height: 20),
 
+                    // 일일 학습 목표 카드
+                    DailyGoalCard(
+                      onSettingsTap: _showGoalSettingsDialog,
+                    ),
+                    const SizedBox(height: 20),
+
                     // 오늘의 복습 카드 (SRS)
                     if (_todayReviewCount > 0) ...[
                       _buildTodayReviewCard(),
@@ -178,6 +187,25 @@ class _WordStudyHomeScreenState extends State<WordStudyHomeScreen> {
         ),
       ).then((_) => _loadStats());
     }
+  }
+
+  void _showGoalSettingsDialog() {
+    final goalService = DailyGoalService();
+    goalService.init().then((_) {
+      if (!mounted) return;
+
+      showModalBottomSheet(
+        context: context,
+        backgroundColor: Colors.transparent,
+        builder: (context) => _GoalSettingsSheet(
+          currentPreset: goalService.currentPreset,
+          onPresetSelected: (preset) async {
+            await goalService.setPreset(preset);
+            if (mounted) setState(() {});
+          },
+        ),
+      );
+    });
   }
 
   Widget _buildTodayReviewCard() {
@@ -574,6 +602,143 @@ class _WordStudyHomeScreenState extends State<WordStudyHomeScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 목표 설정 바텀시트
+class _GoalSettingsSheet extends StatelessWidget {
+  static const _cardColor = Color(0xFF1E1E2E);
+  static const _accentColor = Color(0xFF6C63FF);
+
+  final DailyGoalPreset currentPreset;
+  final Function(DailyGoalPreset) onPresetSelected;
+
+  const _GoalSettingsSheet({
+    required this.currentPreset,
+    required this.onPresetSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: _cardColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              '일일 학습 목표 설정',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '목표를 달성하면 +3 달란트 보너스!',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.amber.withValues(alpha: 0.8),
+              ),
+            ),
+            const SizedBox(height: 24),
+            ...DailyGoalPreset.values
+                .where((p) => p != DailyGoalPreset.custom)
+                .map((preset) => _buildPresetOption(context, preset)),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPresetOption(BuildContext context, DailyGoalPreset preset) {
+    final isSelected = preset == currentPreset;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      child: Material(
+        color: isSelected
+            ? _accentColor.withValues(alpha: 0.2)
+            : Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          onTap: () {
+            onPresetSelected(preset);
+            Navigator.pop(context);
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: isSelected
+                  ? Border.all(color: _accentColor, width: 2)
+                  : null,
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? _accentColor
+                        : Colors.white.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    isSelected ? Icons.check : Icons.flag,
+                    color: isSelected
+                        ? Colors.white
+                        : Colors.white.withValues(alpha: 0.5),
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        preset.displayName,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: isSelected ? _accentColor : Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        preset.description,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.white.withValues(alpha: 0.6),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

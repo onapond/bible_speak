@@ -305,4 +305,41 @@ class AuthService {
       return 0;
     }
   }
+
+  /// 일일 목표 달성 보너스 달란트 지급
+  Future<bool> addDailyGoalBonus() async {
+    if (_currentUser == null) return false;
+
+    try {
+      const bonusTalants = 3; // 일일 목표 달성 보너스
+
+      await _firestore.runTransaction((transaction) async {
+        transaction.update(
+          _firestore.collection('users').doc(_currentUser!.uid),
+          {
+            'talants': FieldValue.increment(bonusTalants),
+          },
+        );
+
+        if (_currentUser!.groupId.isNotEmpty) {
+          transaction.update(
+            _firestore.collection('groups').doc(_currentUser!.groupId),
+            {
+              'totalTalants': FieldValue.increment(bonusTalants),
+            },
+          );
+        }
+      });
+
+      _currentUser = _currentUser!.copyWith(
+        talants: _currentUser!.talants + bonusTalants,
+      );
+
+      print('🎯 일일 목표 달성 보너스! +$bonusTalants');
+      return true;
+    } catch (e) {
+      print('❌ 일일 목표 보너스 오류: $e');
+      return false;
+    }
+  }
 }

@@ -28,6 +28,7 @@ import '../achievement/achievement_screen.dart';
 import '../social/friend_screen.dart';
 import '../quiz/daily_quiz_screen.dart';
 import '../settings/theme_settings_screen.dart';
+import '../stats/stats_dashboard_screen.dart';
 
 /// 메인 메뉴 화면
 /// - 각 기능으로 이동하는 허브
@@ -282,6 +283,13 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                     subtitle: '친구 및 1:1 대전',
                     color: Colors.cyan,
                     onTap: () => _navigateToFriends(),
+                  ),
+                  _buildMenuCard(
+                    icon: Icons.bar_chart,
+                    title: '통계',
+                    subtitle: '학습 현황',
+                    color: Colors.indigo,
+                    onTap: () => _navigateToStats(),
                   ),
                   _buildMenuCard(
                     icon: Icons.person,
@@ -556,6 +564,15 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
       context,
       MaterialPageRoute(
         builder: (_) => const DailyQuizScreen(),
+      ),
+    );
+  }
+
+  void _navigateToStats() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const StatsDashboardScreen(),
       ),
     );
   }

@@ -25,6 +25,7 @@ import '../group/group_dashboard_screen.dart';
 import '../shop/shop_screen.dart';
 import '../profile/profile_screen.dart';
 import '../achievement/achievement_screen.dart';
+import '../social/friend_screen.dart';
 
 /// 메인 메뉴 화면
 /// - 각 기능으로 이동하는 허브
@@ -265,6 +266,13 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                     subtitle: '도전과 보상',
                     color: Colors.amber,
                     onTap: () => _navigateToAchievements(),
+                  ),
+                  _buildMenuCard(
+                    icon: Icons.people,
+                    title: '친구',
+                    subtitle: '친구 및 1:1 대전',
+                    color: Colors.cyan,
+                    onTap: () => _navigateToFriends(),
                   ),
                   _buildMenuCard(
                     icon: Icons.person,
@@ -521,6 +529,15 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
       context,
       MaterialPageRoute(
         builder: (_) => const AchievementScreen(),
+      ),
+    );
+  }
+
+  void _navigateToFriends() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const FriendScreen(),
       ),
     );
   }

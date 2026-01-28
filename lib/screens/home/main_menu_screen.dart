@@ -27,6 +27,7 @@ import '../profile/profile_screen.dart';
 import '../achievement/achievement_screen.dart';
 import '../social/friend_screen.dart';
 import '../quiz/daily_quiz_screen.dart';
+import '../settings/theme_settings_screen.dart';
 
 /// 메인 메뉴 화면
 /// - 각 기능으로 이동하는 허브
@@ -685,6 +686,17 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const NotificationSettingsScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.palette_outlined),
+              title: const Text('테마 설정'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ThemeSettingsScreen()),
                 );
               },
             ),

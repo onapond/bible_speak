@@ -1287,34 +1287,92 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
   }
 
   Widget _buildControlButtons() {
-    return Row(
+    return Column(
       children: [
-        Expanded(
-          child: ElevatedButton.icon(
-            onPressed:
-                (_isProcessing || _isTTSPlaying || _currentVerse == null)
-                    ? null
-                    : _toggleRecording,
-            icon: _isProcessing
-                ? const SizedBox(
-                    width: 20, height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                  )
-                : Icon(_isRecording ? Icons.stop : Icons.mic, size: 24),
-            label: Text(
-              _isProcessing
-                  ? '발음 분석 중...'
-                  : (_isRecording ? '녹음 중지' : '암송 시작'),
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        // AI 분석 중 안내 메시지
+        if (_isProcessing)
+          Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: _accentColor.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _accentColor.withValues(alpha: 0.3)),
             ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _isRecording ? Colors.red : _accentColor,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              elevation: 5,
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: _accentColor.withValues(alpha: 0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.psychology, color: Color(0xFF6C63FF), size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'AI 코치가 분석 중이에요',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '발음, 억양, 유창성을 꼼꼼히 확인하고 있어요',
+                        style: TextStyle(
+                          color: Colors.grey[400],
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(
+                  width: 20, height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Color(0xFF6C63FF),
+                  ),
+                ),
+              ],
             ),
           ),
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed:
+                    (_isProcessing || _isTTSPlaying || _currentVerse == null)
+                        ? null
+                        : _toggleRecording,
+                icon: _isProcessing
+                    ? const SizedBox(
+                        width: 20, height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      )
+                    : Icon(_isRecording ? Icons.stop : Icons.mic, size: 24),
+                label: Text(
+                  _isProcessing
+                      ? '분석 중...'
+                      : (_isRecording ? '녹음 중지' : '암송 시작'),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _isRecording ? Colors.red : _accentColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 5,
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );

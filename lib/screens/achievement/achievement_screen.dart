@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/achievement.dart';
 import '../../services/achievement_service.dart';
+import '../../widgets/ux_widgets.dart';
 
 /// 업적 화면
 class AchievementScreen extends StatefulWidget {
@@ -125,7 +126,7 @@ class _AchievementScreenState extends State<AchievementScreen>
         ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: _accentColor))
+          ? LoadingStateWidget.general()
           : Column(
               children: [
                 // 통계 헤더
@@ -245,6 +246,12 @@ class _AchievementScreenState extends State<AchievementScreen>
       }
       return b.progressRate.compareTo(a.progressRate);
     });
+
+    if (filtered.isEmpty) {
+      return EmptyStateWidget.noAchievements(
+        onStartLearning: () => Navigator.pop(context),
+      );
+    }
 
     return RefreshIndicator(
       onRefresh: _loadData,

@@ -16,6 +16,7 @@ import '../../services/social/streak_service.dart';
 import '../../services/review_service.dart';
 import '../../widgets/social/streak_widget.dart';
 import '../../widgets/pronunciation/pronunciation_widgets.dart';
+import '../../widgets/ux_widgets.dart';
 import '../../models/learning_stage.dart';
 import '../../models/verse_progress.dart';
 
@@ -693,57 +694,21 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
 
   Widget _buildBody() {
     if (_isLoadingVerses) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const CircularProgressIndicator(color: _accentColor),
-            const SizedBox(height: 16),
-            Text(
-              '성경 구절을 불러오는 중...',
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
-            ),
-          ],
-        ),
-      );
+      return LoadingStateWidget.loadingVerse();
     }
 
     if (_loadingError != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.error_outline, size: 64, color: Colors.red.shade400),
-              const SizedBox(height: 16),
-              Text(
-                _loadingError!,
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton.icon(
-                onPressed: _loadVerses,
-                icon: const Icon(Icons.refresh),
-                label: const Text('다시 시도'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _accentColor,
-                  foregroundColor: Colors.white,
-                ),
-              ),
-            ],
-          ),
-        ),
+      return EmptyStateWidget.error(
+        message: _loadingError,
+        onRetry: _loadVerses,
       );
     }
 
     if (_verses.isEmpty) {
-      return Center(
-        child: Text(
-          '구절 데이터가 없습니다.',
-          style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
-        ),
+      return const EmptyStateWidget(
+        emoji: '📖',
+        title: '구절 데이터가 없습니다',
+        description: '이 장에는 구절이 없거나 불러올 수 없습니다.',
       );
     }
 

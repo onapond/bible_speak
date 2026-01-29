@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/friend.dart';
 import '../../services/social/friend_service.dart';
 import '../../services/social/battle_service.dart';
+import '../../widgets/ux_widgets.dart';
 
 /// 친구 화면
 class FriendScreen extends StatefulWidget {
@@ -213,10 +214,8 @@ class _FriendScreenState extends State<FriendScreen>
         // 친구 목록
         Expanded(
           child: _friends.isEmpty
-              ? _buildEmptyState(
-                  icon: Icons.people_outline,
-                  title: '아직 친구가 없습니다',
-                  subtitle: '친구를 추가하여 함께 암송하세요!',
+              ? EmptyStateWidget.noFriends(
+                  onSearchFriends: () => _tabController.animateTo(2),
                 )
               : RefreshIndicator(
                   onRefresh: _loadData,
@@ -379,11 +378,15 @@ class _FriendScreenState extends State<FriendScreen>
         // 검색 결과
         Expanded(
           child: _searchResults.isEmpty
-              ? _buildEmptyState(
-                  icon: Icons.search,
-                  title: '사용자를 검색하세요',
-                  subtitle: '이름으로 친구를 찾을 수 있습니다',
-                )
+              ? (_searchController.text.isEmpty
+                  ? const EmptyStateWidget(
+                      emoji: '🔍',
+                      title: '사용자를 검색하세요',
+                      description: '이름으로 친구를 찾을 수 있습니다',
+                    )
+                  : EmptyStateWidget.noSearchResults(
+                      searchTerm: _searchController.text,
+                    ))
               : ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   itemCount: _searchResults.length,

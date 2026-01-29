@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/user_stats.dart';
 import '../../services/stats_service.dart';
+import '../../widgets/ux_widgets.dart';
 
 /// 통계 대시보드 화면
 class StatsDashboardScreen extends StatefulWidget {
@@ -52,12 +53,14 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
         ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: _accentColor))
+          ? LoadingStateWidget.syncing()
           : RefreshIndicator(
               onRefresh: _loadStats,
               color: _accentColor,
               child: _stats == null
-                  ? _buildEmptyState()
+                  ? EmptyStateWidget.noLearningHistory(
+                      onStartLearning: () => Navigator.pop(context),
+                    )
                   : ListView(
                       padding: const EdgeInsets.all(16),
                       children: [
@@ -82,37 +85,6 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
                       ],
                     ),
             ),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.bar_chart,
-            size: 64,
-            color: Colors.white.withValues(alpha: 0.3),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            '통계 데이터가 없습니다',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.6),
-              fontSize: 16,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '학습을 시작하면 통계가 기록됩니다',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.4),
-              fontSize: 14,
-            ),
-          ),
-        ],
-      ),
     );
   }
 

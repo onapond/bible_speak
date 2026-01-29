@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/review_item.dart';
 import '../../services/review_service.dart';
+import '../../widgets/ux_widgets.dart';
 
 /// 복습 화면
 class ReviewScreen extends StatefulWidget {
@@ -179,45 +180,18 @@ class _ReviewScreenState extends State<ReviewScreen> {
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.green.withValues(alpha: 0.2),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.check_circle,
-                size: 64,
-                color: Colors.green,
-              ),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              '오늘 복습할 구절이 없습니다!',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              '새로운 구절을 학습하면\n자동으로 복습 일정에 추가됩니다',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.6),
-              ),
-            ),
-            const SizedBox(height: 32),
-            _buildStatsCard(),
-          ],
-        ),
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          EmptyStateWidget.noReviewItems(
+            onStartLearning: () => Navigator.pop(context),
+          ),
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: _buildStatsCard(),
+          ),
+        ],
       ),
     );
   }

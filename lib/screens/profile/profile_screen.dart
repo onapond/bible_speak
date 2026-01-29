@@ -7,6 +7,7 @@ import '../../services/shop_service.dart';
 import '../shop/shop_screen.dart';
 import '../shop/inventory_screen.dart';
 import '../settings/notification_settings_screen.dart';
+import '../admin/screenshot_helper_screen.dart';
 
 /// 프로필 화면
 class ProfileScreen extends StatefulWidget {
@@ -120,6 +121,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _buildBadgesCard(),
                   const SizedBox(height: 16),
                   _buildMenuCard(),
+                  // 관리자 전용 메뉴
+                  if (_user?.role == UserRole.admin) ...[
+                    const SizedBox(height: 16),
+                    _buildAdminMenuCard(),
+                  ],
                   const SizedBox(height: 32),
                 ],
               ),
@@ -624,6 +630,52 @@ class _ProfileScreenState extends State<ProfileScreen> {
       trailing: Icon(
         Icons.chevron_right,
         color: Colors.white.withValues(alpha: 0.3),
+      ),
+    );
+  }
+
+  Widget _buildAdminMenuCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: _cardColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                Icon(Icons.admin_panel_settings, color: Colors.red.withValues(alpha: 0.7), size: 16),
+                const SizedBox(width: 8),
+                Text(
+                  '관리자 도구',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red.withValues(alpha: 0.7),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(color: Colors.white12, height: 1),
+          _buildMenuItem(
+            icon: Icons.camera_alt,
+            iconColor: Colors.red,
+            title: '스크린샷 도우미',
+            subtitle: '스토어 배포용 스크린샷 촬영',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ScreenshotHelperScreen(authService: _authService),
+                ),
+              );
+            },
+          ),
+        ],
       ),
     );
   }

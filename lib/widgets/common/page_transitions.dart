@@ -1,13 +1,23 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 /// 페이지 전환 애니메이션 유틸리티
+/// 웹에서는 빠른 전환 (성능 최적화)
 class PageTransitions {
+  // 웹에서는 짧은 애니메이션 시간 사용
+  static Duration _getDuration(Duration? duration, Duration defaultDuration) {
+    if (duration != null) return duration;
+    return kIsWeb
+        ? Duration(milliseconds: (defaultDuration.inMilliseconds * 0.6).round())
+        : defaultDuration;
+  }
   /// Fade 전환
   static Route<T> fade<T>(Widget page, {Duration? duration}) {
+    final d = _getDuration(duration, const Duration(milliseconds: 300));
     return PageRouteBuilder<T>(
       pageBuilder: (context, animation, secondaryAnimation) => page,
-      transitionDuration: duration ?? const Duration(milliseconds: 300),
-      reverseTransitionDuration: duration ?? const Duration(milliseconds: 300),
+      transitionDuration: d,
+      reverseTransitionDuration: d,
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
         return FadeTransition(
           opacity: animation,
@@ -19,13 +29,16 @@ class PageTransitions {
 
   /// Slide Up 전환 (아래에서 위로)
   static Route<T> slideUp<T>(Widget page, {Duration? duration}) {
+    final d = _getDuration(duration, const Duration(milliseconds: 350));
     return PageRouteBuilder<T>(
       pageBuilder: (context, animation, secondaryAnimation) => page,
-      transitionDuration: duration ?? const Duration(milliseconds: 350),
-      reverseTransitionDuration: duration ?? const Duration(milliseconds: 350),
+      transitionDuration: d,
+      reverseTransitionDuration: d,
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        // 웹에서는 더 작은 움직임 (성능)
+        final begin = kIsWeb ? const Offset(0, 0.5) : const Offset(0, 1);
         final tween = Tween<Offset>(
-          begin: const Offset(0, 1),
+          begin: begin,
           end: Offset.zero,
         ).chain(CurveTween(curve: Curves.easeOutCubic));
 
@@ -39,13 +52,16 @@ class PageTransitions {
 
   /// Slide Right 전환 (왼쪽에서 오른쪽으로)
   static Route<T> slideRight<T>(Widget page, {Duration? duration}) {
+    final d = _getDuration(duration, const Duration(milliseconds: 300));
     return PageRouteBuilder<T>(
       pageBuilder: (context, animation, secondaryAnimation) => page,
-      transitionDuration: duration ?? const Duration(milliseconds: 300),
-      reverseTransitionDuration: duration ?? const Duration(milliseconds: 300),
+      transitionDuration: d,
+      reverseTransitionDuration: d,
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        // 웹에서는 더 작은 움직임 (성능)
+        final begin = kIsWeb ? const Offset(-0.5, 0) : const Offset(-1, 0);
         final tween = Tween<Offset>(
-          begin: const Offset(-1, 0),
+          begin: begin,
           end: Offset.zero,
         ).chain(CurveTween(curve: Curves.easeOutCubic));
 
@@ -59,10 +75,15 @@ class PageTransitions {
 
   /// Scale 전환 (중앙에서 확대)
   static Route<T> scale<T>(Widget page, {Duration? duration}) {
+    final d = _getDuration(duration, const Duration(milliseconds: 350));
+    // 웹에서는 Fade로 대체 (Scale이 느림)
+    if (kIsWeb) {
+      return fade<T>(page, duration: d);
+    }
     return PageRouteBuilder<T>(
       pageBuilder: (context, animation, secondaryAnimation) => page,
-      transitionDuration: duration ?? const Duration(milliseconds: 350),
-      reverseTransitionDuration: duration ?? const Duration(milliseconds: 350),
+      transitionDuration: d,
+      reverseTransitionDuration: d,
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
         final tween = Tween<double>(begin: 0.8, end: 1.0)
             .chain(CurveTween(curve: Curves.easeOutCubic));
@@ -86,10 +107,15 @@ class PageTransitions {
     Duration? duration,
     SharedAxisTransitionType type = SharedAxisTransitionType.horizontal,
   }) {
+    final d = _getDuration(duration, const Duration(milliseconds: 400));
+    // 웹에서는 단순 Fade로 대체 (성능)
+    if (kIsWeb) {
+      return fade<T>(page, duration: d);
+    }
     return PageRouteBuilder<T>(
       pageBuilder: (context, animation, secondaryAnimation) => page,
-      transitionDuration: duration ?? const Duration(milliseconds: 400),
-      reverseTransitionDuration: duration ?? const Duration(milliseconds: 400),
+      transitionDuration: d,
+      reverseTransitionDuration: d,
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
         Offset begin;
         switch (type) {

@@ -1,0 +1,102 @@
+workflows:
+  # iOS TestFlight 배포
+  ios-testflight:
+    name: iOS TestFlight
+    max_build_duration: 60
+    instance_type: mac_mini_m1
+
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.onapond.biblespeak
+      vars:
+        BUNDLE_ID: "com.onapond.biblespeak"
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: master
+          include: true
+
+    scripts:
+      - name: Set up code signing
+        script: |
+          keychain initialize
+
+      - name: Get Flutter packages
+        script: flutter pub get
+
+      - name: Install CocoaPods
+        script: |
+          cd ios && pod install
+
+      - name: Flutter analyze
+        script: flutter analyze --no-fatal-infos
+
+      - name: Build iOS IPA
+        script: |
+          flutter build ipa --release \
+            --build-name=1.0.0 \
+            --build-number=$PROJECT_BUILD_NUMBER
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - flutter_drive.log
+
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        beta_groups:
+          - Internal Testers
+
+  # Android Play Store 배포
+  android-playstore:
+    name: Android Play Store
+    max_build_duration: 60
+    instance_type: mac_mini_m1
+
+    environment:
+      android_signing:
+        - bible_speak_keystore
+      groups:
+        - google_play
+      vars:
+        BUNDLE_ID: "com.onapond.biblespeak"
+      flutter: stable
+
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: master
+          include: true
+
+    scripts:
+      - name: Get Flutter packages
+        script: flutter pub get
+
+      - name: Flutter analyze
+        script: flutter analyze --no-fatal-infos
+
+      - name: Build AAB
+        script: |
+          flutter build appbundle --release \
+            --build-name=1.0.0 \
+            --build-number=$PROJECT_BUILD_NUMBER
+
+    artifacts:
+      - build/**/outputs/**/*.aab
+      - build/**/outputs/**/mapping.txt
+      - flutter_drive.log
+
+    publishing:
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: internal
+        submit_as_draft: true

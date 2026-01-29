@@ -58,5 +58,8 @@
 		<string>remote-notification</string>
 		<string>fetch</string>
 	</array>
+	<!-- Export Compliance (암호화 미사용) -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>

@@ -61,8 +61,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       color: Color(0xFF2D6A4F),
     ),
     OnboardingPage(
-      title: '스트릭을 유지하세요',
-      description: '매일 꾸준히 학습하면\n특별한 보상이 기다립니다',
+      title: '꾸준함이 실력이 됩니다',
+      description: '매일 연속 학습하면\n특별한 보상이 기다립니다',
       emoji: '🔥',
       color: Color(0xFFFF8C00),
     ),

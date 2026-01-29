@@ -179,7 +179,7 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
-          // 스트릭 카드
+          // 연속 참여 카드
           if (_streak != null) _buildStreakCard(),
           const SizedBox(height: 20),
 
@@ -245,7 +245,7 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  '퀴즈 스트릭',
+                  '연속 참여',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.white70,

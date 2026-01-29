@@ -309,8 +309,8 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
           _buildNotificationTile(
             icon: Icons.local_fire_department,
             iconColor: Colors.deepOrange,
-            title: '스트릭 경고',
-            subtitle: '학습하지 않은 날 저녁 9시에 알림',
+            title: '연속 학습 알림',
+            subtitle: '학습하지 않은 날 저녁 9시에 리마인드',
             value: _settings.streakWarningEnabled,
             onChanged: _settings.enabled
                 ? (value) => _updateSetting('streakWarningEnabled', value)

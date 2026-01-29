@@ -308,7 +308,7 @@ exports.sendStreakWarning = functions
       const currentStreak = streak.currentStreak || 0;
       const notification = {
         title: "오늘의 암송을 잊지 마세요!",
-        body: `${currentStreak}일 연속 스트릭을 유지해보세요. 잠깐이면 충분해요!`,
+        body: `${currentStreak}일 연속 학습 중이에요. 잠깐이면 충분해요!`,
       };
 
       const data = {

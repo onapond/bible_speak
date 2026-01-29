@@ -62,7 +62,7 @@ class NotificationPermissionDialog extends StatelessWidget {
             _buildFeatureRow(
               Icons.local_fire_department,
               Colors.deepOrange,
-              '스트릭 알림',
+              '연속 학습 알림',
               '연속 학습을 놓치지 않도록',
             ),
             const SizedBox(height: 12),

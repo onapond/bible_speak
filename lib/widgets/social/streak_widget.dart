@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/user_streak.dart';
 
-/// 스트릭 위젯 (홈 화면용)
+/// 연속 학습 위젯 (홈 화면용)
 class StreakWidget extends StatelessWidget {
   final UserStreak streak;
   final VoidCallback? onTapProtection;
@@ -229,7 +229,7 @@ class StreakWidget extends StatelessWidget {
   }
 }
 
-/// 스트릭 보호권 다이얼로그
+/// 연속 학습 보호권 다이얼로그
 class StreakProtectionDialog extends StatelessWidget {
   final UserStreak streak;
   final int dalantBalance;
@@ -257,7 +257,7 @@ class StreakProtectionDialog extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Text(
-              '⚠️ 스트릭이 끊어질 위험!',
+              '⚠️ 연속 학습이 끊어질 위험!',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 18,
@@ -266,12 +266,12 @@ class StreakProtectionDialog extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              '현재 스트릭: 🔥 ${streak.currentStreak}일',
+              '현재 🔥 ${streak.currentStreak}일 연속 학습 중',
               style: const TextStyle(color: Colors.white70, fontSize: 14),
             ),
             const SizedBox(height: 24),
             const Text(
-              '스트릭 보호권을 사용하시겠습니까?',
+              '연속 학습 보호권을 사용하시겠습니까?',
               style: TextStyle(color: Colors.white, fontSize: 15),
             ),
             const Text(

@@ -1,7 +1,7 @@
 /// 알림 유형 정의
 enum NotificationType {
   morningManna('morning_manna', '아침 만나', 'HIGH'),
-  streakWarning('streak_warning', '스트릭 경고', 'HIGH'),
+  streakWarning('streak_warning', '학습 리마인드', 'HIGH'),
   nudgeReceived('nudge_received', '찌르기 알림', 'MEDIUM'),
   reactionBatch('reaction_batch', '반응 알림', 'LOW'),
   weeklySummary('weekly_summary', '주간 리포트', 'LOW'),
@@ -43,7 +43,7 @@ class NotificationChannel {
     NotificationChannel(
       id: 'bible_speak_high',
       name: '중요 알림',
-      description: '아침 만나, 스트릭 경고 등 중요 알림',
+      description: '아침 만나, 학습 리마인드 등 중요 알림',
       importance: Importance.high,
     ),
     NotificationChannel(

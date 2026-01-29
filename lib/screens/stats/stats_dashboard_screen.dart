@@ -248,7 +248,7 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
                   ),
                 ),
                 Text(
-                  '현재 스트릭',
+                  '연속 학습',
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.white.withValues(alpha: 0.6),
@@ -287,7 +287,7 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
                   ),
                 ),
                 Text(
-                  '최장 스트릭',
+                  '최장 기록',
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.white.withValues(alpha: 0.6),

@@ -3,7 +3,7 @@ enum ShopCategory {
   theme('theme', '테마', '앱 테마를 변경합니다'),
   badge('badge', '뱃지', '프로필에 표시되는 뱃지'),
   booster('booster', '부스터', '학습 효과를 높입니다'),
-  protection('protection', '보호', '스트릭을 보호합니다');
+  protection('protection', '보호', '연속 학습 기록을 보호합니다');
 
   final String id;
   final String label;
@@ -171,19 +171,19 @@ class ShopItem {
       properties: {'hints': 5},
     ),
 
-    // 스트릭 보호
+    // 연속 학습 보호
     ShopItem(
       id: 'protection_freeze',
-      name: '스트릭 프리즈',
-      description: '하루 학습 면제 (스트릭 유지)',
+      name: '하루 쉬기',
+      description: '하루 학습 면제 (연속 기록 유지)',
       emoji: '🧊',
       category: ShopCategory.protection,
       price: 50,
     ),
     ShopItem(
       id: 'protection_restore',
-      name: '스트릭 복구',
-      description: '끊어진 스트릭 복구',
+      name: '기록 복구',
+      description: '끊어진 연속 학습 기록 복구',
       emoji: '🔄',
       category: ShopCategory.protection,
       price: 100,

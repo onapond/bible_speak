@@ -704,7 +704,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('🛡️ 스트릭 보호권을 사용했습니다!'),
+            content: Text('🛡️ 연속 학습 보호권을 사용했습니다!'),
             backgroundColor: Colors.green,
           ),
         );

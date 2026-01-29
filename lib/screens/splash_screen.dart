@@ -23,6 +23,31 @@ class _SplashScreenState extends State<SplashScreen> {
     _checkAuthStatus();
   }
 
+  void _navigateToOnboarding() {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (ctx) => OnboardingScreen(
+          onComplete: () {
+            // OnboardingScreen의 context가 아닌 새로운 navigation 사용
+            Navigator.of(ctx).pushReplacement(
+              MaterialPageRoute(
+                builder: (_) => ProfileSetupScreen(authService: _authService),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  void _navigateToProfileSetup() {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => ProfileSetupScreen(authService: _authService),
+      ),
+    );
+  }
+
   Future<void> _checkAuthStatus() async {
     // 인증 상태와 온보딩 확인 병렬 실행 (딜레이 제거)
     final List<bool> results = await Future.wait<bool>([
@@ -42,26 +67,10 @@ class _SplashScreenState extends State<SplashScreen> {
     if (!isLoggedIn) {
       if (!onboardingDone) {
         // 온보딩 먼저 표시
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (_) => OnboardingScreen(
-              onComplete: () {
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(
-                    builder: (_) => ProfileSetupScreen(authService: _authService),
-                  ),
-                );
-              },
-            ),
-          ),
-        );
+        _navigateToOnboarding();
       } else {
         // 온보딩 완료 - 프로필 설정으로
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (_) => ProfileSetupScreen(authService: _authService),
-          ),
-        );
+        _navigateToProfileSetup();
       }
     } else {
       // 로그인된 경우 - 메인 화면으로

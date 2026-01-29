@@ -30,7 +30,6 @@ class _MemberListCardState extends State<MemberListCard> {
   final NudgeService _nudgeService = NudgeService();
   final AuthService _authService = AuthService();
   List<InactiveMember> _inactiveMembers = [];
-  bool _isLoadingInactive = false;
 
   @override
   void initState() {
@@ -39,13 +38,14 @@ class _MemberListCardState extends State<MemberListCard> {
   }
 
   Future<void> _loadInactiveMembers() async {
-    setState(() => _isLoadingInactive = true);
     try {
-      _inactiveMembers = await _nudgeService.getInactiveMembers(widget.groupId);
+      final members = await _nudgeService.getInactiveMembers(widget.groupId);
+      if (mounted) {
+        setState(() => _inactiveMembers = members);
+      }
     } catch (e) {
-      print('Load inactive members error: $e');
+      debugPrint('Load inactive members error: $e');
     }
-    setState(() => _isLoadingInactive = false);
   }
 
   Future<void> _sendNudge(MemberInfo member) async {

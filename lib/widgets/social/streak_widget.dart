@@ -188,7 +188,6 @@ class StreakWidget extends StatelessWidget {
       children: List.generate(7, (index) {
         final isCompleted = streak.weeklyHistory.length > index && streak.weeklyHistory[index];
         final isToday = index == today;
-        final isProtected = false; // TODO: 보호된 날짜 확인
 
         return Column(
           children: [
@@ -206,8 +205,8 @@ class StreakWidget extends StatelessWidget {
               height: 32,
               decoration: BoxDecoration(
                 color: isCompleted
-                    ? const Color(0xFFFF6B35).withOpacity(0.2)
-                    : (isToday ? Colors.white.withOpacity(0.1) : Colors.transparent),
+                    ? const Color(0xFFFF6B35).withValues(alpha: 0.2)
+                    : (isToday ? Colors.white.withValues(alpha: 0.1) : Colors.transparent),
                 shape: BoxShape.circle,
                 border: isToday
                     ? Border.all(color: const Color(0xFFFF6B35), width: 2)
@@ -215,9 +214,7 @@ class StreakWidget extends StatelessWidget {
               ),
               child: Center(
                 child: Text(
-                  isCompleted
-                      ? '🔥'
-                      : (isProtected ? '🛡️' : (isToday ? '⭕' : '')),
+                  isCompleted ? '🔥' : (isToday ? '⭕' : ''),
                   style: const TextStyle(fontSize: 14),
                 ),
               ),

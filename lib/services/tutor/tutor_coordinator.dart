@@ -261,20 +261,6 @@ Rules:
 ''';
   }
 
-  /// 단계 설명
-  String _getStageDescription(int stage) {
-    switch (stage) {
-      case 1:
-        return '(듣고 따라하기 - 자막 O)';
-      case 2:
-        return '(핵심 표현 - 빈칸 채우기)';
-      case 3:
-        return '(실전 암송 - 자막 X)';
-      default:
-        return '';
-    }
-  }
-
   /// Gemini 응답 파싱 (간결한 버전)
   _GeminiFeedbackResponse _parseGeminiResponse(String text) {
     String encouragement = '';

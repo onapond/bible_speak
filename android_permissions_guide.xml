@@ -1,0 +1,57 @@
+<!-- =========================================================================
+📁 파일: android/app/src/main/AndroidManifest.xml
+📝 설명: Android 마이크 권한 설정
+
+⚠️ 이 내용을 기존 AndroidManifest.xml에 추가해주세요!
+   (전체 교체가 아닌 권한 부분만 추가)
+========================================================================= -->
+
+<!-- 
+🔧 추가할 위치: <manifest> 태그 바로 안쪽, <application> 위에
+
+아래 권한들을 추가하세요:
+-->
+
+<!-- 🎤 마이크 권한 (녹음용) -->
+<uses-permission android:name="android.permission.RECORD_AUDIO"/>
+
+<!-- 🌐 인터넷 권한 (API 호출용) - 이미 있을 수 있음 -->
+<uses-permission android:name="android.permission.INTERNET"/>
+
+<!-- 📂 파일 저장 권한 (캐싱용) - Android 10 이하 -->
+<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+    android:maxSdkVersion="29"/>
+<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+    android:maxSdkVersion="29"/>
+
+<!--
+=============================================================================
+📋 전체 AndroidManifest.xml 예시:
+=============================================================================
+
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <!-- 권한 (여기에 추가!) -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29"/>
+
+    <application
+        android:label="bible_speak"
+        android:name="${applicationName}"
+        android:icon="@mipmap/ic_launcher">
+        
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            ... (나머지 기존 내용) ...
+        </activity>
+        
+    </application>
+</manifest>
+
+=============================================================================
+-->

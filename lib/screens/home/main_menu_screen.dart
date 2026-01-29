@@ -164,10 +164,10 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
             ),
 
             // 라이브 활동 티커 (그룹 있을 때만)
-            if (hasGroup)
+            if (hasGroup && user != null)
               SliverToBoxAdapter(
                 child: LiveActivityTicker(
-                  groupId: user!.groupId,
+                  groupId: user.groupId,
                   onTap: () => _navigateToRanking(),
                 ),
               ),
@@ -200,14 +200,14 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
             ),
 
             // 소셜 섹션 (그룹 있을 때만)
-            if (hasGroup && !_isLoading) ...[
+            if (hasGroup && !_isLoading && user != null) ...[
               // 그룹 활동 피드
               if (_groupName != null)
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                     child: ActivityTicker(
-                      groupId: user!.groupId,
+                      groupId: user.groupId,
                       groupName: _groupName!,
                       onTapMore: () => _navigateToRanking(),
                     ),

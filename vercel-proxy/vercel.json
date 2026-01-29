@@ -1,0 +1,6 @@
+{
+  "version": 2,
+  "rewrites": [
+    { "source": "/esv-audio", "destination": "/api/esv-audio" }
+  ]
+}

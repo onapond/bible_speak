@@ -15,6 +15,7 @@ import '../../services/social/group_challenge_service.dart';
 import '../../services/social/streak_service.dart';
 import '../../services/review_service.dart';
 import '../../widgets/social/streak_widget.dart';
+import '../../widgets/pronunciation/pronunciation_widgets.dart';
 import '../../models/learning_stage.dart';
 import '../../models/verse_progress.dart';
 
@@ -108,29 +109,35 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
     });
 
     try {
-      // 책 이름과 구절 병렬 로드
-      final bookNamesFuture = Future.wait([
+      // 1단계: 책 이름 로드 (타임아웃 3초)
+      final bookNames = await Future.wait([
         _bibleData.getBookNameKo(widget.book),
         _bibleData.getBookNameEn(widget.book),
-      ]);
+      ]).timeout(const Duration(seconds: 3));
 
-      final bookNames = await bookNamesFuture;
       _bookNameKo = bookNames[0];
       _bookNameEn = bookNames[1];
 
+      // 2단계: ESV 구절 로드 (타임아웃 8초)
       final verses = await _esv.getChapter(
         book: _bookNameEn,
         chapter: widget.chapter,
-      );
+      ).timeout(const Duration(seconds: 8));
 
-      // 한글 번역 병렬 로드 (최적화)
-      final koreanFutures = verses.map((v) => _bibleData.getKoreanText(
-        widget.book,
-        widget.chapter,
-        v.verse,
-      )).toList();
-
-      final koreanTexts = await Future.wait(koreanFutures);
+      // 3단계: 한글 번역 병렬 로드 (타임아웃 5초, 실패해도 계속)
+      List<String?> koreanTexts;
+      try {
+        final koreanFutures = verses.map((v) => _bibleData.getKoreanText(
+          widget.book,
+          widget.chapter,
+          v.verse,
+        )).toList();
+        koreanTexts = await Future.wait(koreanFutures).timeout(const Duration(seconds: 5));
+      } catch (e) {
+        // 한글 로드 실패해도 영어만으로 진행
+        print('⚠️ 한글 번역 로드 실패: $e');
+        koreanTexts = List.filled(verses.length, null);
+      }
 
       final versesWithKorean = <VerseText>[];
       for (int i = 0; i < verses.length; i++) {
@@ -142,7 +149,8 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
           _verses = versesWithKorean;
           _isLoadingVerses = false;
         });
-        await _loadAllProgress();
+        // 진행 상태 로드 (비동기, 블로킹 안 함)
+        _loadAllProgress();
       }
     } catch (e) {
       if (mounted) {
@@ -157,39 +165,44 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
   Future<void> _loadAllProgress() async {
     if (_verses.isEmpty) return;
 
-    // 진행도 병렬 로드 (최적화)
-    final progressFutures = _verses.map((verse) => _progress.getVerseProgress(
-      book: widget.book,
-      chapter: widget.chapter,
-      verse: verse.verse,
-    )).toList();
+    try {
+      // 진행도 병렬 로드 (타임아웃 5초)
+      final progressFutures = _verses.map((verse) => _progress.getVerseProgress(
+        book: widget.book,
+        chapter: widget.chapter,
+        verse: verse.verse,
+      )).toList();
 
-    final progressList = await Future.wait(progressFutures);
+      final progressList = await Future.wait(progressFutures).timeout(const Duration(seconds: 5));
 
-    final progressMap = <int, VerseProgress>{};
-    for (int i = 0; i < _verses.length; i++) {
-      progressMap[_verses[i].verse] = progressList[i];
-    }
+      final progressMap = <int, VerseProgress>{};
+      for (int i = 0; i < _verses.length; i++) {
+        progressMap[_verses[i].verse] = progressList[i];
+      }
 
-    if (mounted) {
-      setState(() {
-        _verseProgressMap = progressMap;
+      if (mounted) {
+        setState(() {
+          _verseProgressMap = progressMap;
 
-        // initialVerse가 지정된 경우 해당 구절로 이동
-        if (widget.initialVerse != null) {
-          final initialIndex = _verses.indexWhere(
-            (v) => v.verse == widget.initialVerse,
-          );
-          if (initialIndex >= 0) {
-            _currentVerseIndex = initialIndex;
+          // initialVerse가 지정된 경우 해당 구절로 이동
+          if (widget.initialVerse != null) {
+            final initialIndex = _verses.indexWhere(
+              (v) => v.verse == widget.initialVerse,
+            );
+            if (initialIndex >= 0) {
+              _currentVerseIndex = initialIndex;
+            }
           }
-        }
 
-        // 현재 구절의 스테이지로 설정
-        if (_currentVerseProgress != null) {
-          _currentStage = _currentVerseProgress!.currentStage;
-        }
-      });
+          // 현재 구절의 스테이지로 설정
+          if (_currentVerseProgress != null) {
+            _currentStage = _currentVerseProgress!.currentStage;
+          }
+        });
+      }
+    } catch (e) {
+      // 진행 상태 로드 실패해도 계속 사용 가능
+      print('⚠️ 진행 상태 로드 실패: $e');
     }
   }
 
@@ -1500,14 +1513,207 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
   }
 
   Widget _buildDetailedScores(PronunciationResult result) {
-    return Row(
+    return Column(
       children: [
-        Expanded(child: _buildScoreItem('정확도', result.accuracyScore, Colors.blue)),
-        const SizedBox(width: 8),
-        Expanded(child: _buildScoreItem('유창성', result.fluencyScore, Colors.green)),
-        const SizedBox(width: 8),
-        Expanded(child: _buildScoreItem('운율', result.prosodyScore, Colors.purple)),
+        // 기존 점수 행
+        Row(
+          children: [
+            Expanded(child: _buildScoreItem('정확도', result.accuracyScore, Colors.blue)),
+            const SizedBox(width: 8),
+            Expanded(child: _buildScoreItem('유창성', result.fluencyScore, Colors.green)),
+            const SizedBox(width: 8),
+            Expanded(child: _buildScoreItem('운율', result.prosodyScore, Colors.purple)),
+          ],
+        ),
+        // 취약 음소 표시 (있을 경우만)
+        if (result.weakestPhonemes.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          _buildWeakPhonemesSection(result),
+        ],
       ],
+    );
+  }
+
+  /// 취약 음소 섹션
+  Widget _buildWeakPhonemesSection(PronunciationResult result) {
+    final weakPhonemes = result.weakestPhonemes.take(4).toList();
+    if (weakPhonemes.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.orange.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.record_voice_over, size: 16, color: Colors.orange[300]),
+              const SizedBox(width: 8),
+              Text(
+                '집중 연습이 필요한 발음',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.orange[300],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: weakPhonemes.map((phoneme) => _buildWeakPhonemeChip(phoneme)).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 취약 음소 칩 (확장된 정보)
+  Widget _buildWeakPhonemeChip(PhonemePronunciation phoneme) {
+    return GestureDetector(
+      onTap: () => _showPhonemeHelpDialog(phoneme),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.orange.withValues(alpha: 0.2),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.orange.withValues(alpha: 0.5)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // IPA 심볼
+            Text(
+              phoneme.phoneme,
+              style: const TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.orange,
+              ),
+            ),
+            const SizedBox(width: 6),
+            // 한글 힌트
+            Text(
+              phoneme.koreanHint,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[300],
+              ),
+            ),
+            const SizedBox(width: 6),
+            // 점수
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                '${phoneme.accuracyScore.toInt()}%',
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 음소 도움말 다이얼로그
+  void _showPhonemeHelpDialog(PhonemePronunciation phoneme) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A2E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF6C63FF),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                phoneme.phoneme,
+                style: const TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                phoneme.koreanHint,
+                style: const TextStyle(fontSize: 18, color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 점수 바
+            PhonemeScoreBar(phoneme: phoneme, showTip: true),
+            // 추가 팁
+            if (phoneme.pronunciationTip != null) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.tips_and_updates, size: 16, color: Colors.amber[300]),
+                        const SizedBox(width: 8),
+                        Text(
+                          '발음 팁',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.amber[300],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      phoneme.pronunciationTip!,
+                      style: TextStyle(fontSize: 14, color: Colors.grey[300]),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('확인', style: TextStyle(color: Color(0xFF6C63FF))),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1536,73 +1742,147 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.red.shade50,
+        color: const Color(0xFF2A1A1A),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.red.shade200),
+        border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.warning_amber, size: 18, color: Colors.red),
-              SizedBox(width: 8),
-              Text('발음 교정 필요',
-                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+              const Icon(Icons.analytics_outlined, size: 18, color: Color(0xFF6C63FF)),
+              const SizedBox(width: 8),
+              const Text('단어별 발음 분석',
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF6C63FF))),
+              const Spacer(),
+              Text(
+                '탭하여 상세 보기',
+                style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+              ),
             ],
           ),
           const SizedBox(height: 12),
-          ...feedback.details.take(5).map((detail) => Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          // 단어별 피드백 (탭 가능)
+          ...feedback.details.take(6).map((detail) => _buildTappableWordCard(detail)),
+        ],
+      ),
+    );
+  }
+
+  /// 탭 가능한 단어 카드
+  Widget _buildTappableWordCard(FeedbackDetail detail) {
+    // 원본 결과에서 해당 단어의 WordPronunciation 찾기
+    final wordPronunciation = _pronunciationResult?.words.firstWhere(
+      (w) => w.word.toLowerCase() == detail.word.toLowerCase(),
+      orElse: () => WordPronunciation(
+        word: detail.word,
+        accuracyScore: detail.score,
+        errorType: detail.status == FeedbackStatus.omitted ? 'Omission' : 'None',
+        phonemes: detail.phonemeIssues.map((p) => PhonemePronunciation(
+          phoneme: p.phoneme,
+          accuracyScore: p.score,
+        )).toList(),
+      ),
+    );
+
+    return GestureDetector(
+      onTap: () => _showWordDetailPopup(wordPronunciation!),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: _getStatusColor(detail.status).withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: _getStatusColor(detail.status).withValues(alpha: 0.3),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 상단: 단어 + 점수
+            Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
                     color: _getStatusColor(detail.status),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
                     detail.word,
-                    style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    detail.message,
+                    style: TextStyle(fontSize: 12, color: Colors.grey[400]),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _getScoreColor(detail.score).withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${detail.score.toStringAsFixed(0)}%',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: _getScoreColor(detail.score),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(detail.message, style: const TextStyle(fontSize: 13)),
-                      if (detail.phonemeIssues.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Wrap(
-                            spacing: 4,
-                            children: detail.phonemeIssues.take(3).map((p) =>
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: Colors.orange.shade100,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text('${p.phoneme} → ${p.koreanHint}', style: const TextStyle(fontSize: 11)),
-                              ),
-                            ).toList(),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                Text(
-                  '${detail.score.toStringAsFixed(0)}%',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: _getScoreColor(detail.score)),
+                Icon(
+                  Icons.chevron_right,
+                  size: 20,
+                  color: Colors.grey[600],
                 ),
               ],
             ),
-          )),
-        ],
+            // 음소 칩 (스코어 포함)
+            if (detail.phonemeIssues.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 4,
+                runSpacing: 4,
+                children: detail.phonemeIssues.take(5).map((p) => PhonemeChip(
+                  phoneme: PhonemePronunciation(
+                    phoneme: p.phoneme,
+                    accuracyScore: p.score,
+                  ),
+                  onTap: () => _showWordDetailPopup(wordPronunciation!),
+                )).toList(),
+              ),
+            ],
+          ],
+        ),
       ),
+    );
+  }
+
+  /// 단어 상세 팝업 표시
+  void _showWordDetailPopup(WordPronunciation word) {
+    WordPronunciationPopup.show(
+      context,
+      word,
+      onPlayWord: (text) async {
+        // ElevenLabs TTS로 단어 재생
+        try {
+          await _tts.speakWithElevenLabs(text);
+        } catch (e) {
+          debugPrint('TTS 재생 실패: $e');
+        }
+      },
     );
   }
 

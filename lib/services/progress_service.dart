@@ -236,23 +236,40 @@ class ProgressService {
     );
   }
 
-  /// 챕터 전체 진행 상태 가져오기
+  /// 챕터 전체 진행 상태 가져오기 (배치 쿼리 최적화)
   Future<ChapterProgress> getChapterProgress({
     required String book,
     required int chapter,
     required int totalVerses,
   }) async {
+    // 먼저 Firestore에서 챕터 전체 데이터 한 번에 가져오기 (N+1 → 1 쿼리)
+    final chapterData = await _loadChapterFromFirestore(book, chapter);
+
     int completedCount = 0;
     int inProgressCount = 0;
     double totalScore = 0;
     int scoredVerses = 0;
 
     for (int v = 1; v <= totalVerses; v++) {
-      final progress = await getVerseProgress(
-        book: book,
-        chapter: chapter,
-        verse: v,
-      );
+      final verseKey = '${book}_${chapter}_$v';
+
+      // 캐시 확인
+      VerseProgress? progress = _cache[verseKey];
+
+      // Firestore 데이터에서 찾기
+      if (progress == null && chapterData != null) {
+        final verseData = chapterData[v.toString()] as Map<String, dynamic>?;
+        if (verseData != null) {
+          progress = VerseProgress.fromMap(verseData, bookId: book, chapter: chapter, verse: v);
+          _cache[verseKey] = progress;
+        }
+      }
+
+      // 로컬에서 찾기
+      progress ??= await _loadFromLocal(book, chapter, v);
+
+      // 기본값
+      progress ??= VerseProgress.empty(bookId: book, chapter: chapter, verse: v);
 
       if (progress.isCompleted) {
         completedCount++;
@@ -276,6 +293,28 @@ class ProgressService {
     );
   }
 
+  /// 챕터 전체 데이터를 Firestore에서 한 번에 로드
+  Future<Map<String, dynamic>?> _loadChapterFromFirestore(String book, int chapter) async {
+    final doc = _progressDoc(book);
+    if (doc == null) return null;
+
+    try {
+      final snapshot = await doc.get().timeout(const Duration(seconds: 5));
+      if (!snapshot.exists) return null;
+
+      final data = snapshot.data() as Map<String, dynamic>?;
+      if (data == null) return null;
+
+      final chapters = data['chapters'] as Map<String, dynamic>?;
+      if (chapters == null) return null;
+
+      final chapterData = chapters[chapter.toString()] as Map<String, dynamic>?;
+      return chapterData?['verses'] as Map<String, dynamic>?;
+    } catch (e) {
+      return null;
+    }
+  }
+
   /// 구절별 최고 점수 조회 (하위 호환용)
   Future<double> getScore({
     required String book,
@@ -290,15 +329,44 @@ class ProgressService {
     return progress.overallBestScore;
   }
 
-  /// 챕터 전체 점수 조회 (하위 호환용)
+  /// 챕터 전체 점수 조회 (배치 최적화)
   Future<Map<int, double>> getChapterScores({
     required String book,
     required int chapter,
     required int totalVerses,
   }) async {
+    // 챕터 데이터 한 번에 로드
+    final chapterData = await _loadChapterFromFirestore(book, chapter);
     final scores = <int, double>{};
+
     for (int i = 1; i <= totalVerses; i++) {
-      scores[i] = await getScore(book: book, chapter: chapter, verse: i);
+      final verseKey = '${book}_${chapter}_$i';
+
+      // 캐시 확인
+      if (_cache.containsKey(verseKey)) {
+        scores[i] = _cache[verseKey]!.overallBestScore;
+        continue;
+      }
+
+      // Firestore 데이터에서 찾기
+      if (chapterData != null) {
+        final verseData = chapterData[i.toString()] as Map<String, dynamic>?;
+        if (verseData != null) {
+          final progress = VerseProgress.fromMap(verseData, bookId: book, chapter: chapter, verse: i);
+          _cache[verseKey] = progress;
+          scores[i] = progress.overallBestScore;
+          continue;
+        }
+      }
+
+      // 로컬에서 찾기
+      final localProgress = await _loadFromLocal(book, chapter, i);
+      if (localProgress != null) {
+        _cache[verseKey] = localProgress;
+        scores[i] = localProgress.overallBestScore;
+      } else {
+        scores[i] = 0.0;
+      }
     }
     return scores;
   }

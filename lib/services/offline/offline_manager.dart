@@ -29,23 +29,27 @@ class OfflineManager extends ChangeNotifier {
   /// 대기 중인 동기화 작업 수
   int get pendingSyncCount => syncQueue.pendingCount;
 
-  /// 초기화
+  /// 초기화 (병렬 처리로 성능 최적화)
   Future<void> initialize() async {
     if (_isInitialized) return;
 
     try {
-      // 순서대로 초기화
-      await connectivity.initialize();
-      await cache.initialize();
-      await syncQueue.initialize();
+      // 병렬 초기화 (타임아웃 적용)
+      await Future.wait([
+        connectivity.initialize().timeout(const Duration(seconds: 2)),
+        cache.initialize().timeout(const Duration(seconds: 2)),
+        syncQueue.initialize().timeout(const Duration(seconds: 2)),
+      ]).catchError((e) {
+        print('⚠️ 일부 오프라인 서비스 초기화 실패: $e');
+      });
 
       // 연결 상태 변경 리스닝
       connectivity.addListener(_onConnectivityChanged);
 
       _isInitialized = true;
-      print('OfflineManager initialized');
+      print('✅ OfflineManager initialized');
     } catch (e) {
-      print('OfflineManager initialization error: $e');
+      print('⚠️ OfflineManager initialization error: $e');
       _isInitialized = true;
     }
   }

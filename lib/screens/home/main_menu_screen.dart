@@ -67,33 +67,46 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
   @override
   void initState() {
     super.initState();
-    _loadSocialData();
-    _loadMorningManna();
+    // 모든 데이터 병렬 로드 (성능 최적화)
+    _loadAllData();
   }
 
-  Future<void> _loadSocialData() async {
+  /// 모든 데이터 병렬 로드 (타임아웃 적용)
+  Future<void> _loadAllData() async {
     final user = widget.authService.currentUser;
 
-    // 스트릭 체크 및 로드 (그룹 없어도)
-    await _streakService.checkAndResetStreak();
-    final streak = await _streakService.getStreak();
-    if (mounted) {
-      setState(() => _streak = streak);
-    }
+    // 스트릭과 만나 데이터 병렬 로드 (그룹 무관)
+    await Future.wait([
+      _loadStreakData(),
+      _loadMorningManna(),
+      if (user != null && user.groupId.isNotEmpty) _loadGroupData(user),
+    ]);
+  }
 
-    if (user == null || user.groupId.isEmpty) {
-      setState(() => _isLoading = false);
-      return;
-    }
-
+  Future<void> _loadStreakData() async {
     try {
+      // 타임아웃 적용
+      await _streakService.checkAndResetStreak().timeout(const Duration(seconds: 3));
+      final streak = await _streakService.getStreak().timeout(const Duration(seconds: 2));
+      if (mounted) {
+        setState(() => _streak = streak);
+      }
+    } catch (e) {
+      // 타임아웃 또는 오류 시 기본값 유지
+      print('⚠️ 스트릭 로드 실패: $e');
+    }
+  }
+
+  Future<void> _loadGroupData(dynamic user) async {
+    try {
+      // 그룹 데이터 병렬 로드 (5초 타임아웃)
       final results = await Future.wait([
         _groupService.getGroup(user.groupId),
         _challengeService.getCurrentChallenge(user.groupId),
         _challengeService.getMyContribution(user.groupId),
         _nudgeService.getInactiveMembers(user.groupId),
         _nudgeService.getDailyStats(isLeader: user.role.name == 'admin'),
-      ]);
+      ]).timeout(const Duration(seconds: 5));
 
       if (mounted) {
         setState(() {
@@ -106,16 +119,18 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
         });
       }
     } catch (e) {
+      print('⚠️ 그룹 데이터 로드 실패: $e');
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
   Future<void> _loadMorningManna() async {
     try {
+      // 타임아웃 적용 (3초)
       final results = await Future.wait([
         _morningMannaService.getDailyVerse(),
         _morningMannaService.hasClaimedEarlyBirdToday(),
-      ]);
+      ]).timeout(const Duration(seconds: 3));
 
       if (mounted) {
         setState(() {
@@ -126,6 +141,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
         });
       }
     } catch (e) {
+      print('⚠️ 만나 로드 실패: $e');
       if (mounted) {
         setState(() => _isLoadingManna = false);
       }

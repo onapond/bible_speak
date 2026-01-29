@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 
 import '../config/app_config.dart';
@@ -87,13 +88,15 @@ ${score.toStringAsFixed(0)}%
 
     print('🤖 Gemini API 호출 중...');
 
+    // 웹에서는 빠른 응답 우선, 모바일은 여유있게
+    final timeout = kIsWeb ? const Duration(seconds: 8) : const Duration(seconds: 15);
     final response = await http
         .post(
           Uri.parse(url),
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode(requestBody),
         )
-        .timeout(const Duration(seconds: 10));
+        .timeout(timeout);
 
     if (response.statusCode == 200) {
       final jsonResponse = jsonDecode(response.body);

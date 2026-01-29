@@ -90,9 +90,10 @@ class TTSService {
         final proxyUrl = AppConfig.getEsvAudioUrl(reference);
         print('🌐 웹 오디오 프록시 요청: $proxyUrl');
 
+        // 웹 오디오는 10초 타임아웃 (사용자 이탈 방지)
         final response = await http.get(
           Uri.parse(proxyUrl),
-        ).timeout(const Duration(seconds: 30));
+        ).timeout(const Duration(seconds: 10));
 
         if (response.statusCode == 200) {
           final bytes = response.bodyBytes;
@@ -317,7 +318,7 @@ class TTSService {
               'similarity_boost': 0.8,
             },
           }),
-        ).timeout(const Duration(seconds: 30));
+        ).timeout(kIsWeb ? const Duration(seconds: 12) : const Duration(seconds: 25));
 
         if (response.statusCode == 200) {
           return response.bodyBytes;

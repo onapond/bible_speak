@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 
 import '../config/app_config.dart';
@@ -57,10 +58,12 @@ class EsvService {
       'indent-psalm-doxology': '0',
     });
 
+    // 웹에서는 짧은 타임아웃, 모바일은 여유있게
+    final timeout = kIsWeb ? const Duration(seconds: 10) : const Duration(seconds: 20);
     final response = await http.get(
       url,
       headers: {'Authorization': 'Token $_apiKey'},
-    ).timeout(const Duration(seconds: 30));
+    ).timeout(timeout);
 
     if (response.statusCode == 200) {
       final json = jsonDecode(response.body);

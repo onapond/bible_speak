@@ -24,12 +24,17 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _checkAuthStatus() async {
-    // 잠시 스플래시 표시
-    await Future.delayed(const Duration(milliseconds: 1500));
+    // 인증 상태와 온보딩 확인 병렬 실행 (딜레이 제거)
+    final List<bool> results = await Future.wait<bool>([
+      _authService.init(),
+      isOnboardingCompleted(),
+    ]).timeout(
+      const Duration(seconds: 5),
+      onTimeout: () => [false, false], // 타임아웃 시 기본값
+    );
 
-    // 인증 상태 확인
-    final isLoggedIn = await _authService.init();
-    final onboardingDone = await isOnboardingCompleted();
+    final isLoggedIn = results[0];
+    final onboardingDone = results[1];
 
     if (!mounted) return;
 

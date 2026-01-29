@@ -259,49 +259,8 @@ async function sendToTokens(tokens, notification, data) {
   }
 }
 
-/**
- * Nudge 알림 전송 (Firestore Trigger)
- * users/{userId}/nudges/{nudgeId} 문서 생성 시 트리거
- */
-exports.sendNudgeNotification = functions
-  .region("asia-northeast3")
-  .firestore.document("users/{userId}/nudges/{nudgeId}")
-  .onCreate(async (snap, context) => {
-    const nudge = snap.data();
-    const { userId } = context.params;
-
-    console.log(`Nudge created for user ${userId}:`, nudge);
-
-    // 알림 설정 확인
-    const settings = await getUserNotificationSettings(userId);
-    if (!settings.enabled || settings.nudgeEnabled === false) {
-      console.log("Nudge notifications disabled for user");
-      return null;
-    }
-
-    // FCM 토큰 가져오기
-    const tokens = await getUserFcmTokens(userId);
-    if (tokens.length === 0) {
-      console.log("No FCM tokens for user");
-      return null;
-    }
-
-    // 알림 전송
-    const notification = {
-      title: `${nudge.fromUserName}님의 격려`,
-      body: nudge.message,
-    };
-
-    const data = {
-      type: "nudge_received",
-      priority: "medium",
-      nudgeId: context.params.nudgeId,
-      fromUserId: nudge.fromUserId,
-      groupId: nudge.groupId || "",
-    };
-
-    return sendToTokens(tokens, notification, data);
-  });
+// NOTE: sendNudgeNotification 기본 버전은 sendNudgeNotificationWithRateLimit로 대체됨
+// Rate limiting이 포함된 개선 버전 사용 (파일 하단 참조)
 
 /**
  * 스트릭 경고 알림 (스케줄: 매일 21:00 KST)
@@ -366,71 +325,8 @@ exports.sendStreakWarning = functions
     return null;
   });
 
-/**
- * 아침 만나 알림 (스케줄: 매시간 체크)
- * 사용자별 설정 시간에 맞춰 알림 전송
- */
-exports.sendMorningManna = functions
-  .region("asia-northeast3")
-  .pubsub.schedule("0 * * * *") // 매시간 정각
-  .timeZone("Asia/Seoul")
-  .onRun(async (context) => {
-    const now = new Date();
-    const currentHour = now.getHours().toString().padStart(2, "0");
-    const targetTime = `${currentHour}:00`;
-
-    console.log(`Running morning manna job for ${targetTime}`);
-
-    // 해당 시간에 알림 설정한 사용자 조회
-    const settingsSnapshot = await db
-      .collectionGroup("settings")
-      .where("morningMannaEnabled", "==", true)
-      .where("morningMannaTime", "==", targetTime)
-      .get();
-
-    let sentCount = 0;
-
-    for (const settingsDoc of settingsSnapshot.docs) {
-      // settings 경로에서 userId 추출: users/{userId}/settings/notifications
-      const userId = settingsDoc.ref.parent.parent.id;
-
-      const settings = settingsDoc.data();
-      if (!settings.enabled) {
-        continue;
-      }
-
-      // FCM 토큰 가져오기
-      const tokens = await getUserFcmTokens(userId);
-      if (tokens.length === 0) {
-        continue;
-      }
-
-      // 오늘의 만나 메시지 (추후 동적 메시지로 교체 가능)
-      const mannaMessages = [
-        "주님과 함께하는 아침을 시작하세요.",
-        "새벽같이 주를 찾으리로다.",
-        "오늘도 말씀과 함께 시작해요.",
-        "주의 말씀은 내 발에 등이요, 내 길에 빛이니이다.",
-      ];
-      const randomMessage = mannaMessages[Math.floor(Math.random() * mannaMessages.length)];
-
-      const notification = {
-        title: "아침 만나",
-        body: randomMessage,
-      };
-
-      const data = {
-        type: "morning_manna",
-        priority: "high",
-      };
-
-      await sendToTokens(tokens, notification, data);
-      sentCount++;
-    }
-
-    console.log(`Morning manna sent to ${sentCount} users`);
-    return null;
-  });
+// NOTE: sendMorningManna 기본 버전은 sendMorningMannaEnhanced로 대체됨
+// 실제 오늘의 말씀이 포함된 개선 버전 사용 (파일 하단 참조)
 
 /**
  * 반응 배치 알림 (스케줄: 5분마다)
@@ -582,5 +478,292 @@ exports.sendWeeklySummary = functions
     }
 
     console.log(`Weekly summary sent to ${sentCount} users`);
+    return null;
+  });
+
+// ============================================================================
+// 오늘의 말씀 선택 및 알림 개선
+// ============================================================================
+
+/**
+ * 오늘의 말씀 데이터 (성경 구절 + 한글 번역)
+ * 실제 서비스에서는 Firestore bible 컬렉션에서 가져오거나 확장 가능
+ */
+const DAILY_VERSES = [
+  {
+    book: "malachi",
+    chapter: 1,
+    verse: 2,
+    english: "I have loved you, says the LORD.",
+    korean: "여호와께서 이르시되 내가 너희를 사랑하였노라",
+    reference: "말라기 1:2",
+  },
+  {
+    book: "malachi",
+    chapter: 3,
+    verse: 10,
+    english: "Bring the full tithe into the storehouse.",
+    korean: "만군의 여호와가 이르노라 너희의 온전한 십일조를 창고에 들여",
+    reference: "말라기 3:10",
+  },
+  {
+    book: "philippians",
+    chapter: 4,
+    verse: 13,
+    english: "I can do all things through him who strengthens me.",
+    korean: "내게 능력 주시는 자 안에서 내가 모든 것을 할 수 있느니라",
+    reference: "빌립보서 4:13",
+  },
+  {
+    book: "philippians",
+    chapter: 4,
+    verse: 6,
+    english: "Do not be anxious about anything, but in everything by prayer...",
+    korean: "아무 것도 염려하지 말고 다만 모든 일에 기도와 간구로...",
+    reference: "빌립보서 4:6",
+  },
+  {
+    book: "psalms",
+    chapter: 23,
+    verse: 1,
+    english: "The LORD is my shepherd; I shall not want.",
+    korean: "여호와는 나의 목자시니 내게 부족함이 없으리로다",
+    reference: "시편 23:1",
+  },
+  {
+    book: "psalms",
+    chapter: 119,
+    verse: 105,
+    english: "Your word is a lamp to my feet and a light to my path.",
+    korean: "주의 말씀은 내 발에 등이요 내 길에 빛이니이다",
+    reference: "시편 119:105",
+  },
+  {
+    book: "proverbs",
+    chapter: 3,
+    verse: 5,
+    english: "Trust in the LORD with all your heart, and do not lean on your own understanding.",
+    korean: "너는 마음을 다하여 여호와를 신뢰하고 네 명철을 의지하지 말라",
+    reference: "잠언 3:5",
+  },
+];
+
+/**
+ * 오늘의 말씀 선택 (스케줄: 매일 00:00 KST)
+ * global/dailyVerse 문서에 오늘의 말씀 저장
+ */
+exports.selectDailyVerse = functions
+  .region("asia-northeast3")
+  .pubsub.schedule("0 0 * * *") // 매일 00:00
+  .timeZone("Asia/Seoul")
+  .onRun(async (context) => {
+    console.log("Selecting daily verse at 00:00 KST");
+
+    const today = new Date();
+    const dateStr = today.toISOString().split("T")[0];
+
+    // 날짜 기반 인덱스 (일정하게 순환)
+    const dayOfYear = Math.floor(
+      (today - new Date(today.getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24)
+    );
+    const verseIndex = dayOfYear % DAILY_VERSES.length;
+    const selectedVerse = DAILY_VERSES[verseIndex];
+
+    // global/dailyVerse 문서에 저장
+    await db.collection("global").doc("dailyVerse").set({
+      ...selectedVerse,
+      date: dateStr,
+      selectedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    console.log(`Daily verse selected: ${selectedVerse.reference}`);
+    return null;
+  });
+
+/**
+ * 아침 만나 알림 (실제 말씀 포함)
+ * 사용자별 설정 시간에 맞춰 오늘의 말씀 알림 전송
+ */
+exports.sendMorningManna = functions
+  .region("asia-northeast3")
+  .pubsub.schedule("0 * * * *") // 매시간 정각
+  .timeZone("Asia/Seoul")
+  .onRun(async (context) => {
+    const now = new Date();
+    const currentHour = now.getHours().toString().padStart(2, "0");
+    const targetTime = `${currentHour}:00`;
+
+    console.log(`Running morning manna for ${targetTime}`);
+
+    // 오늘의 말씀 가져오기
+    const dailyVerseDoc = await db.collection("global").doc("dailyVerse").get();
+    let dailyVerse = null;
+
+    if (dailyVerseDoc.exists) {
+      dailyVerse = dailyVerseDoc.data();
+    } else {
+      // 기본값 (selectDailyVerse가 아직 실행되지 않은 경우)
+      const fallbackIndex = now.getDate() % DAILY_VERSES.length;
+      dailyVerse = DAILY_VERSES[fallbackIndex];
+    }
+
+    // 해당 시간에 알림 설정한 사용자 조회
+    const settingsSnapshot = await db
+      .collectionGroup("settings")
+      .where("morningMannaEnabled", "==", true)
+      .where("morningMannaTime", "==", targetTime)
+      .get();
+
+    let sentCount = 0;
+
+    for (const settingsDoc of settingsSnapshot.docs) {
+      const userId = settingsDoc.ref.parent.parent.id;
+      const settings = settingsDoc.data();
+
+      if (!settings.enabled) {
+        continue;
+      }
+
+      const tokens = await getUserFcmTokens(userId);
+      if (tokens.length === 0) {
+        continue;
+      }
+
+      // 오늘의 말씀 포함 알림
+      const notification = {
+        title: `아침 만나 - ${dailyVerse.reference}`,
+        body: dailyVerse.korean,
+      };
+
+      const data = {
+        type: "morning_manna",
+        priority: "high",
+        book: dailyVerse.book,
+        chapter: dailyVerse.chapter.toString(),
+        verse: dailyVerse.verse.toString(),
+        reference: dailyVerse.reference,
+      };
+
+      await sendToTokens(tokens, notification, data);
+      sentCount++;
+    }
+
+    console.log(`Morning manna sent to ${sentCount} users`);
+    return null;
+  });
+
+// ============================================================================
+// Nudge Rate Limiting
+// ============================================================================
+
+/**
+ * Nudge 알림 전송 (Rate Limiting 포함)
+ * Rate Limits:
+ * - Sender: 3/day max (일반 유저), 10/day max (그룹 리더)
+ * - Per target: 1 per 24 hours from same sender
+ */
+exports.sendNudgeNotification = functions
+  .region("asia-northeast3")
+  .firestore.document("users/{userId}/nudges/{nudgeId}")
+  .onCreate(async (snap, context) => {
+    const nudge = snap.data();
+    const { userId } = context.params;
+    const fromUserId = nudge.fromUserId;
+
+    console.log(`Nudge created for user ${userId} from ${fromUserId}:`, nudge);
+
+    // 1. Rate Limit 체크 - 발신자의 일일 찌르기 횟수
+    const today = new Date().toISOString().split("T")[0];
+    const senderStatsRef = db
+      .collection("users")
+      .doc(fromUserId)
+      .collection("dailyStats")
+      .doc(today);
+
+    const senderStats = await senderStatsRef.get();
+    const currentNudgeCount = senderStats.exists
+      ? senderStats.data().nudgesSent || 0
+      : 0;
+
+    // 발신자 정보 가져오기 (그룹 리더 확인)
+    const senderDoc = await db.collection("users").doc(fromUserId).get();
+    const senderData = senderDoc.exists ? senderDoc.data() : {};
+    const isGroupLeader = senderData.role === "admin" || senderData.role === "leader";
+    const dailyLimit = isGroupLeader ? 10 : 3;
+
+    if (currentNudgeCount >= dailyLimit) {
+      console.log(`Rate limit exceeded for sender ${fromUserId}: ${currentNudgeCount}/${dailyLimit}`);
+      // Rate limit 초과 - nudge 문서에 표시
+      await snap.ref.update({ rateLimited: true, delivered: false });
+      return null;
+    }
+
+    // 2. 동일 대상에게 24시간 내 찌르기 체크
+    const targetKey = `nudgesTo.${userId}`;
+    if (senderStats.exists) {
+      const lastNudgeToTarget = senderStats.data().nudgesTo?.[userId];
+      if (lastNudgeToTarget) {
+        const lastNudgeTime = lastNudgeToTarget.toDate
+          ? lastNudgeToTarget.toDate()
+          : new Date(lastNudgeToTarget);
+        const hoursSince = (Date.now() - lastNudgeTime.getTime()) / (1000 * 60 * 60);
+
+        if (hoursSince < 24) {
+          console.log(`24-hour limit for target ${userId}: ${hoursSince.toFixed(1)}h since last nudge`);
+          await snap.ref.update({ rateLimited: true, delivered: false });
+          return null;
+        }
+      }
+    }
+
+    // 3. 수신자 알림 설정 확인
+    const settings = await getUserNotificationSettings(userId);
+    if (!settings.enabled || settings.nudgeEnabled === false) {
+      console.log("Nudge notifications disabled for user");
+      await snap.ref.update({ delivered: false, reason: "notifications_disabled" });
+      return null;
+    }
+
+    // 4. FCM 토큰 가져오기
+    const tokens = await getUserFcmTokens(userId);
+    if (tokens.length === 0) {
+      console.log("No FCM tokens for user");
+      await snap.ref.update({ delivered: false, reason: "no_tokens" });
+      return null;
+    }
+
+    // 5. 알림 전송
+    const notification = {
+      title: `${nudge.fromUserName}님의 격려`,
+      body: nudge.message || "오늘 암송 어때요?",
+    };
+
+    const data = {
+      type: "nudge_received",
+      priority: "medium",
+      nudgeId: context.params.nudgeId,
+      fromUserId: fromUserId,
+      groupId: nudge.groupId || "",
+    };
+
+    const result = await sendToTokens(tokens, notification, data);
+
+    // 6. 발신자 통계 업데이트
+    await senderStatsRef.set(
+      {
+        nudgesSent: admin.firestore.FieldValue.increment(1),
+        [`nudgesTo.${userId}`]: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    // 7. nudge 문서 업데이트
+    await snap.ref.update({
+      delivered: result.success > 0,
+      deliveredAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    console.log(`Nudge delivered: ${result.success > 0}`);
     return null;
   });

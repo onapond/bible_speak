@@ -8,6 +8,8 @@ import 'screens/splash_screen.dart';
 import 'services/bible_data_service.dart';
 import 'services/notification/notification_service.dart';
 import 'services/notification/notification_handler.dart';
+import 'services/notification/notification_types.dart';
+import 'services/navigation_service.dart';
 import 'services/offline/offline_services.dart';
 
 void main() async {
@@ -78,14 +80,79 @@ Future<void> _safeInit(String name, Future<void> future, int timeoutSeconds) asy
   }
 }
 
-class BibleSpeakApp extends StatelessWidget {
+class BibleSpeakApp extends StatefulWidget {
   const BibleSpeakApp({super.key});
+
+  @override
+  State<BibleSpeakApp> createState() => _BibleSpeakAppState();
+}
+
+class _BibleSpeakAppState extends State<BibleSpeakApp> {
+  final _navigationService = NavigationService();
+  StreamSubscription<Map<String, dynamic>>? _notificationSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    // 알림 탭 이벤트 리스닝
+    _notificationSubscription = NotificationHandler.onNotificationTap.listen(_handleNotificationTap);
+  }
+
+  @override
+  void dispose() {
+    _notificationSubscription?.cancel();
+    super.dispose();
+  }
+
+  /// 알림 탭 처리 - 해당 화면으로 네비게이션
+  void _handleNotificationTap(Map<String, dynamic> data) {
+    final type = NotificationType.fromString(data['type']);
+    final navigator = _navigationService.navigator;
+    if (navigator == null) return;
+
+    // 잠시 대기 후 네비게이션 (스플래시 완료 보장)
+    Future.delayed(const Duration(milliseconds: 500), () {
+      switch (type) {
+        case NotificationType.morningManna:
+          // 메인 메뉴에서 아침 만나 자동 표시됨
+          debugPrint('[Navigation] Morning manna notification - go to home');
+          break;
+
+        case NotificationType.streakWarning:
+          // 스트릭 경고 - 연습 화면으로
+          debugPrint('[Navigation] Streak warning - go to practice');
+          break;
+
+        case NotificationType.nudgeReceived:
+          // 찌르기 수신 - 그룹 화면으로
+          final groupId = data['groupId'];
+          debugPrint('[Navigation] Nudge received for group: $groupId');
+          break;
+
+        case NotificationType.reactionBatch:
+          // 리액션 모음 - 활동 피드로
+          debugPrint('[Navigation] Reaction batch - go to activity');
+          break;
+
+        case NotificationType.weeklySummary:
+          // 주간 요약 - 통계 화면으로
+          debugPrint('[Navigation] Weekly summary - go to stats');
+          break;
+
+        case NotificationType.general:
+          // 일반 알림 - 홈으로
+          debugPrint('[Navigation] General notification - go to home');
+          break;
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: '바이블 스픽',
       debugShowCheckedModeBanner: false,
+      navigatorKey: _navigationService.navigatorKey,
       theme: ThemeData(
         primarySwatch: Colors.indigo,
         useMaterial3: true,

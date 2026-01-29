@@ -171,19 +171,35 @@ class TTSService {
     _webCacheOrder.add(reference);
   }
 
-  /// 웹 캐시 프리로드 (다음 구절)
-  Future<void> preloadWebAudio({
+  /// 웹 캐시에 오디오가 있는지 확인
+  bool isWebAudioCached({
     required String book,
     required int chapter,
     required int verse,
+  }) {
+    if (!kIsWeb) return false;
+    final reference = '$book+$chapter:$verse';
+    return _webAudioCache.containsKey(reference);
+  }
+
+  /// 웹 캐시 프리로드 (다음 구절) - 완료 콜백 지원
+  Future<bool> preloadWebAudio({
+    required String book,
+    required int chapter,
+    required int verse,
+    void Function()? onComplete,
   }) async {
-    if (!kIsWeb) return;
+    if (!kIsWeb) return false;
 
     final reference = '$book+$chapter:$verse';
-    if (_webAudioCache.containsKey(reference)) return;
+    if (_webAudioCache.containsKey(reference)) {
+      onComplete?.call();
+      return true;
+    }
 
     try {
       final proxyUrl = AppConfig.getEsvAudioUrl(reference);
+      print('🔄 웹 프리로드 시작: $reference');
       final response = await http.get(
         Uri.parse(proxyUrl),
       ).timeout(const Duration(seconds: 15));
@@ -191,12 +207,15 @@ class TTSService {
       if (response.statusCode == 200) {
         final bytes = Uint8List.fromList(response.bodyBytes);
         _addToWebCache(reference, bytes);
-        print('✅ 웹 프리로드 완료: $reference');
+        print('✅ 웹 프리로드 완료: $reference (${bytes.length} bytes)');
+        onComplete?.call();
+        return true;
       }
     } catch (e) {
       // 프리로드 실패는 무시
-      print('⚠️ 웹 프리로드 실패: $reference');
+      print('⚠️ 웹 프리로드 실패: $reference - $e');
     }
+    return false;
   }
 
   /// 다음 구절 프리로드 (백그라운드)

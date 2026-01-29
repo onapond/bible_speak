@@ -72,6 +72,7 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
   // 로딩 상태
   bool _isLoadingVerses = true;
   String? _loadingError;
+  bool _isAudioReady = false; // 오디오 프리로드 완료 여부
 
   String? _lastRecordingPath;
   PronunciationResult? _pronunciationResult;
@@ -120,6 +121,21 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
 
       _bookNameKo = bookNames[0];
       _bookNameEn = bookNames[1];
+
+      // 🚀 첫 구절 오디오 즉시 프리로드 시작 (백그라운드)
+      if (kIsWeb) {
+        final initialVerse = widget.initialVerse ?? 1;
+        _tts.preloadWebAudio(
+          book: _bookNameEn,
+          chapter: widget.chapter,
+          verse: initialVerse,
+          onComplete: () {
+            if (mounted) setState(() => _isAudioReady = true);
+          },
+        );
+      } else {
+        _isAudioReady = true; // 모바일은 캐시가 있으므로 준비됨
+      }
 
       // 2단계: ESV 구절 로드 (타임아웃 8초)
       final verses = await _esv.getChapter(
@@ -224,7 +240,10 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
         _currentVerseIndex--;
         _resetState();
         _loadCurrentVerseStage();
+        _checkAudioReady();
       });
+      // 새 구절 오디오 프리로드
+      _preloadCurrentVerseAudio();
     }
   }
 
@@ -234,8 +253,26 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
         _currentVerseIndex++;
         _resetState();
         _loadCurrentVerseStage();
+        _checkAudioReady();
       });
+      // 새 구절 오디오 프리로드
+      _preloadCurrentVerseAudio();
     }
+  }
+
+  /// 현재 구절 오디오 프리로드
+  void _preloadCurrentVerseAudio() {
+    if (!kIsWeb || _currentVerse == null) return;
+    if (_isAudioReady) return; // 이미 준비됨
+
+    _tts.preloadWebAudio(
+      book: _bookNameEn,
+      chapter: widget.chapter,
+      verse: _currentVerse!.verse,
+      onComplete: () {
+        if (mounted) setState(() => _isAudioReady = true);
+      },
+    );
   }
 
   void _loadCurrentVerseStage() {
@@ -342,6 +379,22 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
       book: _bookNameEn,
       chapter: widget.chapter,
       verse: firstVerse.verse,
+      onComplete: () {
+        if (mounted) setState(() => _isAudioReady = true);
+      },
+    );
+  }
+
+  /// 현재 구절 오디오 준비 상태 확인 (웹)
+  void _checkAudioReady() {
+    if (!kIsWeb || _currentVerse == null) {
+      _isAudioReady = true;
+      return;
+    }
+    _isAudioReady = _tts.isWebAudioCached(
+      book: _bookNameEn,
+      chapter: widget.chapter,
+      verse: _currentVerse!.verse,
     );
   }
 

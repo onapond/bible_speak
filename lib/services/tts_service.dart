@@ -16,6 +16,7 @@ import '../config/app_config.dart';
 /// - 캐시 만료 관리 (30일)
 /// - 재시도 로직
 /// - 캐시 크기 제한 (100MB)
+/// - 웹: 인메모리 캐시로 빠른 재생
 class TTSService {
   final AudioPlayer _audioPlayer = AudioPlayer();
 
@@ -25,6 +26,11 @@ class TTSService {
 
   // 프리로드 큐
   final Map<String, Completer<String?>> _preloadQueue = {};
+
+  // 웹 인메모리 캐시 (최근 10개 구절)
+  static const int _webCacheMaxItems = 10;
+  final Map<String, Uint8List> _webAudioCache = {};
+  final List<String> _webCacheOrder = []; // LRU 순서 추적
 
   // 캐시 설정
   static const int _maxCacheSizeMB = 100;
@@ -81,8 +87,22 @@ class TTSService {
     }
   }
 
-  /// 웹에서 프록시를 통해 오디오 재생
+  /// 웹에서 프록시를 통해 오디오 재생 (인메모리 캐시 사용)
   Future<void> _playFromProxyWeb(String reference) async {
+    // 캐시 확인 (빠른 경로)
+    if (_webAudioCache.containsKey(reference)) {
+      print('⚡ 웹 캐시 히트: $reference');
+      final bytes = _webAudioCache[reference]!;
+      // LRU 업데이트
+      _webCacheOrder.remove(reference);
+      _webCacheOrder.add(reference);
+      await _audioPlayer.setPlaybackRate(_playbackRate);
+      await _audioPlayer.play(BytesSource(bytes));
+      await _audioPlayer.onPlayerComplete.first;
+      _isPlaying = false;
+      return;
+    }
+
     Exception? lastException;
 
     for (int attempt = 1; attempt <= _maxRetries; attempt++) {
@@ -96,9 +116,13 @@ class TTSService {
         ).timeout(const Duration(seconds: 10));
 
         if (response.statusCode == 200) {
-          final bytes = response.bodyBytes;
+          final bytes = Uint8List.fromList(response.bodyBytes);
+
+          // 캐시에 저장
+          _addToWebCache(reference, bytes);
+
           await _audioPlayer.setPlaybackRate(_playbackRate);
-          await _audioPlayer.play(BytesSource(Uint8List.fromList(bytes)));
+          await _audioPlayer.play(BytesSource(bytes));
           await _audioPlayer.onPlayerComplete.first;
           _isPlaying = false;
           return;
@@ -126,6 +150,53 @@ class TTSService {
 
     _isPlaying = false;
     throw lastException ?? Exception('알 수 없는 오류');
+  }
+
+  /// 웹 캐시에 오디오 추가 (LRU 방식)
+  void _addToWebCache(String reference, Uint8List bytes) {
+    // 이미 있으면 순서만 업데이트
+    if (_webAudioCache.containsKey(reference)) {
+      _webCacheOrder.remove(reference);
+      _webCacheOrder.add(reference);
+      return;
+    }
+
+    // 캐시 용량 초과 시 가장 오래된 항목 제거
+    while (_webCacheOrder.length >= _webCacheMaxItems) {
+      final oldest = _webCacheOrder.removeAt(0);
+      _webAudioCache.remove(oldest);
+    }
+
+    _webAudioCache[reference] = bytes;
+    _webCacheOrder.add(reference);
+  }
+
+  /// 웹 캐시 프리로드 (다음 구절)
+  Future<void> preloadWebAudio({
+    required String book,
+    required int chapter,
+    required int verse,
+  }) async {
+    if (!kIsWeb) return;
+
+    final reference = '$book+$chapter:$verse';
+    if (_webAudioCache.containsKey(reference)) return;
+
+    try {
+      final proxyUrl = AppConfig.getEsvAudioUrl(reference);
+      final response = await http.get(
+        Uri.parse(proxyUrl),
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        final bytes = Uint8List.fromList(response.bodyBytes);
+        _addToWebCache(reference, bytes);
+        print('✅ 웹 프리로드 완료: $reference');
+      }
+    } catch (e) {
+      // 프리로드 실패는 무시
+      print('⚠️ 웹 프리로드 실패: $reference');
+    }
   }
 
   /// 다음 구절 프리로드 (백그라운드)

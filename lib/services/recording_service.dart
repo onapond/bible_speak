@@ -6,13 +6,16 @@ import 'package:permission_handler/permission_handler.dart';
 
 /// 마이크 녹음 서비스 (웹/모바일 통합)
 /// - record 패키지 사용 (모든 플랫폼 지원)
+/// - 권한 캐싱으로 빠른 녹음 시작
 class RecordingService {
   AudioRecorder? _recorder;
 
   bool _isInitialized = false;
   bool _isRecording = false;
+  bool _hasPermission = false; // 권한 캐시
 
   bool get isRecording => _isRecording;
+  bool get hasPermission => _hasPermission;
 
   String? _lastRecordingPath;
   String? get lastRecordingPath => _lastRecordingPath;
@@ -38,14 +41,20 @@ class RecordingService {
     }
   }
 
-  /// 마이크 권한 요청
-  Future<bool> requestPermission() async {
+  /// 마이크 권한 요청 (캐시 사용으로 빠른 응답)
+  Future<bool> requestPermission({bool forceCheck = false}) async {
+    // 이미 권한이 있으면 바로 반환 (빠른 경로)
+    if (_hasPermission && !forceCheck) {
+      return true;
+    }
+
     print('🔐 마이크 권한 확인 중...');
 
     if (kIsWeb) {
       // 웹에서는 record 패키지가 자동으로 권한 요청
-      final hasPermission = await _recorder?.hasPermission() ?? false;
-      if (hasPermission) {
+      final granted = await _recorder?.hasPermission() ?? false;
+      _hasPermission = granted;
+      if (granted) {
         print('✅ 마이크 권한 허용됨 (웹)');
         return true;
       }
@@ -57,16 +66,27 @@ class RecordingService {
     final status = await Permission.microphone.request();
 
     if (status.isGranted) {
+      _hasPermission = true;
       print('✅ 마이크 권한 허용됨');
       return true;
     } else if (status.isPermanentlyDenied) {
+      _hasPermission = false;
       print('❌ 마이크 권한 영구 거부됨');
       await openAppSettings();
       return false;
     } else {
+      _hasPermission = false;
       print('❌ 마이크 권한 거부됨');
       return false;
     }
+  }
+
+  /// 권한 사전 체크 (UI 차단 없이 백그라운드에서 실행)
+  Future<void> preCheckPermission() async {
+    if (!_isInitialized) {
+      await init();
+    }
+    await requestPermission();
   }
 
   /// 녹음 시작

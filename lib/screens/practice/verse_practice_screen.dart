@@ -97,9 +97,11 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
   }
 
   Future<void> _initServices() async {
-    // 웹과 모바일 모두 녹음기 초기화
-    await _recorder.init();
-    await _progress.init();
+    // 병렬 초기화 (순서 무관한 작업들)
+    await Future.wait([
+      _recorder.init().then((_) => _recorder.preCheckPermission()), // 권한 사전 체크
+      _progress.init(),
+    ]);
     await _loadVerses();
   }
 
@@ -152,6 +154,8 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
         });
         // 진행 상태 로드 (비동기, 블로킹 안 함)
         _loadAllProgress();
+        // 첫 구절 오디오 프리로드 (웹 성능 최적화)
+        _preloadInitialAudio();
       }
     } catch (e) {
       if (mounted) {
@@ -302,6 +306,9 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
         _isTTSLoading = false;
       });
 
+      // 다음 구절 오디오 프리로드 (백그라운드)
+      _preloadNextAudio();
+
       if (mounted) setState(() => _isTTSPlaying = false);
     } catch (e) {
       _showSnackBar('TTS 오류: $e', isError: true);
@@ -310,6 +317,32 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
         _isTTSPlaying = false;
       });
     }
+  }
+
+  /// 다음 구절 오디오 프리로드 (웹 성능 최적화)
+  void _preloadNextAudio() {
+    if (!kIsWeb || _currentVerse == null) return;
+    if (_currentVerseIndex + 1 >= _totalVerses) return;
+
+    final nextVerse = _verses[_currentVerseIndex + 1];
+    _tts.preloadWebAudio(
+      book: _bookNameEn,
+      chapter: widget.chapter,
+      verse: nextVerse.verse,
+    );
+  }
+
+  /// 초기 구절 오디오 프리로드 (화면 진입 시)
+  void _preloadInitialAudio() {
+    if (!kIsWeb || _verses.isEmpty) return;
+
+    // 첫 번째 구절 프리로드
+    final firstVerse = _verses[_currentVerseIndex];
+    _tts.preloadWebAudio(
+      book: _bookNameEn,
+      chapter: widget.chapter,
+      verse: firstVerse.verse,
+    );
   }
 
   Future<void> _toggleRecording() async {

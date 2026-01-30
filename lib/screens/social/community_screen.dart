@@ -3,10 +3,14 @@ import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/group_model.dart';
 import '../../models/chat_message.dart';
+import '../../models/friend.dart';
 import '../../services/group_service.dart';
 import '../../services/chat_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/social/group_activity_service.dart';
+import '../../services/social/friend_service.dart';
+import '../../services/social/battle_service.dart';
+import '../../widgets/ux_widgets.dart';
 import '../group/widgets/group_stats_card.dart';
 import '../group/widgets/leaderboard_card.dart';
 import '../group/widgets/activity_feed_card.dart';
@@ -40,8 +44,11 @@ class _CommunityScreenState extends State<CommunityScreen>
   final GroupService _groupService = GroupService();
   final GroupActivityService _activityService = GroupActivityService();
   final ChatService _chatService = ChatService();
+  final FriendService _friendService = FriendService();
+  final BattleService _battleService = BattleService();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final TextEditingController _messageController = TextEditingController();
+  final TextEditingController _friendSearchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
   late TabController _tabController;
@@ -53,19 +60,84 @@ class _CommunityScreenState extends State<CommunityScreen>
   bool _isLoading = true;
   bool _isSendingMessage = false;
 
+  // 친구 관련 상태
+  List<Friend> _friends = [];
+  List<FriendRequest> _friendRequests = [];
+  List<UserSearchResult> _friendSearchResults = [];
+  BattleStats? _battleStats;
+  bool _isFriendSearching = false;
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _loadMyGroups();
+    _loadFriendsData();
+    _listenToFriendRequests();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     _messageController.dispose();
+    _friendSearchController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadFriendsData() async {
+    final friends = await _friendService.getFriends();
+    final stats = await _battleService.getStats();
+
+    if (mounted) {
+      setState(() {
+        _friends = friends;
+        _battleStats = stats;
+      });
+    }
+  }
+
+  void _listenToFriendRequests() {
+    _friendService.watchPendingRequests().listen((requests) {
+      if (mounted) {
+        setState(() => _friendRequests = requests);
+      }
+    });
+  }
+
+  Future<void> _searchFriends() async {
+    final query = _friendSearchController.text.trim();
+    if (query.length < 2) {
+      setState(() => _friendSearchResults = []);
+      return;
+    }
+
+    setState(() => _isFriendSearching = true);
+    final results = await _friendService.searchUsers(query);
+    setState(() {
+      _friendSearchResults = results;
+      _isFriendSearching = false;
+    });
+  }
+
+  Future<void> _sendFriendRequest(String toUserId) async {
+    final result = await _friendService.sendFriendRequest(toUserId);
+    if (mounted) {
+      _showSnackBar(result.message, isError: !result.success);
+      if (result.success) await _searchFriends();
+    }
+  }
+
+  Future<void> _acceptFriendRequest(String requestId) async {
+    final success = await _friendService.acceptFriendRequest(requestId);
+    if (success) {
+      await _loadFriendsData();
+      if (mounted) _showSnackBar('친구가 되었습니다!');
+    }
+  }
+
+  Future<void> _rejectFriendRequest(String requestId) async {
+    await _friendService.rejectFriendRequest(requestId);
   }
 
   Future<void> _loadMyGroups() async {
@@ -481,32 +553,37 @@ class _CommunityScreenState extends State<CommunityScreen>
             },
           ),
         ],
-        bottom: _selectedGroup != null
-            ? TabBar(
-                controller: _tabController,
-                indicatorColor: _accentColor,
-                labelColor: Colors.white,
-                unselectedLabelColor: Colors.white54,
-                tabs: const [
-                  Tab(icon: Icon(Icons.dashboard), text: '대시보드'),
-                  Tab(icon: Icon(Icons.chat), text: '채팅'),
-                  Tab(icon: Icon(Icons.people), text: '멤버'),
-                ],
-              )
-            : null,
+        bottom: TabBar(
+          controller: _tabController,
+          indicatorColor: _accentColor,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white54,
+          tabs: [
+            const Tab(icon: Icon(Icons.dashboard), text: '대시보드'),
+            const Tab(icon: Icon(Icons.chat), text: '채팅'),
+            const Tab(icon: Icon(Icons.people), text: '멤버'),
+            Tab(
+              icon: Badge(
+                isLabelVisible: _friendRequests.isNotEmpty,
+                label: Text('${_friendRequests.length}'),
+                child: const Icon(Icons.person_add),
+              ),
+              text: '친구',
+            ),
+          ],
+        ),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: _accentColor))
-          : _selectedGroup == null
-              ? _buildNoGroupState()
-              : TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildDashboardTab(),
-                    _buildChatTab(),
-                    _buildMembersTab(),
-                  ],
-                ),
+          : TabBarView(
+              controller: _tabController,
+              children: [
+                _selectedGroup == null ? _buildNoGroupState() : _buildDashboardTab(),
+                _selectedGroup == null ? _buildNoGroupState() : _buildChatTab(),
+                _selectedGroup == null ? _buildNoGroupState() : _buildMembersTab(),
+                _buildFriendsTab(),
+              ],
+            ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showGroupOptions,
         backgroundColor: _accentColor,
@@ -1046,6 +1123,468 @@ class _CommunityScreenState extends State<CommunityScreen>
       ),
     );
   }
+
+  // ============ 친구 탭 ============
+  Widget _buildFriendsTab() {
+    return DefaultTabController(
+      length: 3,
+      child: Column(
+        children: [
+          // 서브 탭바
+          Container(
+            margin: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: _cardColor,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: TabBar(
+              indicatorSize: TabBarIndicatorSize.tab,
+              indicatorPadding: const EdgeInsets.all(4),
+              indicator: BoxDecoration(
+                color: _accentColor,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              labelColor: Colors.white,
+              unselectedLabelColor: Colors.white54,
+              tabs: const [
+                Tab(text: '친구'),
+                Tab(text: '요청'),
+                Tab(text: '찾기'),
+              ],
+            ),
+          ),
+          // 대전 통계
+          if (_battleStats != null) _buildBattleStats(),
+          // 탭 콘텐츠
+          Expanded(
+            child: TabBarView(
+              children: [
+                _buildFriendsListTab(),
+                _buildFriendRequestsTab(),
+                _buildFriendSearchTab(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBattleStats() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: _cardColor,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: _accentColor.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.sports_esports, color: _accentColor),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '1:1 대전 기록',
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    _buildStatChip('승', _battleStats!.wins, Colors.green),
+                    const SizedBox(width: 8),
+                    _buildStatChip('패', _battleStats!.losses, Colors.red),
+                    const SizedBox(width: 8),
+                    _buildStatChip('무', _battleStats!.draws, Colors.grey),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          Text(
+            '${_battleStats!.winRatePercent}%',
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: _accentColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatChip(String label, int value, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        '$label $value',
+        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: color),
+      ),
+    );
+  }
+
+  Widget _buildFriendsListTab() {
+    if (_friends.isEmpty) {
+      return EmptyStateWidget.noFriends(
+        onSearchFriends: () {},
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _loadFriendsData,
+      color: _accentColor,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: _friends.length,
+        itemBuilder: (context, index) {
+          final friend = _friends[index];
+          return _buildFriendCard(friend);
+        },
+      ),
+    );
+  }
+
+  Widget _buildFriendCard(Friend friend) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: _cardColor,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          Stack(
+            children: [
+              CircleAvatar(
+                radius: 24,
+                backgroundColor: _accentColor.withValues(alpha: 0.2),
+                child: Text(
+                  friend.name.isNotEmpty ? friend.name[0] : '?',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: _accentColor,
+                  ),
+                ),
+              ),
+              if (friend.isOnline)
+                Positioned(
+                  right: 0,
+                  bottom: 0,
+                  child: Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: Colors.green,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: _cardColor, width: 2),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  friend.name,
+                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    const Icon(Icons.toll, size: 14, color: Colors.amber),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${friend.talants}',
+                      style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.6)),
+                    ),
+                    if (friend.streak > 0) ...[
+                      const SizedBox(width: 12),
+                      const Icon(Icons.local_fire_department, size: 14, color: Colors.orange),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${friend.streak}일',
+                        style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.6)),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            onPressed: () => _showChallengeDialog(friend),
+            icon: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: _accentColor.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.sports_esports, color: _accentColor),
+            ),
+            tooltip: '대전 신청',
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showChallengeDialog(Friend friend) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: _cardColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      isScrollControlled: true,
+      builder: (context) => _ChallengeSheet(
+        friend: friend,
+        battleService: _battleService,
+        onResult: (message, success) {
+          _showSnackBar(message, isError: !success);
+        },
+      ),
+    );
+  }
+
+  Widget _buildFriendRequestsTab() {
+    if (_friendRequests.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.mail_outline, size: 64, color: Colors.white.withValues(alpha: 0.3)),
+            const SizedBox(height: 16),
+            Text(
+              '받은 요청이 없습니다',
+              style: TextStyle(fontSize: 16, color: Colors.white.withValues(alpha: 0.5)),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: _friendRequests.length,
+      itemBuilder: (context, index) {
+        final request = _friendRequests[index];
+        return _buildFriendRequestCard(request);
+      },
+    );
+  }
+
+  Widget _buildFriendRequestCard(FriendRequest request) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: _cardColor,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 24,
+            backgroundColor: _accentColor.withValues(alpha: 0.2),
+            child: Text(
+              request.fromUserName.isNotEmpty ? request.fromUserName[0] : '?',
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: _accentColor,
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  request.fromUserName,
+                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '친구 요청을 보냈습니다',
+                  style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.6)),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            onPressed: () => _rejectFriendRequest(request.id),
+            icon: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.close, color: Colors.red, size: 20),
+            ),
+          ),
+          IconButton(
+            onPressed: () => _acceptFriendRequest(request.id),
+            icon: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Colors.green.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.check, color: Colors.green, size: 20),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFriendSearchTab() {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: TextField(
+            controller: _friendSearchController,
+            style: const TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              hintText: '이름으로 검색 (2자 이상)',
+              hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+              filled: true,
+              fillColor: _cardColor,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              prefixIcon: Icon(Icons.search, color: Colors.white.withValues(alpha: 0.5)),
+              suffixIcon: _isFriendSearching
+                  ? const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: _accentColor),
+                      ),
+                    )
+                  : IconButton(
+                      onPressed: _searchFriends,
+                      icon: const Icon(Icons.search, color: _accentColor),
+                    ),
+            ),
+            onSubmitted: (_) => _searchFriends(),
+          ),
+        ),
+        Expanded(
+          child: _friendSearchResults.isEmpty
+              ? (_friendSearchController.text.isEmpty
+                  ? const EmptyStateWidget(
+                      emoji: '🔍',
+                      title: '사용자를 검색하세요',
+                      description: '이름으로 친구를 찾을 수 있습니다',
+                    )
+                  : EmptyStateWidget.noSearchResults(
+                      searchTerm: _friendSearchController.text,
+                    ))
+              : ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: _friendSearchResults.length,
+                  itemBuilder: (context, index) {
+                    final user = _friendSearchResults[index];
+                    return _buildSearchResultCard(user);
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSearchResultCard(UserSearchResult user) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: _cardColor,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 24,
+            backgroundColor: _accentColor.withValues(alpha: 0.2),
+            child: Text(
+              user.name.isNotEmpty ? user.name[0] : '?',
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: _accentColor,
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  user.name,
+                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+                if (user.groupName != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    user.groupName!,
+                    style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.6)),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (user.isFriend)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.green.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                '친구',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.green),
+              ),
+            )
+          else
+            ElevatedButton(
+              onPressed: () => _sendFriendRequest(user.odId),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _accentColor,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('추가'),
+            ),
+        ],
+      ),
+    );
+  }
 }
 
 /// 그룹 옵션 바텀시트
@@ -1167,6 +1706,168 @@ class _GroupOptionsSheet extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// 대전 신청 시트
+class _ChallengeSheet extends StatefulWidget {
+  final Friend friend;
+  final BattleService battleService;
+  final Function(String message, bool success) onResult;
+
+  const _ChallengeSheet({
+    required this.friend,
+    required this.battleService,
+    required this.onResult,
+  });
+
+  @override
+  State<_ChallengeSheet> createState() => _ChallengeSheetState();
+}
+
+class _ChallengeSheetState extends State<_ChallengeSheet> {
+  static const _bgColor = Color(0xFF0F0F1A);
+  static const _accentColor = Color(0xFF6C63FF);
+
+  final _verseController = TextEditingController(text: 'John 3:16');
+  int _betAmount = 10;
+
+  @override
+  void dispose() {
+    _verseController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 24,
+        right: 24,
+        top: 24,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              const Icon(Icons.sports_esports, color: _accentColor),
+              const SizedBox(width: 12),
+              Text(
+                '${widget.friend.name}에게 대전 신청',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          TextField(
+            controller: _verseController,
+            style: const TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              labelText: '대전 구절',
+              labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+              hintText: 'e.g., John 3:16',
+              hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
+              filled: true,
+              fillColor: _bgColor,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Text(
+                '베팅 탈란트',
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+              ),
+              const Spacer(),
+              IconButton(
+                onPressed: _betAmount > 5
+                    ? () => setState(() => _betAmount -= 5)
+                    : null,
+                icon: const Icon(Icons.remove_circle_outline),
+                color: _accentColor,
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: _bgColor,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.toll, color: Colors.amber, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      '$_betAmount',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                onPressed: _betAmount < 100
+                    ? () => setState(() => _betAmount += 5)
+                    : null,
+                icon: const Icon(Icons.add_circle_outline),
+                color: _accentColor,
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () async {
+                final verse = _verseController.text.trim();
+                if (verse.isNotEmpty) {
+                  Navigator.pop(context);
+                  final result = await widget.battleService.createBattle(
+                    opponentId: widget.friend.odId,
+                    verseReference: verse,
+                    betAmount: _betAmount,
+                  );
+                  widget.onResult(result.message, result.success);
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _accentColor,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text(
+                '대전 신청',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

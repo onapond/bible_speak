@@ -14,22 +14,12 @@ import '../../widgets/social/nudge_widget.dart';
 import '../../models/user_streak.dart';
 import '../../models/daily_verse.dart';
 import '../../models/nudge.dart';
-import '../study/practice_setup_screen.dart';
 import '../ranking/ranking_screen.dart';
 import '../word_study/word_study_home_screen.dart';
 import '../practice/verse_practice_screen.dart';
-import '../admin/migration_screen.dart';
-import '../splash_screen.dart';
-import '../settings/notification_settings_screen.dart';
 import '../social/community_screen.dart';
-import '../shop/shop_screen.dart';
-import '../profile/profile_screen.dart';
-import '../achievement/achievement_screen.dart';
-import '../social/friend_screen.dart';
-import '../quiz/daily_quiz_screen.dart';
-import '../settings/theme_settings_screen.dart';
-import '../stats/stats_dashboard_screen.dart';
-import '../review/review_screen.dart';
+import '../study/learning_center_screen.dart';
+import '../mypage/my_page_screen.dart';
 
 /// 메인 메뉴 화면
 /// - 각 기능으로 이동하는 허브
@@ -222,7 +212,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                     child: GroupGoalWidget(
                       challenge: _challenge!,
                       myContribution: _myContribution,
-                      onTapContribute: () => _navigateToPractice(),
+                      onTapContribute: () => _navigateToLearningCenter(),
                     ),
                   ),
                 ),
@@ -279,14 +269,14 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                     title: '커뮤니티',
                     subtitle: '그룹 · 친구 · 채팅',
                     color: Colors.purple,
-                    onTap: () => _showCommunitySheet(),
+                    onTap: () => _navigateToGroupDashboard(),
                   ),
                   _buildMenuCard(
                     icon: Icons.person,
                     title: '마이',
                     subtitle: '프로필 · 통계 · 설정',
                     color: Colors.teal,
-                    onTap: () => _showMyPageSheet(),
+                    onTap: () => _navigateToMyPage(),
                   ),
                 ]),
               ),
@@ -409,18 +399,9 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     );
   }
 
-  void _navigateToPractice() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => PracticeSetupScreen(authService: widget.authService),
-      ),
-    );
-  }
-
   void _navigateToDailyVerse() async {
     if (_dailyVerse == null) {
-      _navigateToPractice();
+      _navigateToLearningCenter();
       return;
     }
 
@@ -500,74 +481,15 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     );
   }
 
-  void _navigateToShop() {
+  /// 학습센터로 이동
+  void _navigateToLearningCenter({int tabIndex = 0}) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => const ShopScreen(),
-      ),
-    );
-  }
-
-  void _navigateToProfile() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const ProfileScreen(),
-      ),
-    );
-  }
-
-  void _navigateToAchievements() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const AchievementScreen(),
-      ),
-    );
-  }
-
-  void _navigateToFriends() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const FriendScreen(),
-      ),
-    );
-  }
-
-  void _navigateToDailyQuiz() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const DailyQuizScreen(),
-      ),
-    );
-  }
-
-  void _navigateToStats() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const StatsDashboardScreen(),
-      ),
-    );
-  }
-
-  void _navigateToReview() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const ReviewScreen(),
-      ),
-    );
-  }
-
-  void _showComingSoon(String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$feature 기능은 준비 중입니다.'),
-        backgroundColor: Colors.orange,
+        builder: (_) => LearningCenterScreen(
+          authService: widget.authService,
+          initialTabIndex: tabIndex,
+        ),
       ),
     );
   }
@@ -645,264 +567,18 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     );
   }
 
-  /// 학습 서브메뉴 바텀시트
+  /// 학습센터로 이동 (학습 카드 클릭)
   void _showLearningSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF1E1E2E),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 12),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.white24,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              '학습',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildSheetItem(
-              icon: Icons.menu_book,
-              title: '암송 연습',
-              subtitle: '3단계로 영어 성경 암송',
-              color: Colors.blue,
-              onTap: () {
-                Navigator.pop(context);
-                _navigateToPractice();
-              },
-            ),
-            _buildSheetItem(
-              icon: Icons.replay,
-              title: '복습',
-              subtitle: '스페이스드 리피티션',
-              color: Colors.teal,
-              onTap: () {
-                Navigator.pop(context);
-                _navigateToReview();
-              },
-            ),
-            _buildSheetItem(
-              icon: Icons.quiz,
-              title: '오늘의 퀴즈',
-              subtitle: '매일 도전하는 성경 퀴즈',
-              color: Colors.orange,
-              onTap: () {
-                Navigator.pop(context);
-                _navigateToDailyQuiz();
-              },
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
-    );
+    _navigateToLearningCenter();
   }
 
-  /// 커뮤니티 서브메뉴 바텀시트
-  void _showCommunitySheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF1E1E2E),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+  /// 마이페이지로 이동
+  void _navigateToMyPage() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => MyPageScreen(authService: widget.authService),
       ),
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 12),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.white24,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              '커뮤니티',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildSheetItem(
-              icon: Icons.groups,
-              title: '그룹',
-              subtitle: '그룹 대시보드 & 채팅',
-              color: Colors.purple,
-              onTap: () {
-                Navigator.pop(context);
-                _navigateToGroupDashboard();
-              },
-            ),
-            _buildSheetItem(
-              icon: Icons.people,
-              title: '친구',
-              subtitle: '친구 목록 & 1:1 대전',
-              color: Colors.cyan,
-              onTap: () {
-                Navigator.pop(context);
-                _navigateToFriends();
-              },
-            ),
-            _buildSheetItem(
-              icon: Icons.leaderboard,
-              title: '랭킹',
-              subtitle: '그룹 & 전체 랭킹',
-              color: Colors.amber,
-              onTap: () {
-                Navigator.pop(context);
-                _navigateToRanking();
-              },
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// 마이페이지 서브메뉴 바텀시트
-  void _showMyPageSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF1E1E2E),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 12),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.white24,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              '마이페이지',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildSheetItem(
-              icon: Icons.person,
-              title: '프로필',
-              subtitle: '내 정보 관리',
-              color: Colors.teal,
-              onTap: () {
-                Navigator.pop(context);
-                _navigateToProfile();
-              },
-            ),
-            _buildSheetItem(
-              icon: Icons.bar_chart,
-              title: '통계',
-              subtitle: '학습 현황 & 기록',
-              color: Colors.indigo,
-              onTap: () {
-                Navigator.pop(context);
-                _navigateToStats();
-              },
-            ),
-            _buildSheetItem(
-              icon: Icons.emoji_events,
-              title: '업적',
-              subtitle: '도전과 보상',
-              color: Colors.amber,
-              onTap: () {
-                Navigator.pop(context);
-                _navigateToAchievements();
-              },
-            ),
-            _buildSheetItem(
-              icon: Icons.shopping_bag,
-              title: '샵',
-              subtitle: '아이템 & 구독',
-              color: Colors.pink,
-              onTap: () {
-                Navigator.pop(context);
-                _navigateToShop();
-              },
-            ),
-            _buildSheetItem(
-              icon: Icons.settings,
-              title: '설정',
-              subtitle: '앱 설정 & 알림',
-              color: Colors.grey,
-              onTap: () {
-                Navigator.pop(context);
-                _showSettingsSheet();
-              },
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// 바텀시트 아이템 위젯
-  Widget _buildSheetItem({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return ListTile(
-      leading: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.15),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Icon(icon, color: color, size: 24),
-      ),
-      title: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          color: Colors.white,
-        ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: const TextStyle(
-          fontSize: 13,
-          color: Colors.white54,
-        ),
-      ),
-      trailing: const Icon(Icons.chevron_right, color: Colors.white38),
-      onTap: onTap,
     );
   }
 
@@ -1002,83 +678,4 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     }
   }
 
-  void _showSettingsSheet() {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.person),
-              title: Text('${widget.authService.currentUser?.name ?? "사용자"}'),
-              subtitle: Text('그룹: ${widget.authService.currentUser?.groupId ?? ""}'),
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.notifications_outlined),
-              title: const Text('알림 설정'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const NotificationSettingsScreen()),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.palette_outlined),
-              title: const Text('테마 설정'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const ThemeSettingsScreen()),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.delete_outline),
-              title: const Text('TTS 캐시 삭제'),
-              onTap: () {
-                Navigator.pop(context);
-                _showComingSoon('캐시 삭제');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.cloud_upload, color: Colors.deepPurple),
-              title: const Text('Firestore 마이그레이션'),
-              subtitle: const Text('관리자용 - 데이터 업로드'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const MigrationScreen()),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.logout),
-              title: const Text('로그아웃'),
-              onTap: () async {
-                // 바텀시트 먼저 닫기
-                Navigator.pop(context);
-
-                // 로그아웃 실행
-                await widget.authService.signOut();
-
-                // 로그인 화면으로 이동 (모든 스택 제거)
-                if (mounted) {
-                  Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (_) => const SplashScreen()),
-                    (_) => false,
-                  );
-                }
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }

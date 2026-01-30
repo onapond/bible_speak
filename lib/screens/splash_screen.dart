@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
-import 'auth/profile_setup_screen.dart';
+import 'auth/login_screen.dart';
 import 'home/main_menu_screen.dart';
 import 'onboarding/onboarding_screen.dart';
 
@@ -28,10 +28,10 @@ class _SplashScreenState extends State<SplashScreen> {
       MaterialPageRoute(
         builder: (ctx) => OnboardingScreen(
           onComplete: () {
-            // OnboardingScreen의 context가 아닌 새로운 navigation 사용
+            // OnboardingScreen 완료 후 로그인 화면으로
             Navigator.of(ctx).pushReplacement(
               MaterialPageRoute(
-                builder: (_) => ProfileSetupScreen(authService: _authService),
+                builder: (_) => LoginScreen(authService: _authService),
               ),
             );
           },
@@ -40,10 +40,10 @@ class _SplashScreenState extends State<SplashScreen> {
     );
   }
 
-  void _navigateToProfileSetup() {
+  void _navigateToLogin() {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
-        builder: (_) => ProfileSetupScreen(authService: _authService),
+        builder: (_) => LoginScreen(authService: _authService),
       ),
     );
   }
@@ -63,14 +63,14 @@ class _SplashScreenState extends State<SplashScreen> {
 
     if (!mounted) return;
 
-    // 로그인되지 않은 경우 - 온보딩 또는 프로필 설정
+    // 로그인되지 않은 경우 - 온보딩 또는 로그인
     if (!isLoggedIn) {
       if (!onboardingDone) {
         // 온보딩 먼저 표시
         _navigateToOnboarding();
       } else {
-        // 온보딩 완료 - 프로필 설정으로
-        _navigateToProfileSetup();
+        // 온보딩 완료 - 로그인 화면으로
+        _navigateToLogin();
       }
     } else {
       // 로그인된 경우 - 메인 화면으로

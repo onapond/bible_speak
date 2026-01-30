@@ -29,6 +29,10 @@ dependencies:
   firebase_storage: ^12.3.7
   firebase_messaging: ^15.1.6
 
+  # 소셜 로그인
+  google_sign_in: ^6.2.2
+  sign_in_with_apple: ^6.1.4
+
   # 로컬 알림
   flutter_local_notifications: ^18.0.1
 

@@ -419,6 +419,7 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
         backgroundColor: Colors.amber.shade700,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        duration: const Duration(seconds: 4), // 4초 후 자동 사라짐
         action: SnackBarAction(
           label: '샵으로',
           textColor: Colors.white,

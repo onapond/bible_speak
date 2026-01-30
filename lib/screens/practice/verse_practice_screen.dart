@@ -27,6 +27,7 @@ class VersePracticeScreen extends StatefulWidget {
   final String book;
   final int chapter;
   final int? initialVerse;
+  final String? dailyVerseKoreanText; // 오늘의 만나에서 전달받는 한글 텍스트
 
   const VersePracticeScreen({
     super.key,
@@ -34,6 +35,7 @@ class VersePracticeScreen extends StatefulWidget {
     this.book = 'malachi',
     this.chapter = 1,
     this.initialVerse,
+    this.dailyVerseKoreanText,
   });
 
   @override
@@ -145,6 +147,11 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
 
       // 3단계: 한글 번역 병렬 로드 (타임아웃 5초, 실패해도 계속)
       List<String?> koreanTexts;
+
+      // 오늘의 만나에서 한글 텍스트가 전달된 경우 해당 구절에 사용
+      final initialVerse = widget.initialVerse;
+      final dailyKorean = widget.dailyVerseKoreanText;
+
       try {
         final koreanFutures = verses.map((v) => _bibleData.getKoreanText(
           widget.book,
@@ -152,10 +159,28 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
           v.verse,
         )).toList();
         koreanTexts = await Future.wait(koreanFutures).timeout(const Duration(seconds: 5));
+
+        // 오늘의 만나 한글 텍스트가 있고 해당 구절이 null인 경우 대체
+        if (dailyKorean != null && dailyKorean.isNotEmpty && initialVerse != null) {
+          for (int i = 0; i < verses.length; i++) {
+            if (verses[i].verse == initialVerse && (koreanTexts[i] == null || koreanTexts[i]!.isEmpty)) {
+              koreanTexts[i] = dailyKorean;
+            }
+          }
+        }
       } catch (e) {
         // 한글 로드 실패해도 영어만으로 진행
         print('⚠️ 한글 번역 로드 실패: $e');
         koreanTexts = List.filled(verses.length, null);
+
+        // 오늘의 만나 한글 텍스트가 있는 경우 해당 구절에 사용
+        if (dailyKorean != null && dailyKorean.isNotEmpty && initialVerse != null) {
+          for (int i = 0; i < verses.length; i++) {
+            if (verses[i].verse == initialVerse) {
+              koreanTexts[i] = dailyKorean;
+            }
+          }
+        }
       }
 
       final versesWithKorean = <VerseText>[];

@@ -544,6 +544,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
           book: _dailyVerse!.bookId,
           chapter: _dailyVerse!.chapter,
           initialVerse: _dailyVerse!.verse,
+          dailyVerseKoreanText: _dailyVerse!.textKo, // 한글 텍스트 전달
         ),
       ),
     );

@@ -562,38 +562,38 @@ class AuthService {
 
   /// 달란트 추가
   Future<bool> addTalant(int verseNumber) async {
-    if (_currentUser == null) return false;
+    if (_currentUser == null) {
+      print('❌ 달란트 적립 실패: 사용자 없음');
+      return false;
+    }
 
     try {
       if (_currentUser!.completedVerses.contains(verseNumber)) {
+        print('ℹ️ 이미 완료한 구절: $verseNumber');
         return false;
       }
 
-      await _firestore.runTransaction((transaction) async {
-        transaction.update(
-          _firestore.collection('users').doc(_currentUser!.uid),
-          {
-            'talants': FieldValue.increment(1),
-            'completedVerses': FieldValue.arrayUnion([verseNumber]),
-          },
-        );
+      final userRef = _firestore.collection('users').doc(_currentUser!.uid);
 
-        if (_currentUser!.groupId.isNotEmpty) {
-          transaction.update(
-            _firestore.collection('groups').doc(_currentUser!.groupId),
-            {
-              'totalTalants': FieldValue.increment(1),
-            },
-          );
-        }
-      });
+      // set with merge로 안전하게 업데이트
+      await userRef.set({
+        'talants': FieldValue.increment(1),
+        'completedVerses': FieldValue.arrayUnion([verseNumber]),
+      }, SetOptions(merge: true));
+
+      // 그룹 달란트도 업데이트
+      if (_currentUser!.groupId.isNotEmpty) {
+        await _firestore.collection('groups').doc(_currentUser!.groupId).set({
+          'totalTalants': FieldValue.increment(1),
+        }, SetOptions(merge: true));
+      }
 
       _currentUser = _currentUser!.copyWith(
         talants: _currentUser!.talants + 1,
         completedVerses: [..._currentUser!.completedVerses, verseNumber],
       );
 
-      print('🏆 달란트 적립! 구절 $verseNumber');
+      print('🏆 달란트 적립 완료! 구절 $verseNumber, 총 ${_currentUser!.talants} 달란트');
       return true;
     } catch (e) {
       print('❌ 달란트 적립 오류: $e');

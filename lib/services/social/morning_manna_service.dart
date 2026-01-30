@@ -152,21 +152,22 @@ class MorningMannaService {
     if (!bonus.isEligible || bonus.bonusAmount <= 0) return 0;
 
     try {
-      // 트랜잭션으로 보너스 지급
-      await _firestore.runTransaction((transaction) async {
-        final userRef = _firestore.collection('users').doc(uid);
+      // set with merge로 보너스 지급 (문서가 없어도 동작)
+      final userRef = _firestore.collection('users').doc(uid);
 
-        transaction.update(userRef, {
-          'talants': FieldValue.increment(bonus.bonusAmount),
-          'earlyBird.lastClaimedDate': _today,
-          'earlyBird.lastClaimedTime': DateTime.now().toIso8601String(),
-          'earlyBird.totalBonusEarned': FieldValue.increment(bonus.bonusAmount),
-        });
-      });
+      await userRef.set({
+        'talants': FieldValue.increment(bonus.bonusAmount),
+        'earlyBird': {
+          'lastClaimedDate': _today,
+          'lastClaimedTime': DateTime.now().toIso8601String(),
+          'totalBonusEarned': FieldValue.increment(bonus.bonusAmount),
+        },
+      }, SetOptions(merge: true));
 
+      print('✅ Early Bird 보너스 지급 완료: +${bonus.bonusAmount} 달란트');
       return bonus.bonusAmount;
     } catch (e) {
-      print('Claim early bird bonus error: $e');
+      print('❌ Claim early bird bonus error: $e');
       return 0;
     }
   }

@@ -14,14 +14,14 @@ import '../../widgets/social/nudge_widget.dart';
 import '../../models/user_streak.dart';
 import '../../models/daily_verse.dart';
 import '../../models/nudge.dart';
-import '../study/book_selection_screen.dart';
+import '../study/practice_setup_screen.dart';
 import '../ranking/ranking_screen.dart';
 import '../word_study/word_study_home_screen.dart';
 import '../practice/verse_practice_screen.dart';
 import '../admin/migration_screen.dart';
 import '../splash_screen.dart';
 import '../settings/notification_settings_screen.dart';
-import '../group/group_dashboard_screen.dart';
+import '../social/community_screen.dart';
 import '../shop/shop_screen.dart';
 import '../profile/profile_screen.dart';
 import '../achievement/achievement_screen.dart';
@@ -105,7 +105,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
         _challengeService.getCurrentChallenge(user.groupId),
         _challengeService.getMyContribution(user.groupId),
         _nudgeService.getInactiveMembers(user.groupId),
-        _nudgeService.getDailyStats(isLeader: user.role.name == 'admin'),
+        _nudgeService.getDailyStats(isLeader: user.isAdmin),
       ]).timeout(const Duration(seconds: 5));
 
       if (mounted) {
@@ -282,8 +282,8 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                   ),
                   _buildMenuCard(
                     icon: Icons.groups,
-                    title: '그룹',
-                    subtitle: '활동 및 랭킹',
+                    title: '커뮤니티',
+                    subtitle: '그룹 & 채팅',
                     color: Colors.purple,
                     onTap: () => _navigateToGroupDashboard(),
                   ),
@@ -454,7 +454,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => BookSelectionScreen(authService: widget.authService),
+        builder: (_) => PracticeSetupScreen(authService: widget.authService),
       ),
     );
   }
@@ -530,19 +530,13 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
 
   void _navigateToGroupDashboard() {
     final user = widget.authService.currentUser;
-    if (user == null || user.groupId.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('그룹에 가입해야 이용할 수 있습니다.'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => GroupDashboardScreen(groupId: user.groupId),
+        builder: (_) => CommunityScreen(
+          authService: widget.authService,
+          initialGroupId: user?.groupId.isNotEmpty == true ? user!.groupId : null,
+        ),
       ),
     );
   }
@@ -654,7 +648,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
             );
             // 통계 새로고침
             final stats = await _nudgeService.getDailyStats(
-              isLeader: user.role.name == 'admin',
+              isLeader: user.isAdmin,
             );
             setState(() => _nudgeStats = stats);
           } else if (mounted) {

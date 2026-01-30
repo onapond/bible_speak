@@ -251,6 +251,70 @@ class GroupService {
       return getGroups();
     }
   }
+
+  /// 현재 사용자가 참여한 그룹 목록 조회
+  Future<List<GroupModel>> getMyGroups() async {
+    final userId = _auth.currentUser?.uid;
+    if (userId == null) return [];
+
+    try {
+      // 사용자 문서에서 groupId 가져오기
+      final userDoc = await _firestore.collection('users').doc(userId).get();
+      if (!userDoc.exists) return [];
+
+      final groupId = userDoc.data()?['groupId'] as String?;
+      if (groupId == null || groupId.isEmpty) return [];
+
+      // 해당 그룹 조회
+      final groupDoc = await _firestore.collection('groups').doc(groupId).get();
+      if (!groupDoc.exists) return [];
+
+      return [GroupModel.fromFirestore(groupDoc.id, groupDoc.data()!)];
+    } catch (e) {
+      print('❌ 내 그룹 조회 오류: $e');
+      return [];
+    }
+  }
+
+  /// 그룹 참여하기
+  Future<GroupJoinResult> joinGroup(String groupId) async {
+    final userId = _auth.currentUser?.uid;
+    if (userId == null) {
+      return GroupJoinResult(success: false, message: '로그인이 필요합니다');
+    }
+
+    try {
+      // 그룹 존재 확인
+      final groupDoc = await _firestore.collection('groups').doc(groupId).get();
+      if (!groupDoc.exists) {
+        return GroupJoinResult(success: false, message: '그룹을 찾을 수 없습니다');
+      }
+
+      // 사용자 문서 업데이트
+      await _firestore.collection('users').doc(userId).update({
+        'groupId': groupId,
+      });
+
+      // 그룹 멤버 수 증가
+      await incrementMemberCount(groupId);
+
+      return GroupJoinResult(success: true, message: '그룹에 참여했습니다');
+    } catch (e) {
+      print('❌ 그룹 참여 오류: $e');
+      return GroupJoinResult(success: false, message: '그룹 참여 중 오류가 발생했습니다');
+    }
+  }
+}
+
+/// 그룹 참여 결과
+class GroupJoinResult {
+  final bool success;
+  final String message;
+
+  const GroupJoinResult({
+    required this.success,
+    required this.message,
+  });
 }
 
 /// 그룹 생성 결과

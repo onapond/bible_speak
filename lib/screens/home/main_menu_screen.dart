@@ -5,6 +5,8 @@ import '../../services/social/group_challenge_service.dart';
 import '../../services/social/streak_service.dart';
 import '../../services/social/morning_manna_service.dart';
 import '../../services/social/nudge_service.dart';
+import '../../services/review_service.dart';
+import '../../services/daily_quiz_service.dart';
 import '../../widgets/social/activity_ticker.dart';
 import '../../widgets/social/live_activity_ticker.dart';
 import '../../widgets/social/group_goal_widget.dart';
@@ -41,6 +43,8 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
   final _streakService = StreakService();
   final _morningMannaService = MorningMannaService();
   final _nudgeService = NudgeService();
+  final _reviewService = ReviewService();
+  final _quizService = DailyQuizService();
 
   String? _groupName;
   WeeklyChallenge? _challenge;
@@ -53,6 +57,11 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
   NudgeDailyStats _nudgeStats = const NudgeDailyStats(nudgesSent: 0, nudgesTo: {}, dailyLimit: 3);
   bool _isLoading = true;
   bool _isLoadingManna = true;
+
+  // Phase 3: 오늘의 할 일 상태
+  int _dueReviewCount = 0;
+  bool _hasCompletedQuiz = false;
+  bool _isLoadingTasks = true;
 
   @override
   void initState() {
@@ -69,8 +78,31 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     await Future.wait([
       _loadStreakData(),
       _loadMorningManna(),
+      _loadTodaysTasks(),
       if (user != null && user.groupId.isNotEmpty) _loadGroupData(user),
     ]);
+  }
+
+  /// 오늘의 할 일 로드 (복습, 퀴즈)
+  Future<void> _loadTodaysTasks() async {
+    try {
+      final results = await Future.wait([
+        _reviewService.getDueItems(),
+        _quizService.hasCompletedToday(),
+      ]).timeout(const Duration(seconds: 3));
+
+      if (mounted) {
+        setState(() {
+          _dueReviewCount = (results[0] as List).length;
+          _hasCompletedQuiz = results[1] as bool;
+          _isLoadingTasks = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingTasks = false);
+      }
+    }
   }
 
   Future<void> _loadStreakData() async {
@@ -174,6 +206,15 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                 ),
               ),
             ),
+
+            // 오늘의 할 일 요약 카드
+            if (!_isLoadingTasks)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  child: _buildTodaysTasksCard(),
+                ),
+              ),
 
             // 아침 만나 (오늘의 구절)
             SliverToBoxAdapter(
@@ -494,23 +535,222 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     );
   }
 
-  /// 오늘의 학습 CTA 버튼
-  Widget _buildMainCTAButton() {
+  /// 오늘의 할 일 요약 카드
+  Widget _buildTodaysTasksCard() {
+    final hasReview = _dueReviewCount > 0;
+    final hasQuiz = !_hasCompletedQuiz;
+    final totalTasks = (hasReview ? 1 : 0) + (hasQuiz ? 1 : 0);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1E2E),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 헤더
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.checklist,
+                  color: Colors.amber,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  '오늘의 할 일',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              if (totalTasks > 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '$totalTasks개 남음',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.orange,
+                    ),
+                  ),
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Text(
+                    '완료!',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // 퀵 액션 칩들
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              // 복습 칩
+              _buildQuickActionChip(
+                icon: Icons.replay,
+                label: hasReview ? '복습 $_dueReviewCount개' : '복습 완료',
+                color: hasReview ? Colors.teal : Colors.grey,
+                isActive: hasReview,
+                onTap: () => _navigateToLearningCenter(tabIndex: 1),
+              ),
+              // 퀴즈 칩
+              _buildQuickActionChip(
+                icon: Icons.quiz,
+                label: hasQuiz ? '오늘의 퀴즈' : '퀴즈 완료',
+                color: hasQuiz ? Colors.orange : Colors.grey,
+                isActive: hasQuiz,
+                onTap: () => _navigateToLearningCenter(tabIndex: 2),
+              ),
+              // 암송 칩
+              _buildQuickActionChip(
+                icon: Icons.menu_book,
+                label: '암송 연습',
+                color: Colors.blue,
+                isActive: true,
+                onTap: () => _navigateToLearningCenter(tabIndex: 0),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 퀵 액션 칩 위젯
+  Widget _buildQuickActionChip({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required bool isActive,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
-      onTap: () => _navigateToDailyVerse(),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: isActive ? color.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isActive ? color.withValues(alpha: 0.5) : Colors.white12,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: isActive ? color : Colors.white38,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: isActive ? color : Colors.white38,
+              ),
+            ),
+            if (isActive) ...[
+              const SizedBox(width: 6),
+              Icon(
+                Icons.arrow_forward_ios,
+                size: 12,
+                color: color.withValues(alpha: 0.7),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 스마트 CTA 버튼 - 상황에 따라 다른 액션 추천
+  Widget _buildMainCTAButton() {
+    // 우선순위: 복습 > 퀴즈 > 새 학습
+    final hasReview = _dueReviewCount > 0;
+    final hasQuiz = !_hasCompletedQuiz;
+
+    String title;
+    String subtitle;
+    IconData icon;
+    List<Color> gradientColors;
+    VoidCallback onTap;
+
+    if (hasReview) {
+      // 복습 우선
+      title = '복습하기';
+      subtitle = '오늘 복습할 구절 $_dueReviewCount개';
+      icon = Icons.replay;
+      gradientColors = [Colors.teal.shade600, Colors.cyan.shade600];
+      onTap = () => _navigateToLearningCenter(tabIndex: 1);
+    } else if (hasQuiz) {
+      // 퀴즈 다음
+      title = '오늘의 퀴즈';
+      subtitle = '매일 퀴즈로 실력 점검';
+      icon = Icons.quiz;
+      gradientColors = [Colors.orange.shade600, Colors.deepOrange.shade600];
+      onTap = () => _navigateToLearningCenter(tabIndex: 2);
+    } else {
+      // 새 학습
+      title = '오늘의 학습 시작';
+      subtitle = _dailyVerse != null
+          ? _dailyVerse!.reference
+          : '새로운 구절을 시작해보세요';
+      icon = Icons.play_arrow_rounded;
+      gradientColors = [Colors.blue.shade600, Colors.purple.shade600];
+      onTap = () => _navigateToDailyVerse();
+    }
+
+    return GestureDetector(
+      onTap: onTap,
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Colors.blue.shade600, Colors.purple.shade600],
+            colors: gradientColors,
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.blue.withOpacity(0.3),
+              color: gradientColors[0].withValues(alpha: 0.3),
               blurRadius: 12,
               offset: const Offset(0, 6),
             ),
@@ -521,11 +761,11 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: const Icon(
-                Icons.play_arrow_rounded,
+              child: Icon(
+                icon,
                 color: Colors.white,
                 size: 32,
               ),
@@ -535,9 +775,9 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    '오늘의 학습 시작',
-                    style: TextStyle(
+                  Text(
+                    title,
+                    style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
@@ -545,12 +785,10 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    _dailyVerse != null
-                        ? _dailyVerse!.reference
-                        : '새로운 구절을 시작해보세요',
+                    subtitle,
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.white.withOpacity(0.9),
+                      color: Colors.white.withValues(alpha: 0.9),
                     ),
                   ),
                 ],

@@ -11,6 +11,7 @@ import 'services/notification/notification_handler.dart';
 import 'services/notification/notification_types.dart';
 import 'services/navigation_service.dart';
 import 'services/offline/offline_services.dart';
+import 'services/offline/bible_offline_service.dart';
 import 'services/accessibility_service.dart';
 
 void main() async {
@@ -62,6 +63,7 @@ Future<void> _initializeInBackground() async {
   try {
     await Future.wait([
       _safeInit('AccessibilityService', AccessibilityService().init(), 2),
+      _safeInit('BibleOfflineService', BibleOfflineService().initialize(), 3),
       _safeInit('NotificationService', NotificationService().initialize(), 3),
       _safeInit('BibleDataService', BibleDataService.instance.init(), 5),
       _safeInit('OfflineManager', initializeOfflineManager(), 3),

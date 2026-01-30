@@ -1,6 +1,7 @@
 import '../data/repositories/bible_repository.dart';
 import '../data/repositories/firestore_bible_repository.dart';
 import '../domain/models/bible/bible_models.dart';
+import 'offline/bible_offline_service.dart';
 
 // 기존 로컬 데이터 (폴백용)
 import '../data/bible_data.dart' as legacy;
@@ -138,10 +139,21 @@ class BibleDataService {
 
   /// 챕터의 모든 구절
   Future<List<Verse>> getVerses(String bookId, int chapter) async {
+    // 1. 오프라인 캐시 확인 (최우선)
+    final offlineService = BibleOfflineService();
+    if (offlineService.isInitialized && offlineService.isBookCached(bookId)) {
+      final cachedVerses = await offlineService.getCachedVerses(bookId, chapter);
+      if (cachedVerses.isNotEmpty) {
+        return cachedVerses;
+      }
+    }
+
+    // 2. 로컬 폴백
     if (_useLocalFallback) {
       return _getLegacyVerses(bookId, chapter);
     }
 
+    // 3. Firestore
     try {
       final verses = await _repository.getVerses(bookId, chapter);
       if (verses.isEmpty) {
@@ -155,10 +167,21 @@ class BibleDataService {
 
   /// 특정 구절
   Future<Verse?> getVerse(String bookId, int chapter, int verse) async {
+    // 1. 오프라인 캐시 확인 (최우선)
+    final offlineService = BibleOfflineService();
+    if (offlineService.isInitialized && offlineService.isBookCached(bookId)) {
+      final cachedVerse = await offlineService.getCachedVerse(bookId, chapter, verse);
+      if (cachedVerse != null) {
+        return cachedVerse;
+      }
+    }
+
+    // 2. 로컬 폴백
     if (_useLocalFallback) {
       return _getLegacyVerse(bookId, chapter, verse);
     }
 
+    // 3. Firestore
     try {
       final verseData = await _repository.getVerse(bookId, chapter, verse);
       return verseData ?? _getLegacyVerse(bookId, chapter, verse);

@@ -821,6 +821,9 @@ class _CommunityScreenState extends State<CommunityScreen>
                 reverse: true,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 itemCount: messages.length,
+                addRepaintBoundaries: true,
+                addAutomaticKeepAlives: true,
+                cacheExtent: 500.0,
                 itemBuilder: (context, index) {
                   final message = messages[index];
                   final previousMessage =
@@ -829,12 +832,14 @@ class _CommunityScreenState extends State<CommunityScreen>
                   final showDateDivider = previousMessage == null ||
                       _shouldShowDateDivider(message, previousMessage);
 
-                  return Column(
-                    children: [
-                      if (showDateDivider)
-                        _buildDateDivider(message.formattedDate),
-                      _buildMessageBubble(message),
-                    ],
+                  return RepaintBoundary(
+                    child: Column(
+                      children: [
+                        if (showDateDivider)
+                          _buildDateDivider(message.formattedDate),
+                        _buildMessageBubble(message),
+                      ],
+                    ),
                   );
                 },
               );
@@ -1250,9 +1255,14 @@ class _CommunityScreenState extends State<CommunityScreen>
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: _friends.length,
+        addRepaintBoundaries: true,
+        addAutomaticKeepAlives: true,
+        cacheExtent: 500.0,
         itemBuilder: (context, index) {
           final friend = _friends[index];
-          return _buildFriendCard(friend);
+          return RepaintBoundary(
+            child: _buildFriendCard(friend),
+          );
         },
       ),
     );
@@ -1385,9 +1395,13 @@ class _CommunityScreenState extends State<CommunityScreen>
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: _friendRequests.length,
+      addRepaintBoundaries: true,
+      cacheExtent: 300.0,
       itemBuilder: (context, index) {
         final request = _friendRequests[index];
-        return _buildFriendRequestCard(request);
+        return RepaintBoundary(
+          child: _buildFriendRequestCard(request),
+        );
       },
     );
   }
@@ -1507,9 +1521,13 @@ class _CommunityScreenState extends State<CommunityScreen>
               : ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   itemCount: _friendSearchResults.length,
+                  addRepaintBoundaries: true,
+                  cacheExtent: 300.0,
                   itemBuilder: (context, index) {
                     final user = _friendSearchResults[index];
-                    return _buildSearchResultCard(user);
+                    return RepaintBoundary(
+                      child: _buildSearchResultCard(user),
+                    );
                   },
                 ),
         ),

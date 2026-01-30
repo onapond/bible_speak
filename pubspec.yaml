@@ -48,6 +48,9 @@ dependencies:
   hive_flutter: ^1.1.0
   connectivity_plus: ^6.1.0
 
+  # 이미지 캐싱
+  cached_network_image: ^3.4.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

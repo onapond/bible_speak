@@ -76,12 +76,14 @@ class _RankingScreenState extends State<RankingScreen>
         return ListView.builder(
           padding: const EdgeInsets.all(16),
           itemCount: groups.length,
+          addRepaintBoundaries: true,
+          cacheExtent: 400.0,
           itemBuilder: (context, index) {
             final group = groups[index];
             final isMyGroup = group.id == widget.authService.currentUser?.groupId;
             final rank = index + 1;
 
-            return Card(
+            return RepaintBoundary(child: Card(
               color: isMyGroup ? Colors.indigo.shade50 : null,
               child: ListTile(
                 leading: _buildRankBadge(rank),
@@ -125,7 +127,7 @@ class _RankingScreenState extends State<RankingScreen>
                   ],
                 ),
               ),
-            );
+            ));
           },
         );
       },
@@ -156,11 +158,13 @@ class _RankingScreenState extends State<RankingScreen>
         return ListView.builder(
           padding: const EdgeInsets.all(16),
           itemCount: members.length,
+          addRepaintBoundaries: true,
+          cacheExtent: 400.0,
           itemBuilder: (context, index) {
             final member = members[index];
             final rank = index + 1;
 
-            return Card(
+            return RepaintBoundary(child: Card(
               color: member.isMe ? Colors.indigo.shade50 : null,
               child: ListTile(
                 leading: _buildRankBadge(rank),
@@ -203,7 +207,7 @@ class _RankingScreenState extends State<RankingScreen>
                   ],
                 ),
               ),
-            );
+            ));
           },
         );
       },

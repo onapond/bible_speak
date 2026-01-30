@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../services/data_preloader_service.dart';
 import 'auth/login_screen.dart';
 import 'home/main_menu_screen.dart';
 import 'onboarding/onboarding_screen.dart';
@@ -16,6 +17,7 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen> {
   final AuthService _authService = AuthService();
+  final DataPreloaderService _preloader = DataPreloaderService();
 
   @override
   void initState() {
@@ -73,7 +75,10 @@ class _SplashScreenState extends State<SplashScreen> {
         _navigateToLogin();
       }
     } else {
-      // 로그인된 경우 - 메인 화면으로
+      // 로그인된 경우 - 데이터 프리로드 시작 후 메인 화면으로
+      // 백그라운드에서 프리로드 시작 (결과 기다리지 않음)
+      _preloader.preloadMainScreenData();
+
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (_) => MainMenuScreen(authService: _authService),

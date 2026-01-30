@@ -4,6 +4,7 @@ import '../services/data_preloader_service.dart';
 import 'auth/login_screen.dart';
 import 'home/main_menu_screen.dart';
 import 'onboarding/onboarding_screen.dart';
+import 'onboarding/goal_setup_screen.dart';
 
 /// 스플래시 화면
 /// - 인증 상태 확인
@@ -30,10 +31,19 @@ class _SplashScreenState extends State<SplashScreen> {
       MaterialPageRoute(
         builder: (ctx) => OnboardingScreen(
           onComplete: () {
-            // OnboardingScreen 완료 후 로그인 화면으로
+            // OnboardingScreen 완료 후 목표 설정 화면으로
             Navigator.of(ctx).pushReplacement(
               MaterialPageRoute(
-                builder: (_) => LoginScreen(authService: _authService),
+                builder: (goalCtx) => GoalSetupScreen(
+                  onComplete: () {
+                    // 목표 설정 완료 후 로그인 화면으로
+                    Navigator.of(goalCtx).pushReplacement(
+                      MaterialPageRoute(
+                        builder: (_) => LoginScreen(authService: _authService),
+                      ),
+                    );
+                  },
+                ),
               ),
             );
           },

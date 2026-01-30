@@ -103,6 +103,24 @@ class NotificationSettingsService {
     await updateSetting('streakWarningEnabled', enabled);
   }
 
+  /// 저녁 학습 리마인더 설정
+  Future<void> setEveningReminder({bool? enabled, String? time}) async {
+    final uid = currentUserId;
+    if (uid == null) return;
+
+    try {
+      final updates = <String, dynamic>{
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+      if (enabled != null) updates['eveningReminderEnabled'] = enabled;
+      if (time != null) updates['eveningReminderTime'] = time;
+
+      await _settingsRef(uid).set(updates, SetOptions(merge: true));
+    } catch (e) {
+      print('Set evening reminder settings error: $e');
+    }
+  }
+
   /// 찌르기 알림 설정
   Future<void> setNudge(bool enabled) async {
     await updateSetting('nudgeEnabled', enabled);

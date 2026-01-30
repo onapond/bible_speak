@@ -33,8 +33,10 @@ dependencies:
   google_sign_in: ^6.2.2
   sign_in_with_apple: ^6.1.4
 
-  # 로컬 알림
+  # 로컬 알림 및 스케줄링
   flutter_local_notifications: ^18.0.1
+  timezone: ^0.9.4
+  flutter_timezone: ^3.0.1
 
   # 환경 변수
   flutter_dotenv: ^5.2.1

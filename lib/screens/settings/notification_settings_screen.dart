@@ -80,7 +80,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
     await _loadSettings();
   }
 
-  Future<void> _showTimePickerDialog() async {
+  Future<void> _showMorningTimePickerDialog() async {
     final currentTime = TimeOfDay(
       hour: _settings.morningMannaHour,
       minute: _settings.morningMannaMinute,
@@ -106,6 +106,36 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
     if (newTime != null) {
       final timeString = '${newTime.hour.toString().padLeft(2, '0')}:${newTime.minute.toString().padLeft(2, '0')}';
       await _settingsService.setMorningManna(time: timeString);
+      await _loadSettings();
+    }
+  }
+
+  Future<void> _showEveningTimePickerDialog() async {
+    final currentTime = TimeOfDay(
+      hour: _settings.eveningReminderHour,
+      minute: _settings.eveningReminderMinute,
+    );
+
+    final newTime = await showTimePicker(
+      context: context,
+      initialTime: currentTime,
+      helpText: '저녁 학습 리마인더 시간',
+      builder: (context, child) {
+        return Theme(
+          data: ThemeData.dark().copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: _accentColor,
+              surface: _cardColor,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (newTime != null) {
+      final timeString = '${newTime.hour.toString().padLeft(2, '0')}:${newTime.minute.toString().padLeft(2, '0')}';
+      await _settingsService.setEveningReminder(time: timeString);
       await _loadSettings();
     }
   }
@@ -303,7 +333,23 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                 ? (value) => _settingsService.setMorningManna(enabled: value).then((_) => _loadSettings())
                 : null,
             showTimePicker: _settings.morningMannaEnabled && _settings.enabled,
-            onTimeTap: _showTimePickerDialog,
+            onTimeTap: _showMorningTimePickerDialog,
+          ),
+          _buildDivider(),
+          _buildNotificationTile(
+            icon: Icons.nightlight_round,
+            iconColor: Colors.indigo,
+            title: '저녁 학습 리마인더',
+            subtitle: _settings.eveningReminderEnabled
+                ? '매일 ${_settings.eveningReminderTime}에 목표 확인'
+                : '비활성화됨',
+            value: _settings.eveningReminderEnabled,
+            onChanged: _settings.enabled
+                ? (value) => _settingsService.setEveningReminder(enabled: value).then((_) => _loadSettings())
+                : null,
+            showTimePicker: _settings.eveningReminderEnabled && _settings.enabled,
+            onTimeTap: _showEveningTimePickerDialog,
+            timeLabel: '알림 시간: ${_settings.eveningReminderTime}',
           ),
           _buildDivider(),
           _buildNotificationTile(
@@ -401,6 +447,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
     bool isLast = false,
     bool showTimePicker = false,
     VoidCallback? onTimeTap,
+    String? timeLabel,
   }) {
     return Column(
       children: [
@@ -450,7 +497,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      '알림 시간: ${_settings.morningMannaTime}',
+                      timeLabel ?? '알림 시간: ${_settings.morningMannaTime}',
                       style: TextStyle(color: _accentColor, fontSize: 13),
                     ),
                     Icon(Icons.edit, color: _accentColor, size: 16),

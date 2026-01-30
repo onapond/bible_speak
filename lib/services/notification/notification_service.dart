@@ -7,6 +7,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'notification_types.dart';
 import 'notification_handler.dart';
+import 'notification_settings_service.dart';
+import 'reminder_scheduler.dart';
 
 /// FCM 알림 서비스
 class NotificationService {
@@ -19,9 +21,12 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final ReminderScheduler _reminderScheduler = ReminderScheduler();
+  final NotificationSettingsService _settingsService = NotificationSettingsService();
 
   bool _isInitialized = false;
   String? _fcmToken;
+  StreamSubscription? _settingsSubscription;
 
   String? get fcmToken => _fcmToken;
   String? get currentUserId => _auth.currentUser?.uid;
@@ -34,6 +39,9 @@ class NotificationService {
       // 로컬 알림 초기화 (웹 제외)
       if (!kIsWeb) {
         await _initializeLocalNotifications();
+
+        // 리마인더 스케줄러 초기화
+        await _reminderScheduler.initialize();
       }
 
       // FCM 초기화
@@ -41,9 +49,43 @@ class NotificationService {
 
       _isInitialized = true;
       print('NotificationService initialized');
+
+      // 설정 변경 감지 및 스케줄러 업데이트
+      _watchSettingsChanges();
     } catch (e) {
       print('NotificationService init error: $e');
     }
+  }
+
+  /// 설정 변경 감지 및 스케줄러 업데이트
+  void _watchSettingsChanges() {
+    _settingsSubscription?.cancel();
+    _settingsSubscription = _settingsService.watchSettings().listen(
+      (settings) async {
+        await _reminderScheduler.scheduleAll(settings);
+      },
+      onError: (e) => print('Watch settings error: $e'),
+    );
+  }
+
+  /// 리마인더 스케줄링 (설정 기반)
+  Future<void> scheduleReminders() async {
+    if (kIsWeb) return;
+    final settings = await _settingsService.getSettings();
+    await _reminderScheduler.scheduleAll(settings);
+  }
+
+  /// 목표 달성 시 저녁 알림 취소
+  Future<void> cancelEveningReminderIfGoalMet() async {
+    await _reminderScheduler.cancelEveningReminderIfGoalMet();
+  }
+
+  /// 테스트 알림 표시
+  Future<void> showTestNotification({
+    required String title,
+    required String body,
+  }) async {
+    await _reminderScheduler.showTestNotification(title: title, body: body);
   }
 
   /// 로컬 알림 초기화
@@ -289,10 +331,18 @@ class NotificationService {
       await _messaging.deleteToken();
       _fcmToken = null;
 
+      // 예약된 알림 취소
+      await _reminderScheduler.cancelAll();
+
       print('FCM token deleted');
     } catch (e) {
       print('Delete FCM token error: $e');
     }
+  }
+
+  /// 서비스 정리
+  void dispose() {
+    _settingsSubscription?.cancel();
   }
 
   /// 토픽 구독 (그룹 알림용)

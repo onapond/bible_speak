@@ -3,6 +3,8 @@ class NotificationSettings {
   final bool enabled;
   final bool morningMannaEnabled;
   final String morningMannaTime; // HH:mm 형식
+  final bool eveningReminderEnabled;
+  final String eveningReminderTime; // HH:mm 형식
   final bool streakWarningEnabled;
   final bool nudgeEnabled;
   final bool reactionEnabled;
@@ -14,6 +16,8 @@ class NotificationSettings {
     this.enabled = true,
     this.morningMannaEnabled = true,
     this.morningMannaTime = '06:00',
+    this.eveningReminderEnabled = true,
+    this.eveningReminderTime = '20:00',
     this.streakWarningEnabled = true,
     this.nudgeEnabled = true,
     this.reactionEnabled = true,
@@ -29,6 +33,8 @@ class NotificationSettings {
       enabled: data['enabled'] ?? true,
       morningMannaEnabled: data['morningMannaEnabled'] ?? true,
       morningMannaTime: data['morningMannaTime'] ?? '06:00',
+      eveningReminderEnabled: data['eveningReminderEnabled'] ?? true,
+      eveningReminderTime: data['eveningReminderTime'] ?? '20:00',
       streakWarningEnabled: data['streakWarningEnabled'] ?? true,
       nudgeEnabled: data['nudgeEnabled'] ?? true,
       reactionEnabled: data['reactionEnabled'] ?? true,
@@ -43,6 +49,8 @@ class NotificationSettings {
       'enabled': enabled,
       'morningMannaEnabled': morningMannaEnabled,
       'morningMannaTime': morningMannaTime,
+      'eveningReminderEnabled': eveningReminderEnabled,
+      'eveningReminderTime': eveningReminderTime,
       'streakWarningEnabled': streakWarningEnabled,
       'nudgeEnabled': nudgeEnabled,
       'reactionEnabled': reactionEnabled,
@@ -56,6 +64,8 @@ class NotificationSettings {
     bool? enabled,
     bool? morningMannaEnabled,
     String? morningMannaTime,
+    bool? eveningReminderEnabled,
+    String? eveningReminderTime,
     bool? streakWarningEnabled,
     bool? nudgeEnabled,
     bool? reactionEnabled,
@@ -67,6 +77,8 @@ class NotificationSettings {
       enabled: enabled ?? this.enabled,
       morningMannaEnabled: morningMannaEnabled ?? this.morningMannaEnabled,
       morningMannaTime: morningMannaTime ?? this.morningMannaTime,
+      eveningReminderEnabled: eveningReminderEnabled ?? this.eveningReminderEnabled,
+      eveningReminderTime: eveningReminderTime ?? this.eveningReminderTime,
       streakWarningEnabled: streakWarningEnabled ?? this.streakWarningEnabled,
       nudgeEnabled: nudgeEnabled ?? this.nudgeEnabled,
       reactionEnabled: reactionEnabled ?? this.reactionEnabled,
@@ -94,4 +106,23 @@ class NotificationSettings {
 
   /// 아침 만나 시간 (분)
   int get morningMannaMinute => int.parse(morningMannaTime.split(':')[1]);
+
+  /// 저녁 리마인더 시간을 DateTime으로 변환
+  DateTime get eveningReminderDateTime {
+    final parts = eveningReminderTime.split(':');
+    final now = DateTime.now();
+    return DateTime(
+      now.year,
+      now.month,
+      now.day,
+      int.parse(parts[0]),
+      int.parse(parts[1]),
+    );
+  }
+
+  /// 저녁 리마인더 시간 (시)
+  int get eveningReminderHour => int.parse(eveningReminderTime.split(':')[0]);
+
+  /// 저녁 리마인더 시간 (분)
+  int get eveningReminderMinute => int.parse(eveningReminderTime.split(':')[1]);
 }

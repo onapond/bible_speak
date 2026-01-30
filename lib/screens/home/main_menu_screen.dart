@@ -7,6 +7,8 @@ import '../../services/social/morning_manna_service.dart';
 import '../../services/social/nudge_service.dart';
 import '../../services/review_service.dart';
 import '../../services/daily_quiz_service.dart';
+import '../../services/daily_goal_service.dart';
+import '../../services/stats_service.dart';
 import '../../widgets/social/activity_ticker.dart';
 import '../../widgets/social/live_activity_ticker.dart';
 import '../../widgets/social/group_goal_widget.dart';
@@ -16,6 +18,8 @@ import '../../widgets/social/nudge_widget.dart';
 import '../../models/user_streak.dart';
 import '../../models/daily_verse.dart';
 import '../../models/nudge.dart';
+import '../../models/daily_goal.dart';
+import '../../models/user_stats.dart';
 import '../ranking/ranking_screen.dart';
 import '../word_study/word_study_home_screen.dart';
 import '../practice/verse_practice_screen.dart';
@@ -45,6 +49,8 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
   final _nudgeService = NudgeService();
   final _reviewService = ReviewService();
   final _quizService = DailyQuizService();
+  final _dailyGoalService = DailyGoalService();
+  final _statsService = StatsService();
 
   String? _groupName;
   WeeklyChallenge? _challenge;
@@ -63,6 +69,11 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
   bool _hasCompletedQuiz = false;
   bool _isLoadingTasks = true;
 
+  // Phase 4: 학습 성과 상태
+  DailyGoal? _dailyGoal;
+  UserStats? _userStats;
+  bool _isLoadingStats = true;
+
   @override
   void initState() {
     super.initState();
@@ -79,8 +90,29 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
       _loadStreakData(),
       _loadMorningManna(),
       _loadTodaysTasks(),
+      _loadDailyGoalAndStats(),
       if (user != null && user.groupId.isNotEmpty) _loadGroupData(user),
     ]);
+  }
+
+  /// 일일 목표 및 통계 로드
+  Future<void> _loadDailyGoalAndStats() async {
+    try {
+      await _dailyGoalService.init();
+      final stats = await _statsService.getUserStats();
+
+      if (mounted) {
+        setState(() {
+          _dailyGoal = _dailyGoalService.todayGoal;
+          _userStats = stats;
+          _isLoadingStats = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingStats = false);
+      }
+    }
   }
 
   /// 오늘의 할 일 로드 (복습, 퀴즈)
@@ -213,6 +245,15 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                   child: _buildTodaysTasksCard(),
+                ),
+              ),
+
+            // 일일 목표 진행률 & 주간 통계
+            if (!_isLoadingStats && _dailyGoal != null)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  child: _buildProgressStatsCard(),
                 ),
               ),
 
@@ -697,6 +738,317 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
         ),
       ),
     );
+  }
+
+  /// 일일 목표 진행률 & 주간 통계 카드
+  Widget _buildProgressStatsCard() {
+    final goal = _dailyGoal!;
+    final overallProgress = goal.overallProgress;
+    final stats = _userStats;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E1E2E),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 헤더
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.purple.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.trending_up,
+                  color: Colors.purple,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  '오늘의 목표',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              // 전체 진행률
+              _buildCircularGoalProgress(overallProgress),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // 3개 목표 진행 바
+          _buildGoalProgressRow(
+            icon: Icons.abc,
+            label: '단어',
+            current: goal.studiedWords,
+            target: goal.targetWords,
+            color: Colors.blue,
+          ),
+          const SizedBox(height: 10),
+          _buildGoalProgressRow(
+            icon: Icons.quiz,
+            label: '퀴즈',
+            current: goal.completedQuizzes,
+            target: goal.targetQuizzes,
+            color: Colors.orange,
+          ),
+          const SizedBox(height: 10),
+          _buildGoalProgressRow(
+            icon: Icons.style,
+            label: '플래시카드',
+            current: goal.completedFlashcards,
+            target: goal.targetFlashcards,
+            color: Colors.green,
+          ),
+
+          // 목표 달성 시 축하 메시지
+          if (goal.isGoalMet) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.green.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  const Text('🎉', style: TextStyle(fontSize: 20)),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      goal.bonusClaimed
+                          ? '오늘 목표 달성! 보너스 달란트 획득 완료'
+                          : '오늘 목표 달성! 보너스 달란트를 받으세요',
+                      style: const TextStyle(
+                        color: Colors.green,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                  if (!goal.bonusClaimed)
+                    GestureDetector(
+                      onTap: _claimDailyGoalBonus,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.green,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          '받기',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+
+          // 주간 통계 (있을 경우)
+          if (stats != null) ...[
+            const SizedBox(height: 16),
+            const Divider(color: Colors.white12),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildMiniStatItem(
+                  label: '총 암송',
+                  value: '${stats.totalVersesLearned}',
+                  icon: Icons.menu_book,
+                  color: Colors.blue,
+                ),
+                _buildMiniStatItem(
+                  label: '마스터',
+                  value: '${stats.totalVersesMastered}',
+                  icon: Icons.star,
+                  color: Colors.amber,
+                ),
+                _buildMiniStatItem(
+                  label: '학습 시간',
+                  value: '${stats.totalStudyMinutes}분',
+                  icon: Icons.timer,
+                  color: Colors.teal,
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// 원형 목표 진행률 위젯
+  Widget _buildCircularGoalProgress(double progress) {
+    final percent = (progress * 100).toInt();
+    final isComplete = progress >= 1.0;
+
+    return SizedBox(
+      width: 50,
+      height: 50,
+      child: Stack(
+        children: [
+          SizedBox(
+            width: 50,
+            height: 50,
+            child: CircularProgressIndicator(
+              value: progress,
+              strokeWidth: 4,
+              backgroundColor: Colors.white12,
+              valueColor: AlwaysStoppedAnimation(
+                isComplete ? Colors.green : Colors.purple,
+              ),
+            ),
+          ),
+          Center(
+            child: isComplete
+                ? const Icon(Icons.check, color: Colors.green, size: 22)
+                : Text(
+                    '$percent%',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 목표 진행 행
+  Widget _buildGoalProgressRow({
+    required IconData icon,
+    required String label,
+    required int current,
+    required int target,
+    required Color color,
+  }) {
+    final progress = target > 0 ? (current / target).clamp(0.0, 1.0) : 0.0;
+    final isComplete = current >= target;
+
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: color),
+        const SizedBox(width: 8),
+        SizedBox(
+          width: 70,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.white.withValues(alpha: 0.8),
+            ),
+          ),
+        ),
+        Expanded(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: progress,
+              backgroundColor: Colors.white12,
+              valueColor: AlwaysStoppedAnimation(
+                isComplete ? Colors.green : color,
+              ),
+              minHeight: 6,
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        SizedBox(
+          width: 50,
+          child: Text(
+            '$current/$target',
+            textAlign: TextAlign.right,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: isComplete ? Colors.green : Colors.white70,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 미니 통계 아이템
+  Widget _buildMiniStatItem({
+    required String label,
+    required String value,
+    required IconData icon,
+    required Color color,
+  }) {
+    return Column(
+      children: [
+        Icon(icon, size: 20, color: color),
+        const SizedBox(height: 6),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: Colors.white.withValues(alpha: 0.6),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 일일 목표 보너스 수령
+  Future<void> _claimDailyGoalBonus() async {
+    final success = await _dailyGoalService.claimBonus();
+    if (success && mounted) {
+      // 달란트 새로고침
+      await widget.authService.refreshUser();
+      setState(() {
+        _dailyGoal = _dailyGoalService.todayGoal;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Text('🎁', style: TextStyle(fontSize: 18)),
+              SizedBox(width: 10),
+              Text('목표 달성 보너스 10 달란트 획득!'),
+            ],
+          ),
+          backgroundColor: Colors.green.shade700,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+    }
   }
 
   /// 스마트 CTA 버튼 - 상황에 따라 다른 액션 추천

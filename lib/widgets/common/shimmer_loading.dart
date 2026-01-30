@@ -245,3 +245,181 @@ class ProfileSkeleton extends StatelessWidget {
     );
   }
 }
+
+/// 오늘의 할 일 카드 스켈레톤
+class TasksCardSkeleton extends StatelessWidget {
+  const TasksCardSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ShimmerLoading(
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E1E2E),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white10),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 헤더
+            Row(
+              children: [
+                const SkeletonBox(
+                  width: 36,
+                  height: 36,
+                  borderRadius: BorderRadius.all(Radius.circular(10)),
+                ),
+                const SizedBox(width: 12),
+                const SkeletonBox(width: 100, height: 18),
+                const Spacer(),
+                SkeletonBox(
+                  width: 60,
+                  height: 24,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // 칩들
+            Row(
+              children: [
+                SkeletonBox(
+                  width: 90,
+                  height: 38,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                const SizedBox(width: 8),
+                SkeletonBox(
+                  width: 100,
+                  height: 38,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                const SizedBox(width: 8),
+                SkeletonBox(
+                  width: 85,
+                  height: 38,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 일일 목표 카드 스켈레톤
+class GoalCardSkeleton extends StatelessWidget {
+  const GoalCardSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ShimmerLoading(
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E1E2E),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white10),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 헤더
+            Row(
+              children: [
+                const SkeletonBox(
+                  width: 36,
+                  height: 36,
+                  borderRadius: BorderRadius.all(Radius.circular(10)),
+                ),
+                const SizedBox(width: 12),
+                const SkeletonBox(width: 90, height: 18),
+                const Spacer(),
+                const SkeletonBox(
+                  width: 50,
+                  height: 50,
+                  borderRadius: BorderRadius.all(Radius.circular(25)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // 진행 바 3개
+            _buildProgressBarSkeleton(),
+            const SizedBox(height: 10),
+            _buildProgressBarSkeleton(),
+            const SizedBox(height: 10),
+            _buildProgressBarSkeleton(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProgressBarSkeleton() {
+    return Row(
+      children: [
+        const SkeletonBox(width: 18, height: 18),
+        const SizedBox(width: 8),
+        const SkeletonBox(width: 70, height: 14),
+        const SizedBox(width: 8),
+        Expanded(
+          child: SkeletonBox(
+            height: 6,
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+        const SizedBox(width: 10),
+        const SkeletonBox(width: 40, height: 14),
+      ],
+    );
+  }
+}
+
+/// CTA 버튼 스켈레톤
+class CTAButtonSkeleton extends StatelessWidget {
+  const CTAButtonSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ShimmerLoading(
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E1E2E),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          children: [
+            const SkeletonBox(
+              width: 56,
+              height: 56,
+              borderRadius: BorderRadius.all(Radius.circular(14)),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SkeletonBox(width: 120, height: 22),
+                  const SizedBox(height: 8),
+                  SkeletonBox(
+                    width: double.infinity,
+                    height: 14,
+                    borderRadius: BorderRadius.circular(7),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            const SkeletonBox(width: 20, height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+}

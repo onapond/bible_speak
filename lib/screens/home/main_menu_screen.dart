@@ -20,6 +20,8 @@ import '../../models/daily_verse.dart';
 import '../../models/nudge.dart';
 import '../../models/daily_goal.dart';
 import '../../models/user_stats.dart';
+import '../../widgets/common/shimmer_loading.dart';
+import '../../widgets/common/animated_transitions.dart';
 import '../ranking/ranking_screen.dart';
 import '../word_study/word_study_home_screen.dart';
 import '../practice/verse_practice_screen.dart';
@@ -239,23 +241,33 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
               ),
             ),
 
-            // 오늘의 할 일 요약 카드
-            if (!_isLoadingTasks)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                  child: _buildTodaysTasksCard(),
+            // 오늘의 할 일 요약 카드 (로딩 중 스켈레톤)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  child: _isLoadingTasks
+                      ? const TasksCardSkeleton()
+                      : _buildTodaysTasksCard(),
                 ),
               ),
+            ),
 
-            // 일일 목표 진행률 & 주간 통계
-            if (!_isLoadingStats && _dailyGoal != null)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                  child: _buildProgressStatsCard(),
+            // 일일 목표 진행률 & 주간 통계 (로딩 중 스켈레톤)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  child: _isLoadingStats
+                      ? const GoalCardSkeleton()
+                      : _dailyGoal != null
+                          ? _buildProgressStatsCard()
+                          : const SizedBox.shrink(),
                 ),
               ),
+            ),
 
             // 아침 만나 (오늘의 구절)
             SliverToBoxAdapter(
@@ -313,11 +325,16 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                 ),
             ],
 
-            // 오늘의 학습 CTA 버튼
+            // 오늘의 학습 CTA 버튼 (로딩 중 스켈레톤)
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                child: _buildMainCTAButton(),
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  child: _isLoadingTasks
+                      ? const CTAButtonSkeleton()
+                      : _buildMainCTAButton(),
+                ),
               ),
             ),
 
@@ -439,7 +456,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     required Color color,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
+    return BounceOnTap(
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
@@ -698,8 +715,9 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     required bool isActive,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
+    return BounceOnTap(
       onTap: onTap,
+      scaleFactor: 0.92,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
@@ -1088,8 +1106,9 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
       onTap = () => _navigateToDailyVerse();
     }
 
-    return GestureDetector(
+    return BounceOnTap(
       onTap: onTap,
+      scaleFactor: 0.97,
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),

@@ -241,93 +241,52 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                 ),
             ],
 
-            // 메뉴 그리드
+            // 오늘의 학습 CTA 버튼
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: _buildMainCTAButton(),
+              ),
+            ),
+
+            // 4개 핵심 메뉴
             SliverPadding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               sliver: SliverGrid(
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   mainAxisSpacing: 12,
                   crossAxisSpacing: 12,
-                  childAspectRatio: 1.1,
+                  childAspectRatio: 1.3,
                 ),
                 delegate: SliverChildListDelegate([
                   _buildMenuCard(
                     icon: Icons.menu_book,
-                    title: '암송 연습',
-                    subtitle: '영어 성경 암송',
+                    title: '학습',
+                    subtitle: '암송 · 복습 · 퀴즈',
                     color: Colors.blue,
-                    onTap: () => _navigateToPractice(),
+                    onTap: () => _showLearningSheet(),
                   ),
                   _buildMenuCard(
                     icon: Icons.abc,
-                    title: '단어 공부',
+                    title: '단어',
                     subtitle: '성경 영단어',
                     color: Colors.green,
                     onTap: () => _navigateToWordStudy(),
                   ),
                   _buildMenuCard(
-                    icon: Icons.quiz,
-                    title: '오늘의 퀴즈',
-                    subtitle: '매일 도전',
-                    color: Colors.orange,
-                    onTap: () => _navigateToDailyQuiz(),
-                  ),
-                  _buildMenuCard(
-                    icon: Icons.replay,
-                    title: '복습',
-                    subtitle: '스페이스드 리피티션',
-                    color: Colors.teal,
-                    onTap: () => _navigateToReview(),
-                  ),
-                  _buildMenuCard(
                     icon: Icons.groups,
                     title: '커뮤니티',
-                    subtitle: '그룹 & 채팅',
+                    subtitle: '그룹 · 친구 · 채팅',
                     color: Colors.purple,
-                    onTap: () => _navigateToGroupDashboard(),
-                  ),
-                  _buildMenuCard(
-                    icon: Icons.shopping_bag,
-                    title: '샵',
-                    subtitle: '아이템 구매',
-                    color: Colors.pink,
-                    onTap: () => _navigateToShop(),
-                  ),
-                  _buildMenuCard(
-                    icon: Icons.emoji_events,
-                    title: '업적',
-                    subtitle: '도전과 보상',
-                    color: Colors.amber,
-                    onTap: () => _navigateToAchievements(),
-                  ),
-                  _buildMenuCard(
-                    icon: Icons.people,
-                    title: '친구',
-                    subtitle: '친구 및 1:1 대전',
-                    color: Colors.cyan,
-                    onTap: () => _navigateToFriends(),
-                  ),
-                  _buildMenuCard(
-                    icon: Icons.bar_chart,
-                    title: '통계',
-                    subtitle: '학습 현황',
-                    color: Colors.indigo,
-                    onTap: () => _navigateToStats(),
+                    onTap: () => _showCommunitySheet(),
                   ),
                   _buildMenuCard(
                     icon: Icons.person,
-                    title: '프로필',
-                    subtitle: '내 정보 및 통계',
+                    title: '마이',
+                    subtitle: '프로필 · 통계 · 설정',
                     color: Colors.teal,
-                    onTap: () => _navigateToProfile(),
-                  ),
-                  _buildMenuCard(
-                    icon: Icons.settings,
-                    title: '설정',
-                    subtitle: '앱 설정',
-                    color: Colors.grey,
-                    onTap: () => _showSettingsSheet(),
+                    onTap: () => _showMyPageSheet(),
                   ),
                 ]),
               ),
@@ -610,6 +569,340 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
         content: Text('$feature 기능은 준비 중입니다.'),
         backgroundColor: Colors.orange,
       ),
+    );
+  }
+
+  /// 오늘의 학습 CTA 버튼
+  Widget _buildMainCTAButton() {
+    return GestureDetector(
+      onTap: () => _navigateToDailyVerse(),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.blue.shade600, Colors.purple.shade600],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.blue.withOpacity(0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(
+                Icons.play_arrow_rounded,
+                color: Colors.white,
+                size: 32,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    '오늘의 학습 시작',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _dailyVerse != null
+                        ? _dailyVerse!.reference
+                        : '새로운 구절을 시작해보세요',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.white.withOpacity(0.9),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.arrow_forward_ios,
+              color: Colors.white70,
+              size: 20,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 학습 서브메뉴 바텀시트
+  void _showLearningSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E1E2E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              '학습',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildSheetItem(
+              icon: Icons.menu_book,
+              title: '암송 연습',
+              subtitle: '3단계로 영어 성경 암송',
+              color: Colors.blue,
+              onTap: () {
+                Navigator.pop(context);
+                _navigateToPractice();
+              },
+            ),
+            _buildSheetItem(
+              icon: Icons.replay,
+              title: '복습',
+              subtitle: '스페이스드 리피티션',
+              color: Colors.teal,
+              onTap: () {
+                Navigator.pop(context);
+                _navigateToReview();
+              },
+            ),
+            _buildSheetItem(
+              icon: Icons.quiz,
+              title: '오늘의 퀴즈',
+              subtitle: '매일 도전하는 성경 퀴즈',
+              color: Colors.orange,
+              onTap: () {
+                Navigator.pop(context);
+                _navigateToDailyQuiz();
+              },
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 커뮤니티 서브메뉴 바텀시트
+  void _showCommunitySheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E1E2E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              '커뮤니티',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildSheetItem(
+              icon: Icons.groups,
+              title: '그룹',
+              subtitle: '그룹 대시보드 & 채팅',
+              color: Colors.purple,
+              onTap: () {
+                Navigator.pop(context);
+                _navigateToGroupDashboard();
+              },
+            ),
+            _buildSheetItem(
+              icon: Icons.people,
+              title: '친구',
+              subtitle: '친구 목록 & 1:1 대전',
+              color: Colors.cyan,
+              onTap: () {
+                Navigator.pop(context);
+                _navigateToFriends();
+              },
+            ),
+            _buildSheetItem(
+              icon: Icons.leaderboard,
+              title: '랭킹',
+              subtitle: '그룹 & 전체 랭킹',
+              color: Colors.amber,
+              onTap: () {
+                Navigator.pop(context);
+                _navigateToRanking();
+              },
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 마이페이지 서브메뉴 바텀시트
+  void _showMyPageSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E1E2E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              '마이페이지',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildSheetItem(
+              icon: Icons.person,
+              title: '프로필',
+              subtitle: '내 정보 관리',
+              color: Colors.teal,
+              onTap: () {
+                Navigator.pop(context);
+                _navigateToProfile();
+              },
+            ),
+            _buildSheetItem(
+              icon: Icons.bar_chart,
+              title: '통계',
+              subtitle: '학습 현황 & 기록',
+              color: Colors.indigo,
+              onTap: () {
+                Navigator.pop(context);
+                _navigateToStats();
+              },
+            ),
+            _buildSheetItem(
+              icon: Icons.emoji_events,
+              title: '업적',
+              subtitle: '도전과 보상',
+              color: Colors.amber,
+              onTap: () {
+                Navigator.pop(context);
+                _navigateToAchievements();
+              },
+            ),
+            _buildSheetItem(
+              icon: Icons.shopping_bag,
+              title: '샵',
+              subtitle: '아이템 & 구독',
+              color: Colors.pink,
+              onTap: () {
+                Navigator.pop(context);
+                _navigateToShop();
+              },
+            ),
+            _buildSheetItem(
+              icon: Icons.settings,
+              title: '설정',
+              subtitle: '앱 설정 & 알림',
+              color: Colors.grey,
+              onTap: () {
+                Navigator.pop(context);
+                _showSettingsSheet();
+              },
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 바텀시트 아이템 위젯
+  Widget _buildSheetItem({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(icon, color: color, size: 24),
+      ),
+      title: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: Colors.white,
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: const TextStyle(
+          fontSize: 13,
+          color: Colors.white54,
+        ),
+      ),
+      trailing: const Icon(Icons.chevron_right, color: Colors.white38),
+      onTap: onTap,
     );
   }
 

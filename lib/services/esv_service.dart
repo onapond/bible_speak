@@ -40,8 +40,11 @@ class EsvService {
   /// ESV API에서 구절 가져오기
   Future<List<VerseText>> _fetchFromApi(String book, int chapter) async {
     if (_apiKey.isEmpty) {
-      throw Exception('ESV API 키가 설정되지 않았습니다.');
+      print('❌ ESV API 키가 비어있습니다. 웹 빌드 시 build_web.ps1 스크립트를 사용하세요.');
+      throw Exception('ESV API 키가 설정되지 않았습니다. (웹: --dart-define 필요, 모바일: .env 파일 필요)');
     }
+
+    print('🔑 ESV API 키 확인됨 (${_apiKey.substring(0, 8)}...)');
 
     final query = '$book $chapter';
     final url = Uri.parse('$_baseUrl').replace(queryParameters: {
@@ -69,7 +72,14 @@ class EsvService {
       final json = jsonDecode(response.body);
       final text = json['passages']?.first ?? '';
       return _parseVerses(text);
+    } else if (response.statusCode == 401) {
+      print('❌ ESV API 인증 실패 - API 키가 유효하지 않습니다.');
+      throw Exception('ESV API 인증 실패: API 키를 확인해주세요.');
+    } else if (response.statusCode == 403) {
+      print('❌ ESV API 접근 거부 - API 키 권한을 확인해주세요.');
+      throw Exception('ESV API 접근 거부: API 키 권한을 확인해주세요.');
     } else {
+      print('❌ ESV API 오류: ${response.statusCode} - ${response.body}');
       throw Exception('ESV API 오류: ${response.statusCode}');
     }
   }

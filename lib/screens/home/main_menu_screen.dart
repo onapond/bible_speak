@@ -768,8 +768,13 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
               leading: const Icon(Icons.logout),
               title: const Text('로그아웃'),
               onTap: () async {
+                // 바텀시트 먼저 닫기
                 Navigator.pop(context);
+
+                // 로그아웃 실행
                 await widget.authService.signOut();
+
+                // 로그인 화면으로 이동 (모든 스택 제거)
                 if (mounted) {
                   Navigator.of(context).pushAndRemoveUntil(
                     MaterialPageRoute(builder: (_) => const SplashScreen()),

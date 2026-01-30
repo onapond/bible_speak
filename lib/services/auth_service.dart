@@ -455,18 +455,32 @@ class AuthService {
   /// 로그아웃
   Future<void> signOut() async {
     try {
-      await _googleSignIn.signOut();
+      // Google 로그아웃 (실패해도 계속 진행)
+      try {
+        await _googleSignIn.signOut();
+      } catch (e) {
+        print('⚠️ Google 로그아웃 스킵: $e');
+      }
+
+      // Firebase 로그아웃
       await _auth.signOut();
       _currentUser = null;
 
+      // 로컬 저장소 완전 삭제
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('bible_speak_userId');
       await prefs.remove('bible_speak_userName');
       await prefs.remove('bible_speak_groupId');
+      await prefs.remove('bible_speak_tempUid');
+      await prefs.remove('bible_speak_tempName');
+      await prefs.remove('bible_speak_tempEmail');
+      await prefs.remove('bible_speak_tempPhoto');
 
       print('✅ 로그아웃 완료');
     } catch (e) {
       print('❌ 로그아웃 오류: $e');
+      // 오류가 있어도 로컬 상태는 초기화
+      _currentUser = null;
     }
   }
 

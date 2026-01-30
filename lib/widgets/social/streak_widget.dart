@@ -85,143 +85,173 @@ class StreakWidget extends StatelessWidget {
 
   Widget _buildFireIcon() {
     final hasStreak = streak.currentStreak > 0;
-    return Container(
-      width: 48,
-      height: 48,
-      decoration: BoxDecoration(
-        color: hasStreak
-            ? const Color(0xFFFF6B35).withOpacity(0.2)
-            : Colors.white.withOpacity(0.05),
-        shape: BoxShape.circle,
-      ),
-      child: Center(
-        child: Text(
-          hasStreak ? '🔥' : '⭕',
-          style: const TextStyle(fontSize: 24),
+    return Semantics(
+      label: hasStreak
+          ? '${streak.currentStreak}일 연속 학습 불꽃'
+          : '학습 시작 전',
+      child: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color: hasStreak
+              ? const Color(0xFFFF6B35).withOpacity(0.2)
+              : Colors.white.withOpacity(0.05),
+          shape: BoxShape.circle,
+        ),
+        child: Center(
+          child: Text(
+            hasStreak ? '🔥' : '⭕',
+            style: const TextStyle(fontSize: 24),
+            semanticsLabel: hasStreak ? '불꽃' : '빈 원',
+          ),
         ),
       ),
     );
   }
 
   Widget _buildProtectionButton() {
-    return GestureDetector(
-      onTap: onTapProtection,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: const Color(0xFFFF6B35).withOpacity(0.2),
+    return Semantics(
+      button: true,
+      label: '연속 학습 보호권 사용',
+      hint: '탭하면 보호권을 사용합니다',
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTapProtection,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFFF6B35).withOpacity(0.5)),
-        ),
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('🛡️', style: TextStyle(fontSize: 14)),
-            SizedBox(width: 4),
-            Text(
-              '보호',
-              style: TextStyle(
-                color: Color(0xFFFF6B35),
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            constraints: const BoxConstraints(minHeight: 44),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFF6B35).withOpacity(0.2),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFFF6B35).withOpacity(0.5)),
             ),
-          ],
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('🛡️', style: TextStyle(fontSize: 14), semanticsLabel: '방패'),
+                const SizedBox(width: 4),
+                const Text(
+                  '보호',
+                  style: TextStyle(
+                    color: Color(0xFFFF6B35),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 
   Widget _build21DayProgress() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              '21일 습관 형성',
-              style: TextStyle(color: Colors.white70, fontSize: 12),
-            ),
-            Text(
-              '${streak.currentStreak}/21일',
-              style: const TextStyle(color: Colors.white54, fontSize: 12),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        Stack(
-          children: [
-            // 배경
-            Container(
-              height: 6,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(3),
+    final progressPercent = (streak.progressTo21Days * 100).round();
+    return Semantics(
+      label: '21일 습관 형성 진행률 $progressPercent%, ${streak.currentStreak}일 완료',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                '21일 습관 형성',
+                style: TextStyle(color: Colors.white70, fontSize: 12),
               ),
-            ),
-            // 진행률
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 500),
-              curve: Curves.easeOutCubic,
-              height: 6,
-              width: (streak.progressTo21Days * 300).clamp(0, 300),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFFF6B35), Color(0xFFFFD700)],
+              Text(
+                '${streak.currentStreak}/21일',
+                style: const TextStyle(color: Colors.white54, fontSize: 12),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Stack(
+            children: [
+              Container(
+                height: 6,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(3),
                 ),
-                borderRadius: BorderRadius.circular(3),
               ),
-            ),
-          ],
-        ),
-      ],
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 500),
+                curve: Curves.easeOutCubic,
+                height: 6,
+                width: (streak.progressTo21Days * 300).clamp(0, 300),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFFF6B35), Color(0xFFFFD700)],
+                  ),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildWeeklyCalendar() {
     const days = ['월', '화', '수', '목', '금', '토', '일'];
+    const daysFull = ['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일'];
     final today = (DateTime.now().weekday - 1) % 7;
+    final completedCount = streak.weeklyHistory.where((v) => v).length;
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: List.generate(7, (index) {
-        final isCompleted = streak.weeklyHistory.length > index && streak.weeklyHistory[index];
-        final isToday = index == today;
+    return Semantics(
+      label: '이번 주 학습 현황, ${completedCount}일 완료',
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: List.generate(7, (index) {
+          final isCompleted = streak.weeklyHistory.length > index && streak.weeklyHistory[index];
+          final isToday = index == today;
+          final statusText = isCompleted
+              ? '완료'
+              : (isToday ? '오늘, 미완료' : '미완료');
 
-        return Column(
-          children: [
-            Text(
-              days[index],
-              style: TextStyle(
-                color: isToday ? Colors.white : Colors.white38,
-                fontSize: 11,
-                fontWeight: isToday ? FontWeight.w600 : FontWeight.normal,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: isCompleted
-                    ? const Color(0xFFFF6B35).withValues(alpha: 0.2)
-                    : (isToday ? Colors.white.withValues(alpha: 0.1) : Colors.transparent),
-                shape: BoxShape.circle,
-                border: isToday
-                    ? Border.all(color: const Color(0xFFFF6B35), width: 2)
-                    : null,
-              ),
-              child: Center(
-                child: Text(
-                  isCompleted ? '🔥' : (isToday ? '⭕' : ''),
-                  style: const TextStyle(fontSize: 14),
+          return Semantics(
+            label: '${daysFull[index]} $statusText',
+            child: Column(
+              children: [
+                Text(
+                  days[index],
+                  style: TextStyle(
+                    color: isToday ? Colors.white : Colors.white38,
+                    fontSize: 11,
+                    fontWeight: isToday ? FontWeight.w600 : FontWeight.normal,
+                  ),
                 ),
-              ),
+                const SizedBox(height: 4),
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: isCompleted
+                        ? const Color(0xFFFF6B35).withValues(alpha: 0.2)
+                        : (isToday ? Colors.white.withValues(alpha: 0.1) : Colors.transparent),
+                    shape: BoxShape.circle,
+                    border: isToday
+                        ? Border.all(color: const Color(0xFFFF6B35), width: 2)
+                        : null,
+                  ),
+                  child: Center(
+                    child: Text(
+                      isCompleted ? '🔥' : (isToday ? '⭕' : ''),
+                      style: const TextStyle(fontSize: 14),
+                      semanticsLabel: isCompleted ? '완료' : '',
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        );
-      }),
+          );
+        }),
+      ),
     );
   }
 }

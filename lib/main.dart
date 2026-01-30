@@ -11,6 +11,7 @@ import 'services/notification/notification_handler.dart';
 import 'services/notification/notification_types.dart';
 import 'services/navigation_service.dart';
 import 'services/offline/offline_services.dart';
+import 'services/accessibility_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -60,6 +61,7 @@ Future<void> _initializeInBackground() async {
   // 서비스 초기화 병렬 실행 (타임아웃 적용)
   try {
     await Future.wait([
+      _safeInit('AccessibilityService', AccessibilityService().init(), 2),
       _safeInit('NotificationService', NotificationService().initialize(), 3),
       _safeInit('BibleDataService', BibleDataService.instance.init(), 5),
       _safeInit('OfflineManager', initializeOfflineManager(), 3),

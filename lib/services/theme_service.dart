@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/shop_item.dart';
+import 'accessibility_service.dart';
 
 /// 앱 테마 정의
 class AppTheme {
@@ -258,31 +259,44 @@ class ThemeService extends ChangeNotifier {
 
   /// Flutter ThemeData 생성
   ThemeData toThemeData() {
+    final a11y = AccessibilityService();
+    final highContrast = a11y.highContrastMode;
+
+    // 고대비 모드 색상
+    final bgColor = highContrast ? HighContrastColors.background : _currentTheme.bgColor;
+    final cardColor = highContrast ? HighContrastColors.surface : _currentTheme.cardColor;
+    final primaryColor = highContrast ? HighContrastColors.primary : _currentTheme.primaryColor;
+    final accentColor = highContrast ? HighContrastColors.primary : _currentTheme.accentColor;
+
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
-      scaffoldBackgroundColor: _currentTheme.bgColor,
+      scaffoldBackgroundColor: bgColor,
       colorScheme: ColorScheme.dark(
-        primary: _currentTheme.primaryColor,
-        secondary: _currentTheme.accentColor,
-        surface: _currentTheme.cardColor,
+        primary: primaryColor,
+        secondary: accentColor,
+        surface: cardColor,
+        onPrimary: highContrast ? HighContrastColors.onPrimary : Colors.white,
       ),
       appBarTheme: AppBarTheme(
-        backgroundColor: _currentTheme.cardColor,
+        backgroundColor: cardColor,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
       cardTheme: CardThemeData(
-        color: _currentTheme.cardColor,
+        color: cardColor,
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
+          side: highContrast
+              ? const BorderSide(color: HighContrastColors.border, width: 1)
+              : BorderSide.none,
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: _currentTheme.accentColor,
-          foregroundColor: Colors.white,
+          backgroundColor: accentColor,
+          foregroundColor: highContrast ? Colors.black : Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -290,11 +304,19 @@ class ThemeService extends ChangeNotifier {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: _currentTheme.bgColor,
+        fillColor: bgColor,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
+          borderSide: highContrast
+              ? const BorderSide(color: HighContrastColors.border)
+              : BorderSide.none,
         ),
+        enabledBorder: highContrast
+            ? OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: HighContrastColors.border),
+              )
+            : null,
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
@@ -302,6 +324,26 @@ class ThemeService extends ChangeNotifier {
           borderRadius: BorderRadius.circular(12),
         ),
       ),
+      // 접근성 텍스트 크기 지원
+      textTheme: _buildTextTheme(a11y.textScaleFactor),
+    );
+  }
+
+  /// 텍스트 테마 생성 (텍스트 크기 스케일 적용)
+  TextTheme _buildTextTheme(double scaleFactor) {
+    return TextTheme(
+      headlineLarge: TextStyle(fontSize: 32 * scaleFactor, fontWeight: FontWeight.bold),
+      headlineMedium: TextStyle(fontSize: 28 * scaleFactor, fontWeight: FontWeight.bold),
+      headlineSmall: TextStyle(fontSize: 24 * scaleFactor, fontWeight: FontWeight.bold),
+      titleLarge: TextStyle(fontSize: 20 * scaleFactor, fontWeight: FontWeight.w600),
+      titleMedium: TextStyle(fontSize: 18 * scaleFactor, fontWeight: FontWeight.w600),
+      titleSmall: TextStyle(fontSize: 16 * scaleFactor, fontWeight: FontWeight.w600),
+      bodyLarge: TextStyle(fontSize: 16 * scaleFactor),
+      bodyMedium: TextStyle(fontSize: 14 * scaleFactor),
+      bodySmall: TextStyle(fontSize: 12 * scaleFactor),
+      labelLarge: TextStyle(fontSize: 14 * scaleFactor, fontWeight: FontWeight.w500),
+      labelMedium: TextStyle(fontSize: 12 * scaleFactor, fontWeight: FontWeight.w500),
+      labelSmall: TextStyle(fontSize: 11 * scaleFactor, fontWeight: FontWeight.w500),
     );
   }
 }

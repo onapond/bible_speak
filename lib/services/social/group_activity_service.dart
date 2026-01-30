@@ -216,18 +216,18 @@ class GroupActivityService {
         final hasReacted = userList.contains(userId);
 
         if (hasReacted) {
-          // Remove reaction
-          transaction.update(activityRef, {
-            'reactions.${type.value}': FieldValue.arrayRemove([userId]),
-            'reactionCounts.${type.value}': FieldValue.increment(-1),
-          });
+          // Remove reaction (set + merge로 필드 없어도 안전)
+          transaction.set(activityRef, {
+            'reactions': {type.value: FieldValue.arrayRemove([userId])},
+            'reactionCounts': {type.value: FieldValue.increment(-1)},
+          }, SetOptions(merge: true));
           return false;
         } else {
-          // Add reaction
-          transaction.update(activityRef, {
-            'reactions.${type.value}': FieldValue.arrayUnion([userId]),
-            'reactionCounts.${type.value}': FieldValue.increment(1),
-          });
+          // Add reaction (set + merge로 필드 없어도 안전)
+          transaction.set(activityRef, {
+            'reactions': {type.value: FieldValue.arrayUnion([userId])},
+            'reactionCounts': {type.value: FieldValue.increment(1)},
+          }, SetOptions(merge: true));
           return true;
         }
       });
@@ -247,10 +247,11 @@ class GroupActivityService {
     if (userId == null) return false;
 
     try {
-      await _activitiesRef(groupId).doc(activityId).update({
-        'reactions.${type.value}': FieldValue.arrayUnion([userId]),
-        'reactionCounts.${type.value}': FieldValue.increment(1),
-      });
+      // set + merge로 필드 없어도 안전
+      await _activitiesRef(groupId).doc(activityId).set({
+        'reactions': {type.value: FieldValue.arrayUnion([userId])},
+        'reactionCounts': {type.value: FieldValue.increment(1)},
+      }, SetOptions(merge: true));
       return true;
     } catch (e) {
       print('Add reaction error: $e');
@@ -268,10 +269,11 @@ class GroupActivityService {
     if (userId == null) return false;
 
     try {
-      await _activitiesRef(groupId).doc(activityId).update({
-        'reactions.${type.value}': FieldValue.arrayRemove([userId]),
-        'reactionCounts.${type.value}': FieldValue.increment(-1),
-      });
+      // set + merge로 필드 없어도 안전
+      await _activitiesRef(groupId).doc(activityId).set({
+        'reactions': {type.value: FieldValue.arrayRemove([userId])},
+        'reactionCounts': {type.value: FieldValue.increment(-1)},
+      }, SetOptions(merge: true));
       return true;
     } catch (e) {
       print('Remove reaction error: $e');
@@ -306,9 +308,10 @@ class GroupActivityService {
   /// Hide activity (soft delete)
   Future<bool> hideActivity(String groupId, String activityId) async {
     try {
-      await _activitiesRef(groupId).doc(activityId).update({
+      // set + merge로 안전하게 업데이트
+      await _activitiesRef(groupId).doc(activityId).set({
         'isHidden': true,
-      });
+      }, SetOptions(merge: true));
       return true;
     } catch (e) {
       print('Hide activity error: $e');

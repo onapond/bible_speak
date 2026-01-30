@@ -91,10 +91,11 @@ class BattleService {
         return false; // 탈란트 부족
       }
 
-      await battleDoc.reference.update({
+      // set + merge로 안전하게 업데이트
+      await battleDoc.reference.set({
         'status': 'active',
         'acceptedAt': FieldValue.serverTimestamp(),
-      });
+      }, SetOptions(merge: true));
 
       return true;
     } catch (e) {
@@ -116,7 +117,8 @@ class BattleService {
       if (battle.opponentId != userId) return false;
       if (battle.status != BattleStatus.pending) return false;
 
-      await battleDoc.reference.update({'status': 'declined'});
+      // set + merge로 안전하게 업데이트
+      await battleDoc.reference.set({'status': 'declined'}, SetOptions(merge: true));
       return true;
     } catch (e) {
       print('Decline battle error: $e');
@@ -147,7 +149,8 @@ class BattleService {
       if (isChallenger && battle.challengerScore != null) return false;
       if (isOpponent && battle.opponentScore != null) return false;
 
-      await battleDoc.reference.update({scoreField: score});
+      // set + merge로 안전하게 업데이트
+      await battleDoc.reference.set({scoreField: score}, SetOptions(merge: true));
 
       // 양쪽 점수가 모두 있으면 완료 처리
       final updatedDoc = await battleDoc.reference.get();
@@ -171,39 +174,39 @@ class BattleService {
       await _firestore.runTransaction((transaction) async {
         final battleRef = _firestore.collection('battles').doc(battleId);
 
-        // 대전 완료 처리
-        transaction.update(battleRef, {
+        // 대전 완료 처리 (set + merge로 필드 없어도 안전)
+        transaction.set(battleRef, {
           'status': 'completed',
           'completedAt': FieldValue.serverTimestamp(),
-        });
+        }, SetOptions(merge: true));
 
         final winnerId = battle.winnerId;
         final totalReward = battle.betAmount * 2;
 
         if (winnerId != null) {
-          // 승자에게 보상 지급
+          // 승자에게 보상 지급 (set + merge로 필드 없어도 안전)
           final winnerRef = _firestore.collection('users').doc(winnerId);
-          transaction.update(winnerRef, {
+          transaction.set(winnerRef, {
             'talants': FieldValue.increment(totalReward),
             'totalTalants': FieldValue.increment(totalReward),
             'battleWins': FieldValue.increment(1),
-          });
+          }, SetOptions(merge: true));
 
-          // 패자에서 베팅금 차감
+          // 패자에서 베팅금 차감 (set + merge로 필드 없어도 안전)
           final loserId = winnerId == battle.challengerId
               ? battle.opponentId
               : battle.challengerId;
           final loserRef = _firestore.collection('users').doc(loserId);
-          transaction.update(loserRef, {
+          transaction.set(loserRef, {
             'talants': FieldValue.increment(-battle.betAmount),
             'battleLosses': FieldValue.increment(1),
-          });
+          }, SetOptions(merge: true));
         } else {
-          // 무승부 - 베팅금 반환 (변화 없음)
+          // 무승부 - 베팅금 반환 (변화 없음, set + merge 사용)
           final challengerRef = _firestore.collection('users').doc(battle.challengerId);
           final opponentRef = _firestore.collection('users').doc(battle.opponentId);
-          transaction.update(challengerRef, {'battleDraws': FieldValue.increment(1)});
-          transaction.update(opponentRef, {'battleDraws': FieldValue.increment(1)});
+          transaction.set(challengerRef, {'battleDraws': FieldValue.increment(1)}, SetOptions(merge: true));
+          transaction.set(opponentRef, {'battleDraws': FieldValue.increment(1)}, SetOptions(merge: true));
         }
       });
     } catch (e) {

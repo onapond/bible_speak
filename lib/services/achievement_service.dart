@@ -179,17 +179,17 @@ class AchievementService {
 
         if (!userAch.isUnlocked || userAch.isRewardClaimed) return false;
 
-        // 보상 지급
+        // 보상 지급 (set + merge로 필드 없어도 안전)
         final userRef = _firestore.collection('users').doc(userId);
-        transaction.update(userRef, {
+        transaction.set(userRef, {
           'talants': FieldValue.increment(achievement.talantReward),
           'totalTalants': FieldValue.increment(achievement.talantReward),
-        });
+        }, SetOptions(merge: true));
 
         // 보상 수령 표시
-        transaction.update(achievementRef, {
+        transaction.set(achievementRef, {
           'isRewardClaimed': true,
-        });
+        }, SetOptions(merge: true));
 
         return true;
       });

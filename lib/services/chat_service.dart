@@ -59,13 +59,13 @@ class ChatService {
         // 메시지 저장
         transaction.set(messageRef, message.toFirestore());
 
-        // 채팅방 마지막 메시지 업데이트
+        // 채팅방 마지막 메시지 업데이트 (set + merge로 안전)
         final roomRef = _firestore.collection('groups').doc(groupId);
-        transaction.update(roomRef, {
+        transaction.set(roomRef, {
           'lastMessage': content,
           'lastSenderName': senderName,
           'lastMessageAt': FieldValue.serverTimestamp(),
-        });
+        }, SetOptions(merge: true));
       });
 
       return message;
@@ -119,12 +119,13 @@ class ChatService {
   /// 메시지 삭제 (소프트 삭제)
   Future<bool> deleteMessage(String groupId, String messageId) async {
     try {
+      // set + merge로 안전하게 업데이트
       await _firestore
           .collection('groups')
           .doc(groupId)
           .collection('messages')
           .doc(messageId)
-          .update({'isDeleted': true});
+          .set({'isDeleted': true}, SetOptions(merge: true));
       return true;
     } catch (e) {
       print('Delete message error: $e');
@@ -138,14 +139,15 @@ class ChatService {
     if (odId == null) return;
 
     try {
+      // set + merge로 안전하게 업데이트
       await _firestore
           .collection('groups')
           .doc(groupId)
           .collection('members')
           .doc(odId)
-          .update({
+          .set({
         'lastReadAt': FieldValue.serverTimestamp(),
-      });
+      }, SetOptions(merge: true));
     } catch (e) {
       print('Mark as read error: $e');
     }

@@ -317,12 +317,12 @@ class DailyQuizService {
             .doc(_todayKey);
         transaction.set(resultRef, result.toFirestore());
 
-        // 탈란트 지급
+        // 탈란트 지급 (set + merge로 필드 없어도 안전)
         final userRef = _firestore.collection('users').doc(odId);
-        transaction.update(userRef, {
+        transaction.set(userRef, {
           'talants': FieldValue.increment(totalEarned),
           'totalTalants': FieldValue.increment(totalEarned),
-        });
+        }, SetOptions(merge: true));
 
         // 스트릭 업데이트
         await _updateStreak(transaction, odId, isPerfect);
@@ -365,13 +365,13 @@ class DailyQuizService {
         newStreak = 1;
       }
 
-      transaction.update(streakRef, {
+      transaction.set(streakRef, {
         'currentStreak': newStreak,
         'longestStreak': newStreak > streak.longestStreak ? newStreak : streak.longestStreak,
         'lastQuizDate': Timestamp.fromDate(today),
         'totalQuizzesTaken': FieldValue.increment(1),
         'perfectScores': isPerfect ? FieldValue.increment(1) : streak.perfectScores,
-      });
+      }, SetOptions(merge: true));
     } else {
       transaction.set(streakRef, {
         'currentStreak': 1,

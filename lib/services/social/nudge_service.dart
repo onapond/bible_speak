@@ -124,12 +124,13 @@ class NudgeService {
     if (uid == null) return;
 
     try {
+      // set + merge로 안전하게 업데이트
       await _firestore
           .collection('users')
           .doc(uid)
           .collection('nudges')
           .doc(nudgeId)
-          .update({'readAt': FieldValue.serverTimestamp()});
+          .set({'readAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
     } catch (e) {
       print('Mark nudge as read error: $e');
     }
@@ -141,12 +142,13 @@ class NudgeService {
     if (uid == null) return;
 
     try {
+      // set + merge로 안전하게 업데이트
       await _firestore
           .collection('users')
           .doc(uid)
           .collection('nudges')
           .doc(nudgeId)
-          .update({'respondedAt': FieldValue.serverTimestamp()});
+          .set({'respondedAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
     } catch (e) {
       print('Mark nudge as responded error: $e');
     }

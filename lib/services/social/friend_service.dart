@@ -113,8 +113,8 @@ class FriendService {
 
       // 트랜잭션으로 처리
       await _firestore.runTransaction((transaction) async {
-        // 요청 상태 업데이트
-        transaction.update(requestDoc.reference, {'status': 'accepted'});
+        // 요청 상태 업데이트 (set + merge로 안전)
+        transaction.set(requestDoc.reference, {'status': 'accepted'}, SetOptions(merge: true));
 
         // 양쪽에 친구 추가
         final fromUserRef = _firestore
@@ -184,7 +184,8 @@ class FriendService {
 
       if (request.toUserId != userId) return false;
 
-      await requestDoc.reference.update({'status': 'rejected'});
+      // set + merge로 안전하게 업데이트
+      await requestDoc.reference.set({'status': 'rejected'}, SetOptions(merge: true));
       return true;
     } catch (e) {
       print('Reject friend request error: $e');

@@ -95,14 +95,18 @@ class GroupChallengeService {
             'updatedAt': Timestamp.now(),
           });
         } else {
-          // Update existing challenge
-          transaction.update(challengeRef, {
+          // Update existing challenge (set + merge로 필드 없어도 안전)
+          transaction.set(challengeRef, {
             'currentValue': FieldValue.increment(amount),
-            'contributors.$userId.count': FieldValue.increment(amount),
-            'contributors.$userId.name': userName,
-            'contributors.$userId.lastContributed': Timestamp.now(),
+            'contributors': {
+              userId: {
+                'count': FieldValue.increment(amount),
+                'name': userName,
+                'lastContributed': Timestamp.now(),
+              }
+            },
             'updatedAt': Timestamp.now(),
-          });
+          }, SetOptions(merge: true));
         }
       });
 
@@ -120,10 +124,11 @@ class GroupChallengeService {
       if (challenge == null || challenge.isCompleted) return false;
 
       if (challenge.currentValue >= challenge.targetValue) {
-        await _challengesRef(groupId).doc(currentWeekId).update({
+        // set + merge로 필드 없어도 안전
+        await _challengesRef(groupId).doc(currentWeekId).set({
           'isCompleted': true,
           'completedAt': Timestamp.now(),
-        });
+        }, SetOptions(merge: true));
         return true;
       }
       return false;

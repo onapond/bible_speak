@@ -110,10 +110,10 @@ class ShopService {
           );
         }
 
-        // 탈란트 차감
-        transaction.update(userRef, {
+        // 탈란트 차감 (set + merge로 필드 없어도 안전)
+        transaction.set(userRef, {
           'talants': FieldValue.increment(-item.price),
-        });
+        }, SetOptions(merge: true));
 
         // 인벤토리에 추가
         final inventoryRef = _firestore
@@ -125,11 +125,11 @@ class ShopService {
         final inventoryDoc = await transaction.get(inventoryRef);
 
         if (inventoryDoc.exists) {
-          // 소모품의 경우 수량 증가
-          transaction.update(inventoryRef, {
+          // 소모품의 경우 수량 증가 (set + merge로 안전)
+          transaction.set(inventoryRef, {
             'quantity': FieldValue.increment(1),
             'lastPurchasedAt': FieldValue.serverTimestamp(),
-          });
+          }, SetOptions(merge: true));
         } else {
           // 새 아이템 추가
           transaction.set(inventoryRef, {
@@ -143,12 +143,12 @@ class ShopService {
           });
         }
 
-        // 재고 감소 (한정 아이템의 경우)
+        // 재고 감소 (한정 아이템의 경우, set + merge로 안전)
         if (item.isLimited && item.stock != null) {
           final itemRef = _firestore.collection('shopItems').doc(itemId);
-          transaction.update(itemRef, {
+          transaction.set(itemRef, {
             'stock': FieldValue.increment(-1),
-          });
+          }, SetOptions(merge: true));
         }
 
         // 구매 기록 저장

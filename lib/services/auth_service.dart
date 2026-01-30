@@ -656,23 +656,16 @@ class AuthService {
       earnedTalants *= bonusMultiplier;
 
       if (earnedTalants > 0) {
-        await _firestore.runTransaction((transaction) async {
-          transaction.update(
-            _firestore.collection('users').doc(_currentUser!.uid),
-            {
-              'talants': FieldValue.increment(earnedTalants),
-            },
-          );
+        // set + merge로 필드 없어도 안전하게 업데이트
+        await _firestore.collection('users').doc(_currentUser!.uid).set({
+          'talants': FieldValue.increment(earnedTalants),
+        }, SetOptions(merge: true));
 
-          if (_currentUser!.groupId.isNotEmpty) {
-            transaction.update(
-              _firestore.collection('groups').doc(_currentUser!.groupId),
-              {
-                'totalTalants': FieldValue.increment(earnedTalants),
-              },
-            );
-          }
-        });
+        if (_currentUser!.groupId.isNotEmpty) {
+          await _firestore.collection('groups').doc(_currentUser!.groupId).set({
+            'totalTalants': FieldValue.increment(earnedTalants),
+          }, SetOptions(merge: true));
+        }
 
         _currentUser = _currentUser!.copyWith(
           talants: _currentUser!.talants + earnedTalants,
@@ -695,23 +688,16 @@ class AuthService {
     try {
       const bonusTalants = 3;
 
-      await _firestore.runTransaction((transaction) async {
-        transaction.update(
-          _firestore.collection('users').doc(_currentUser!.uid),
-          {
-            'talants': FieldValue.increment(bonusTalants),
-          },
-        );
+      // set + merge로 필드 없어도 안전하게 업데이트
+      await _firestore.collection('users').doc(_currentUser!.uid).set({
+        'talants': FieldValue.increment(bonusTalants),
+      }, SetOptions(merge: true));
 
-        if (_currentUser!.groupId.isNotEmpty) {
-          transaction.update(
-            _firestore.collection('groups').doc(_currentUser!.groupId),
-            {
-              'totalTalants': FieldValue.increment(bonusTalants),
-            },
-          );
-        }
-      });
+      if (_currentUser!.groupId.isNotEmpty) {
+        await _firestore.collection('groups').doc(_currentUser!.groupId).set({
+          'totalTalants': FieldValue.increment(bonusTalants),
+        }, SetOptions(merge: true));
+      }
 
       _currentUser = _currentUser!.copyWith(
         talants: _currentUser!.talants + bonusTalants,

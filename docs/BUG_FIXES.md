@@ -113,11 +113,20 @@ await docRef.set({
 }, SetOptions(merge: true));
 ```
 
-### 영향받는 기능들
-- [ ] 달란트 적립 (`auth_service.dart`)
-- [ ] Early Bird 보너스 (`morning_manna_service.dart`)
-- [ ] 단어 학습 달란트 (`auth_service.dart`)
-- [ ] 그룹 통계 업데이트
+### 영향받는 기능들 (모두 수정 완료)
+- [x] 달란트 적립 (`auth_service.dart`)
+- [x] Early Bird 보너스 (`morning_manna_service.dart`)
+- [x] 단어 학습 달란트 (`auth_service.dart`)
+- [x] 일일 목표 보너스 (`auth_service.dart`)
+- [x] 일일 퀴즈 달란트/스트릭 (`daily_quiz_service.dart`)
+- [x] 업적 보상 (`achievement_service.dart`)
+- [x] 샵 구매/인벤토리 (`shop_service.dart`)
+- [x] 배틀 승/패/무승부 (`battle_service.dart`)
+- [x] 그룹 챌린지 (`group_challenge_service.dart`)
+- [x] 그룹 활동 리액션 (`group_activity_service.dart`)
+- [x] 찌르기 읽음/응답 (`nudge_service.dart`)
+- [x] 친구 요청 수락/거절 (`friend_service.dart`)
+- [x] 채팅 메시지/읽음 (`chat_service.dart`)
 
 ---
 

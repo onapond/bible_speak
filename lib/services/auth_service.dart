@@ -237,7 +237,7 @@ class AuthService {
   }) async {
     final uid = userCredential.user!.uid;
 
-    // Firestore에서 사용자 확인
+    // 1. UID로 사용자 확인
     final userDoc = await _firestore.collection('users').doc(uid).get();
 
     if (userDoc.exists) {
@@ -249,14 +249,46 @@ class AuthService {
 
       print('✅ 로그인 완료: ${_currentUser!.name}');
       return AuthResult.success(user: _currentUser);
-    } else {
-      // 신규 사용자 - 프로필 설정 필요
-      // 임시로 Firebase Auth 정보 저장
-      await _saveTempUserInfo(uid, displayName, email, photoUrl);
-
-      print('📝 신규 사용자 - 프로필 설정 필요');
-      return AuthResult.success(needsProfile: true, tempUid: uid);
     }
+
+    // 2. 이메일로 기존 사용자 찾기 (익명 계정으로 가입한 경우)
+    if (email != null && email.isNotEmpty) {
+      final emailQuery = await _firestore
+          .collection('users')
+          .where('email', isEqualTo: email)
+          .limit(1)
+          .get();
+
+      if (emailQuery.docs.isNotEmpty) {
+        // 이메일로 기존 사용자 발견 - 문서를 새 UID로 마이그레이션
+        final oldDoc = emailQuery.docs.first;
+        final oldData = oldDoc.data();
+
+        // 새 UID로 문서 생성
+        await _firestore.collection('users').doc(uid).set({
+          ...oldData,
+          'migratedFrom': oldDoc.id,
+          'migratedAt': FieldValue.serverTimestamp(),
+        });
+
+        // 기존 문서 삭제 (선택적)
+        // await _firestore.collection('users').doc(oldDoc.id).delete();
+
+        _currentUser = UserModel.fromFirestore(uid, oldData);
+
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('bible_speak_userId', uid);
+
+        print('✅ 기존 사용자 마이그레이션 완료: ${_currentUser!.name}');
+        return AuthResult.success(user: _currentUser);
+      }
+    }
+
+    // 3. 신규 사용자 - 프로필 설정 필요
+    await _saveTempUserInfo(uid, displayName, email, photoUrl);
+
+    print('📝 신규 사용자 - 프로필 설정 필요');
+    return AuthResult.success(needsProfile: true, tempUid: uid);
   }
 
   /// 임시 사용자 정보 저장

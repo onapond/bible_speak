@@ -321,11 +321,11 @@ class AuthService {
 
       await _firestore.collection('users').doc(uid).set(userData);
 
-      // 그룹 멤버 수 증가
+      // 그룹 멤버 수 증가 (set + merge로 안전하게)
       if (groupId != null && groupId.isNotEmpty) {
-        await _firestore.collection('groups').doc(groupId).update({
+        await _firestore.collection('groups').doc(groupId).set({
           'memberCount': FieldValue.increment(1),
-        });
+        }, SetOptions(merge: true));
       }
 
       // 로컬 저장 정리

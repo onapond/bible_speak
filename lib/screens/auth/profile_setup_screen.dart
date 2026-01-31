@@ -54,10 +54,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
     setState(() => _isSubmitting = true);
 
-    // 그룹 멤버 수 증가
-    await _groupService.incrementMemberCount(_selectedGroupId!);
-
-    final user = await widget.authService.registerAnonymous(
+    // completeProfile 사용 (Google/Apple 로그인 사용자의 프로필 완성)
+    final user = await widget.authService.completeProfile(
       name: name,
       groupId: _selectedGroupId!,
     );

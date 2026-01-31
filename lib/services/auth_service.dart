@@ -253,34 +253,35 @@ class AuthService {
 
     // 2. 이메일로 기존 사용자 찾기 (익명 계정으로 가입한 경우)
     if (email != null && email.isNotEmpty) {
-      final emailQuery = await _firestore
-          .collection('users')
-          .where('email', isEqualTo: email)
-          .limit(1)
-          .get();
+      try {
+        final emailQuery = await _firestore
+            .collection('users')
+            .where('email', isEqualTo: email)
+            .limit(1)
+            .get();
 
-      if (emailQuery.docs.isNotEmpty) {
-        // 이메일로 기존 사용자 발견 - 문서를 새 UID로 마이그레이션
-        final oldDoc = emailQuery.docs.first;
-        final oldData = oldDoc.data();
+        if (emailQuery.docs.isNotEmpty) {
+          // 이메일로 기존 사용자 발견 - 문서를 새 UID로 마이그레이션
+          final oldDoc = emailQuery.docs.first;
+          final oldData = oldDoc.data();
 
-        // 새 UID로 문서 생성
-        await _firestore.collection('users').doc(uid).set({
-          ...oldData,
-          'migratedFrom': oldDoc.id,
-          'migratedAt': FieldValue.serverTimestamp(),
-        });
+          // 새 UID로 문서 생성
+          await _firestore.collection('users').doc(uid).set({
+            ...oldData,
+            'migratedFrom': oldDoc.id,
+            'migratedAt': FieldValue.serverTimestamp(),
+          });
 
-        // 기존 문서 삭제 (선택적)
-        // await _firestore.collection('users').doc(oldDoc.id).delete();
+          _currentUser = UserModel.fromFirestore(uid, oldData);
 
-        _currentUser = UserModel.fromFirestore(uid, oldData);
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('bible_speak_userId', uid);
 
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('bible_speak_userId', uid);
-
-        print('✅ 기존 사용자 마이그레이션 완료: ${_currentUser!.name}');
-        return AuthResult.success(user: _currentUser);
+          print('✅ 기존 사용자 마이그레이션 완료: ${_currentUser!.name}');
+          return AuthResult.success(user: _currentUser);
+        }
+      } catch (e) {
+        print('⚠️ 이메일 검색 오류 (무시하고 계속): $e');
       }
     }
 

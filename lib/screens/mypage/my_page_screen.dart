@@ -13,6 +13,7 @@ import '../shop/shop_screen.dart';
 import '../shop/inventory_screen.dart';
 import '../settings/notification_settings_screen.dart';
 import '../settings/theme_settings_screen.dart';
+import '../settings/accessibility_settings_screen.dart';
 import '../admin/migration_screen.dart';
 import '../admin/screenshot_helper_screen.dart';
 import '../splash_screen.dart';
@@ -1383,6 +1384,27 @@ class _MyPageScreenState extends State<MyPageScreen>
                 );
               },
             ),
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.teal.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.accessibility_new, color: Colors.teal, size: 22),
+              ),
+              title: const Text('접근성 설정', style: TextStyle(color: Colors.white)),
+              subtitle: Text('글꼴 크기, TTS 속도',
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12)),
+              trailing: const Icon(Icons.chevron_right, color: Colors.white38),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AccessibilitySettingsScreen()),
+                );
+              },
+            ),
             if (_user?.role == UserRole.admin)
               ListTile(
                 leading: Container(
@@ -1410,6 +1432,25 @@ class _MyPageScreenState extends State<MyPageScreen>
               leading: Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
+                  color: Colors.blueGrey.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.info_outline, color: Colors.blueGrey, size: 22),
+              ),
+              title: const Text('앱 정보', style: TextStyle(color: Colors.white)),
+              subtitle: Text('v1.0.0',
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12)),
+              trailing: const Icon(Icons.chevron_right, color: Colors.white38),
+              onTap: () {
+                Navigator.pop(context);
+                _showAppInfoDialog();
+              },
+            ),
+            const Divider(color: Colors.white12),
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
                   color: Colors.red.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -1431,6 +1472,93 @@ class _MyPageScreenState extends State<MyPageScreen>
           ],
         ),
       ),
+    );
+  }
+
+  // ============ 앱 정보 다이얼로그 ============
+  void _showAppInfoDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: _cardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: _accentColor.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Text('📖', style: TextStyle(fontSize: 24)),
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              '바이블스픽',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildInfoRow('버전', '1.0.0'),
+            const SizedBox(height: 12),
+            _buildInfoRow('개발', 'Onapond'),
+            const SizedBox(height: 12),
+            _buildInfoRow('이메일', 'support@onapond.com'),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      // TODO: 개인정보처리방침 URL 열기
+                    },
+                    child: const Text(
+                      '개인정보처리방침',
+                      style: TextStyle(color: Colors.white70, fontSize: 12),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      // TODO: 이용약관 URL 열기
+                    },
+                    child: const Text(
+                      '이용약관',
+                      style: TextStyle(color: Colors.white70, fontSize: 12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('닫기', style: TextStyle(color: Colors.white70)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: const TextStyle(color: Colors.white54, fontSize: 14)),
+        Text(value, style: const TextStyle(color: Colors.white, fontSize: 14)),
+      ],
     );
   }
 

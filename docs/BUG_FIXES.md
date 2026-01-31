@@ -1,5 +1,49 @@
 # 버그 수정 이력
 
+## 2026-01-31 (3차 수정)
+
+### 10. 로그인 시 프로필 설정 반복 + 회원가입 실패
+**증상**:
+- 기존 사용자가 로그인하면 프로필 설정 화면이 다시 나옴
+- 닉네임 입력해도 넘어가지 않음
+
+**원인**:
+- `ProfileSetupScreen`에서 `registerAnonymous()` 호출
+- 이 메서드가 **새 익명 Firebase Auth 계정**을 생성함
+- Google 로그인 UID와 다른 UID가 생성되어 연결 안 됨
+
+**해결**:
+- `registerAnonymous()` → `completeProfile()` 변경
+- 이메일 기반 기존 사용자 검색 로직 추가
+- 오류 처리를 위한 try-catch 추가
+
+**수정 파일**:
+- `lib/screens/auth/profile_setup_screen.dart`
+- `lib/services/auth_service.dart`
+
+**미해결**:
+- 이전에 익명 계정으로 가입한 사용자는 이메일이 저장되지 않아 마이그레이션 불가
+- Firebase Console에서 수동 데이터 마이그레이션 필요
+
+---
+
+### 11. 로딩 화면 폰트 크기 변동
+**증상**: 로딩 화면에서 "바이블 스픽" 글씨와 아이콘이 점진적으로 커짐
+
+**원인**:
+- Google Fonts `display=swap` 사용
+- 시스템 폰트 → 웹 폰트 교체 시 크기 변동
+
+**해결**:
+- `display=block`으로 변경 (폰트 로드 전까지 텍스트 숨김)
+- 로딩 화면에 시스템 폰트 강제 적용 (`!important`)
+- 아이콘 크기 고정 (width, height)
+
+**수정 파일**:
+- `web/index.html`
+
+---
+
 ## 2026-01-31 (2차 수정)
 
 ### 6. 일일 퀴즈 제출 오류

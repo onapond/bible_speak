@@ -45,7 +45,7 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
     try {
       _items = await _shopService.getShopItems();
       _inventory = await _shopService.getInventory();
-      _userTalants = _authService.currentUser?.talants ?? 0;
+      _userTalants = await _shopService.getUserTalants(); // Firestore 직접 조회
     } catch (e) {
       print('Load shop data error: $e');
     }

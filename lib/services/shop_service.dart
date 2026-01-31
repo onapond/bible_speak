@@ -10,6 +10,24 @@ class ShopService {
   String? get currentUserId => _auth.currentUser?.uid;
 
   // ============================================================
+  // 사용자 달란트 조회
+  // ============================================================
+
+  /// 사용자 달란트 가져오기 (Firestore 직접 조회)
+  Future<int> getUserTalants() async {
+    final userId = currentUserId;
+    if (userId == null) return 0;
+
+    try {
+      final doc = await _firestore.collection('users').doc(userId).get();
+      return doc.data()?['talants'] ?? 0;
+    } catch (e) {
+      print('Get user talants error: $e');
+      return 0;
+    }
+  }
+
+  // ============================================================
   // 샵 아이템 조회
   // ============================================================
 

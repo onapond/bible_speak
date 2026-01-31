@@ -14,6 +14,7 @@ import '../../services/social/group_activity_service.dart';
 import '../../services/social/group_challenge_service.dart';
 import '../../services/social/streak_service.dart';
 import '../../services/review_service.dart';
+import '../../services/achievement_service.dart';
 import '../../widgets/social/streak_widget.dart';
 import '../../widgets/pronunciation/pronunciation_widgets.dart';
 import '../../widgets/ux_widgets.dart';
@@ -497,6 +498,8 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
         final added = await widget.authService.addTalant(_currentVerse!.verse);
         if (added) {
           _showSnackBar('달란트 +1 획득! 암송 완료!', isError: false);
+          // 업적 체크
+          _checkAchievements();
         }
         // 복습 큐에 추가
         await _reviewService.addReviewItem(
@@ -689,6 +692,38 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
       }
     } catch (e) {
       print('스트릭 기록 오류: $e');
+    }
+  }
+
+  /// 업적 체크 (달란트, 구절 완료 등)
+  Future<void> _checkAchievements() async {
+    try {
+      final achievementService = AchievementService();
+      final user = widget.authService.currentUser;
+      if (user == null) return;
+
+      // 구절 완료 업적 체크
+      final verseResults = await achievementService.checkVerseAchievements(
+        user.completedVerses.length,
+      );
+
+      // 달란트 업적 체크
+      final talantResults = await achievementService.checkTalantAchievements(
+        user.talants,
+      );
+
+      // 해금된 업적 알림
+      final allResults = [...verseResults, ...talantResults];
+      for (final result in allResults) {
+        if (result.isNewUnlock && mounted) {
+          _showSnackBar(
+            '업적 해금! ${result.achievement.emoji} ${result.achievement.name}',
+            isError: false,
+          );
+        }
+      }
+    } catch (e) {
+      print('업적 체크 오류: $e');
     }
   }
 

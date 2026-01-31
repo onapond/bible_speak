@@ -307,26 +307,23 @@ class DailyQuizService {
         answers: answers,
       );
 
-      // 트랜잭션으로 저장
-      await _firestore.runTransaction((transaction) async {
-        // 결과 저장
-        final resultRef = _firestore
-            .collection('users')
-            .doc(odId)
-            .collection('quizResults')
-            .doc(_todayKey);
-        transaction.set(resultRef, result.toFirestore());
+      // 결과 저장 (transaction 없이 개별 처리)
+      final resultRef = _firestore
+          .collection('users')
+          .doc(odId)
+          .collection('quizResults')
+          .doc(_todayKey);
+      await resultRef.set(result.toFirestore());
 
-        // 탈란트 지급 (set + merge로 필드 없어도 안전)
-        final userRef = _firestore.collection('users').doc(odId);
-        transaction.set(userRef, {
-          'talants': FieldValue.increment(totalEarned),
-          'totalTalants': FieldValue.increment(totalEarned),
-        }, SetOptions(merge: true));
+      // 탈란트 지급 (set + merge로 필드 없어도 안전)
+      final userRef = _firestore.collection('users').doc(odId);
+      await userRef.set({
+        'talants': FieldValue.increment(totalEarned),
+        'totalTalants': FieldValue.increment(totalEarned),
+      }, SetOptions(merge: true));
 
-        // 스트릭 업데이트
-        await _updateStreak(transaction, odId, isPerfect);
-      });
+      // 스트릭 업데이트
+      await _updateStreakSimple(odId, isPerfect);
 
       return result;
     } catch (e) {
@@ -335,10 +332,10 @@ class DailyQuizService {
     }
   }
 
-  /// 스트릭 업데이트
-  Future<void> _updateStreak(Transaction transaction, String odId, bool isPerfect) async {
+  /// 스트릭 업데이트 (transaction 없이)
+  Future<void> _updateStreakSimple(String odId, bool isPerfect) async {
     final streakRef = _firestore.collection('users').doc(odId).collection('stats').doc('quizStreak');
-    final streakDoc = await transaction.get(streakRef);
+    final streakDoc = await streakRef.get();
 
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -365,15 +362,15 @@ class DailyQuizService {
         newStreak = 1;
       }
 
-      transaction.set(streakRef, {
+      await streakRef.set({
         'currentStreak': newStreak,
         'longestStreak': newStreak > streak.longestStreak ? newStreak : streak.longestStreak,
         'lastQuizDate': Timestamp.fromDate(today),
         'totalQuizzesTaken': FieldValue.increment(1),
-        'perfectScores': isPerfect ? FieldValue.increment(1) : streak.perfectScores,
+        'perfectScores': isPerfect ? FieldValue.increment(1) : FieldValue.increment(0),
       }, SetOptions(merge: true));
     } else {
-      transaction.set(streakRef, {
+      await streakRef.set({
         'currentStreak': 1,
         'longestStreak': 1,
         'lastQuizDate': Timestamp.fromDate(today),

@@ -1,5 +1,71 @@
 # 버그 수정 이력
 
+## 2026-01-31 (2차 수정)
+
+### 6. 일일 퀴즈 제출 오류
+**증상**: 퀴즈 제출 시 오류 발생
+
+**원인**:
+- Transaction 내에서 읽기/쓰기 순서 문제
+- `_updateStreak`에서 `transaction.get()` 후 `transaction.set()` 호출
+
+**해결**:
+- Transaction 없이 개별 Firestore 호출로 변경
+- `_updateStreakSimple()` 메서드 신규 생성
+
+**수정 파일**:
+- `lib/services/daily_quiz_service.dart`
+
+---
+
+### 7. 샵 달란트 0원 표시
+**증상**: 아이템 샵 상단 달란트가 0원으로 표기됨
+
+**원인**:
+- `_authService.currentUser?.talants` 사용
+- AuthService의 캐시된 데이터가 최신이 아님
+
+**해결**:
+- `ShopService.getUserTalants()` 메서드 추가
+- Firestore에서 직접 달란트 조회
+
+**수정 파일**:
+- `lib/services/shop_service.dart`
+- `lib/screens/shop/shop_screen.dart`
+
+---
+
+### 8. 업적 달성 미작동
+**증상**: 업적 달성이 진행되지 않음
+
+**원인**:
+- `checkVerseAchievements()`, `checkTalantAchievements()` 메서드가 어디서도 호출되지 않음
+
+**해결**:
+- `VersePracticeScreen`에 `_checkAchievements()` 메서드 추가
+- 달란트 적립 후 업적 체크 호출
+
+**수정 파일**:
+- `lib/screens/practice/verse_practice_screen.dart`
+
+---
+
+### 9. 폰트 로딩 지연
+**증상**: 로그인 시 아이콘/한글이 깨졌다가 표시됨
+
+**원인**:
+- Flutter 웹 폰트 비동기 로딩
+- 첫 프레임 렌더링 시 폰트 미로드
+
+**해결**:
+- `document.fonts.ready` 대기 후 로딩 화면 숨김
+- 추가 100ms 딜레이로 안정화
+
+**수정 파일**:
+- `web/index.html`
+
+---
+
 ## 2026-01-31
 
 ### 1. 오늘의 만나 한글 텍스트 미표시

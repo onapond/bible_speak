@@ -19,7 +19,6 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
   final StatsService _statsService = StatsService();
   UserStats? _stats;
   bool _isLoading = true;
-  int? _cachedMaxMinutes; // 주간 그래프 maxMinutes 캐시
 
   @override
   void initState() {
@@ -35,11 +34,6 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
     if (mounted) {
       setState(() {
         _stats = stats;
-        // maxMinutes 캐싱 (로드 시점에 한 번만 계산)
-        if (stats != null) {
-          _cachedMaxMinutes = stats.recentWeekActivity
-              .fold<int>(0, (max, d) => d.minutes > max ? d.minutes : max);
-        }
         _isLoading = false;
       });
     }
@@ -281,8 +275,8 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
 
   Widget _buildWeeklyActivityCard() {
     final weekData = _stats!.recentWeekActivity;
-    // 캐시된 maxMinutes 사용 (반복 계산 방지)
-    final maxMinutes = _cachedMaxMinutes ?? 0;
+    final maxMinutes = weekData.fold<int>(
+        0, (max, data) => data.minutes > max ? data.minutes : max);
 
     return Container(
       padding: const EdgeInsets.all(20),

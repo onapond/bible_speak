@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../models/user_model.dart';
 import '../../models/user_stats.dart';
 import '../../models/achievement.dart';
@@ -15,7 +14,6 @@ import '../shop/inventory_screen.dart';
 import '../settings/notification_settings_screen.dart';
 import '../settings/theme_settings_screen.dart';
 import '../settings/accessibility_settings_screen.dart';
-import '../settings/offline_download_screen.dart';
 import '../admin/migration_screen.dart';
 import '../admin/screenshot_helper_screen.dart';
 import '../splash_screen.dart';
@@ -1407,27 +1405,6 @@ class _MyPageScreenState extends State<MyPageScreen>
                 );
               },
             ),
-            ListTile(
-              leading: Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.cyan.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.download_for_offline, color: Colors.cyan, size: 22),
-              ),
-              title: const Text('오프라인 다운로드', style: TextStyle(color: Colors.white)),
-              subtitle: Text('성경 데이터 미리 저장',
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12)),
-              trailing: const Icon(Icons.chevron_right, color: Colors.white38),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const OfflineDownloadScreen()),
-                );
-              },
-            ),
             if (_user?.role == UserRole.admin)
               ListTile(
                 leading: Container(
@@ -1541,7 +1518,7 @@ class _MyPageScreenState extends State<MyPageScreen>
                   child: TextButton(
                     onPressed: () {
                       Navigator.pop(context);
-                      _launchUrl('https://bible-speak.web.app/legal/privacy.html');
+                      // TODO: 개인정보처리방침 URL 열기
                     },
                     child: const Text(
                       '개인정보처리방침',
@@ -1553,7 +1530,7 @@ class _MyPageScreenState extends State<MyPageScreen>
                   child: TextButton(
                     onPressed: () {
                       Navigator.pop(context);
-                      _launchUrl('https://bible-speak.web.app/legal/terms.html');
+                      // TODO: 이용약관 URL 열기
                     },
                     child: const Text(
                       '이용약관',
@@ -1586,13 +1563,6 @@ class _MyPageScreenState extends State<MyPageScreen>
   }
 
   // ============ Helper Methods ============
-  Future<void> _launchUrl(String url) async {
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
-  }
-
   Color _getRoleColor() {
     switch (_user?.role) {
       case UserRole.admin:

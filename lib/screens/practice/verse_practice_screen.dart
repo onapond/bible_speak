@@ -7,7 +7,6 @@ import '../../services/recording_service.dart';
 import '../../services/progress_service.dart';
 import '../../services/esv_service.dart';
 import '../../services/bible_data_service.dart';
-import '../../services/audio/bible_audio_service.dart';
 import '../../services/pronunciation/azure_pronunciation_service.dart';
 import '../../services/pronunciation/pronunciation_feedback_service.dart';
 import '../../services/tutor/tutor_coordinator.dart';
@@ -805,7 +804,6 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
 
   @override
   void dispose() {
-    BibleAudioService.instance.stop(); // 메모리 누수 방지: 오디오 재생 중지
     _tts.dispose();
     _recorder.dispose();
     _myVoicePlayer.dispose();

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import '../../services/group_service.dart';
-import '../../services/app_update_service.dart';
 import '../../services/social/group_challenge_service.dart';
 import '../../services/social/streak_service.dart';
 import '../../services/social/morning_manna_service.dart';
@@ -82,52 +81,23 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     super.initState();
     // 모든 데이터 병렬 로드 (성능 최적화)
     _loadAllData();
-
-    // PWA 업데이트 서비스에 컨텍스트 설정 (첫 프레임 후)
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      AppUpdateService().setContext(context);
-    });
   }
 
-  /// 모든 데이터 병렬 로드 (타임아웃 적용, 단일 setState)
+  /// 모든 데이터 병렬 로드 (타임아웃 적용)
   Future<void> _loadAllData() async {
     final user = widget.authService.currentUser;
 
-    // 모든 데이터를 병렬로 로드
-    final futures = <Future<void>>[
-      _loadStreakDataSilent(),
-      _loadMorningMannaSilent(),
-      _loadTodaysTasksSilent(),
-      _loadDailyGoalAndStatsSilent(),
-      if (user != null && user.groupId.isNotEmpty) _loadGroupDataSilent(user),
-    ];
-
-    await Future.wait(futures);
-
-    // 단일 setState로 모든 상태 업데이트
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-        _isLoadingManna = false;
-        _isLoadingTasks = false;
-        _isLoadingStats = false;
-      });
-    }
+    // 스트릭과 만나 데이터 병렬 로드 (그룹 무관)
+    await Future.wait([
+      _loadStreakData(),
+      _loadMorningManna(),
+      _loadTodaysTasks(),
+      _loadDailyGoalAndStats(),
+      if (user != null && user.groupId.isNotEmpty) _loadGroupData(user),
+    ]);
   }
 
-  /// 일일 목표 및 통계 로드 (setState 없이)
-  Future<void> _loadDailyGoalAndStatsSilent() async {
-    try {
-      await _dailyGoalService.init();
-      final stats = await _statsService.getUserStats();
-      _dailyGoal = _dailyGoalService.todayGoal;
-      _userStats = stats;
-    } catch (e) {
-      // 오류 시 기본값 유지
-    }
-  }
-
-  /// 일일 목표 및 통계 로드 (개별 호출용)
+  /// 일일 목표 및 통계 로드
   Future<void> _loadDailyGoalAndStats() async {
     try {
       await _dailyGoalService.init();
@@ -147,22 +117,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     }
   }
 
-  /// 오늘의 할 일 로드 (setState 없이)
-  Future<void> _loadTodaysTasksSilent() async {
-    try {
-      final results = await Future.wait([
-        _reviewService.getDueItems(),
-        _quizService.hasCompletedToday(),
-      ]).timeout(const Duration(seconds: 3));
-
-      _dueReviewCount = (results[0] as List).length;
-      _hasCompletedQuiz = results[1] as bool;
-    } catch (e) {
-      // 오류 시 기본값 유지
-    }
-  }
-
-  /// 오늘의 할 일 로드 (개별 호출용)
+  /// 오늘의 할 일 로드 (복습, 퀴즈)
   Future<void> _loadTodaysTasks() async {
     try {
       final results = await Future.wait([
@@ -184,17 +139,6 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     }
   }
 
-  /// 스트릭 데이터 로드 (setState 없이)
-  Future<void> _loadStreakDataSilent() async {
-    try {
-      await _streakService.checkAndResetStreak().timeout(const Duration(seconds: 3));
-      final streak = await _streakService.getStreak().timeout(const Duration(seconds: 2));
-      _streak = streak;
-    } catch (e) {
-      print('⚠️ 스트릭 로드 실패: $e');
-    }
-  }
-
   Future<void> _loadStreakData() async {
     try {
       // 타임아웃 적용
@@ -206,27 +150,6 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     } catch (e) {
       // 타임아웃 또는 오류 시 기본값 유지
       print('⚠️ 스트릭 로드 실패: $e');
-    }
-  }
-
-  /// 그룹 데이터 로드 (setState 없이)
-  Future<void> _loadGroupDataSilent(dynamic user) async {
-    try {
-      final results = await Future.wait([
-        _groupService.getGroup(user.groupId),
-        _challengeService.getCurrentChallenge(user.groupId),
-        _challengeService.getMyContribution(user.groupId),
-        _nudgeService.getInactiveMembers(user.groupId),
-        _nudgeService.getDailyStats(isLeader: user.isAdmin),
-      ]).timeout(const Duration(seconds: 5));
-
-      _groupName = (results[0] as dynamic)?.name;
-      _challenge = results[1] as WeeklyChallenge?;
-      _myContribution = results[2] as int;
-      _inactiveMembers = results[3] as List<InactiveMember>;
-      _nudgeStats = results[4] as NudgeDailyStats;
-    } catch (e) {
-      print('⚠️ 그룹 데이터 로드 실패: $e');
     }
   }
 
@@ -254,22 +177,6 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     } catch (e) {
       print('⚠️ 그룹 데이터 로드 실패: $e');
       if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  /// 아침 만나 로드 (setState 없이)
-  Future<void> _loadMorningMannaSilent() async {
-    try {
-      final results = await Future.wait([
-        _morningMannaService.getDailyVerse(),
-        _morningMannaService.hasClaimedEarlyBirdToday(),
-      ]).timeout(const Duration(seconds: 3));
-
-      _dailyVerse = results[0] as DailyVerse?;
-      _hasClaimedEarlyBird = results[1] as bool;
-      _earlyBirdBonus = _morningMannaService.getEarlyBirdBonus();
-    } catch (e) {
-      print('⚠️ 만나 로드 실패: $e');
     }
   }
 

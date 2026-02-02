@@ -4,6 +4,11 @@ import '../models/user_stats.dart';
 
 /// 통계 서비스
 class StatsService {
+  // 싱글톤 패턴
+  static final StatsService _instance = StatsService._internal();
+  factory StatsService() => _instance;
+  StatsService._internal();
+
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 

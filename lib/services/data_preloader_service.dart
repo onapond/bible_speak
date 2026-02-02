@@ -28,6 +28,7 @@ class DataPreloaderService {
   int? _dueReviewCount;
   bool? _hasCompletedQuiz;
   DateTime? _lastPreloadTime;
+  PreloadedMainData? _cachedData; // 전체 캐시 데이터
 
   // 프리로드 상태
   bool _isPreloading = false;
@@ -85,6 +86,9 @@ class DataPreloaderService {
         hasClaimedEarlyBird: results[6] as bool,
       );
 
+      // 캐시에 저장
+      _cachedData = data;
+
       return data;
     } catch (e) {
       debugPrint('⚠️ 메인 데이터 프리로드 실패: $e');
@@ -101,8 +105,10 @@ class DataPreloaderService {
 
   PreloadedMainData? _getCachedMainData() {
     if (_lastPreloadTime == null) return null;
-    // 캐시된 데이터가 있으면 반환 (전체 데이터는 없을 수 있음)
-    return null;
+    // 캐시 만료 확인 (5분)
+    if (needsPreload) return null;
+    // 캐시된 데이터 반환
+    return _cachedData;
   }
 
   /// 백그라운드 새로고침
@@ -150,6 +156,7 @@ class DataPreloaderService {
     _dueReviewCount = null;
     _hasCompletedQuiz = null;
     _lastPreloadTime = null;
+    _cachedData = null;
   }
 }
 

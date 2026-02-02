@@ -1,8 +1,10 @@
+import 'dart:collection';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/verse_progress.dart';
 import '../models/learning_stage.dart';
+import 'prefs_service.dart';
 
 /// 학습 진행 서비스
 /// - Firestore 클라우드 저장 (로그인 시)
@@ -11,17 +13,30 @@ import '../models/learning_stage.dart';
 class ProgressService {
   static const String _localKeyPrefix = 'bible_speak_verse_';
   static const double masteryThreshold = 85.0; // Stage 3 완료 기준
+  static const int _maxCacheSize = 100; // LRU 캐시 최대 크기
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   SharedPreferences? _prefs;
 
-  // 메모리 캐시
-  final Map<String, VerseProgress> _cache = {};
+  // LRU 캐시 (LinkedHashMap은 삽입 순서를 유지)
+  final _cache = LinkedHashMap<String, VerseProgress>();
+
+  /// LRU 캐시에 추가 (최대 크기 초과 시 가장 오래된 항목 제거)
+  void _addToCache(String key, VerseProgress value) {
+    // 이미 존재하면 삭제 후 다시 추가 (최근 사용으로 이동)
+    _cache.remove(key);
+    _cache[key] = value;
+    // 캐시 크기 초과 시 가장 오래된 항목 제거
+    while (_cache.length > _maxCacheSize) {
+      _cache.remove(_cache.keys.first);
+    }
+  }
 
   /// 초기화
   Future<void> init() async {
-    _prefs = await SharedPreferences.getInstance();
+    // PrefsService 캐시 사용 (이미 main.dart에서 초기화됨)
+    _prefs = PrefsService.instanceSync ?? await PrefsService.instance;
   }
 
   /// 현재 사용자 ID
@@ -62,8 +77,8 @@ class ProgressService {
     // 점수 업데이트
     final updated = current.withScoreUpdate(targetStage, score);
 
-    // 캐시 업데이트
-    _cache[verseKey] = updated;
+    // LRU 캐시 업데이트
+    _addToCache(verseKey, updated);
 
     // Firestore 저장 (로그인 시)
     await _saveToFirestore(book, chapter, verse, updated);
@@ -151,8 +166,8 @@ class ProgressService {
       verse: verse,
     );
 
-    // 캐시에 저장
-    _cache[verseKey] = progress;
+    // LRU 캐시에 저장
+    _addToCache(verseKey, progress);
 
     return progress;
   }
@@ -261,7 +276,7 @@ class ProgressService {
         final verseData = chapterData[v.toString()] as Map<String, dynamic>?;
         if (verseData != null) {
           progress = VerseProgress.fromMap(verseData, bookId: book, chapter: chapter, verse: v);
-          _cache[verseKey] = progress;
+          _addToCache(verseKey, progress);
         }
       }
 
@@ -353,7 +368,7 @@ class ProgressService {
         final verseData = chapterData[i.toString()] as Map<String, dynamic>?;
         if (verseData != null) {
           final progress = VerseProgress.fromMap(verseData, bookId: book, chapter: chapter, verse: i);
-          _cache[verseKey] = progress;
+          _addToCache(verseKey, progress);
           scores[i] = progress.overallBestScore;
           continue;
         }
@@ -362,7 +377,7 @@ class ProgressService {
       // 로컬에서 찾기
       final localProgress = await _loadFromLocal(book, chapter, i);
       if (localProgress != null) {
-        _cache[verseKey] = localProgress;
+        _addToCache(verseKey, localProgress);
         scores[i] = localProgress.overallBestScore;
       } else {
         scores[i] = 0.0;

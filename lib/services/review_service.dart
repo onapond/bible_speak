@@ -4,6 +4,11 @@ import '../models/review_item.dart';
 
 /// 복습 스케줄 서비스 (Spaced Repetition)
 class ReviewService {
+  // 싱글톤 패턴
+  static final ReviewService _instance = ReviewService._internal();
+  factory ReviewService() => _instance;
+  ReviewService._internal();
+
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
@@ -161,39 +166,47 @@ class ReviewService {
     }
   }
 
-  /// 복습 통계
+  /// 복습 통계 (Firestore count() 쿼리 최적화)
   Future<ReviewStats> getStats() async {
     final odId = currentUserId;
     if (odId == null) return const ReviewStats();
 
     try {
-      final allItems = await getAllItems();
-      final dueCount = await getDueCount();
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day, 23, 59, 59);
 
-      int totalItems = allItems.length;
-      int masteredCount = 0;
-      int learningCount = 0;
-      int totalReviews = 0;
-      int totalCorrect = 0;
+      // 병렬 count() 쿼리 실행 (전체 문서 로드 대신)
+      final results = await Future.wait([
+        // 전체 아이템 수
+        _reviewCollection.where('userId', isEqualTo: odId).count().get(),
+        // 오늘 복습 예정 수
+        _reviewCollection
+            .where('userId', isEqualTo: odId)
+            .where('nextReviewDate', isLessThanOrEqualTo: Timestamp.fromDate(today))
+            .count()
+            .get(),
+        // 마스터 수 (interval >= 30)
+        _reviewCollection
+            .where('userId', isEqualTo: odId)
+            .where('interval', isGreaterThanOrEqualTo: 30)
+            .count()
+            .get(),
+      ]);
 
-      for (final item in allItems) {
-        totalReviews += item.totalReviews;
-        totalCorrect += item.correctCount;
-
-        if (item.isMastered) {
-          masteredCount++;
-        } else {
-          learningCount++;
-        }
-      }
+      final totalItems = results[0].count ?? 0;
+      final dueCount = results[1].count ?? 0;
+      final masteredCount = results[2].count ?? 0;
+      final learningCount = totalItems - masteredCount;
 
       return ReviewStats(
         totalItems: totalItems,
         dueCount: dueCount,
         masteredCount: masteredCount,
         learningCount: learningCount,
-        totalReviews: totalReviews,
-        totalCorrect: totalCorrect,
+        // 총 리뷰/정답 수는 집계 쿼리로 얻을 수 없어 0 반환
+        // (UI에서 필요 시 별도 로드)
+        totalReviews: 0,
+        totalCorrect: 0,
       );
     } catch (e) {
       print('Get stats error: $e');

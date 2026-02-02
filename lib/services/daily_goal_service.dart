@@ -2,9 +2,15 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/daily_goal.dart';
 import 'auth_service.dart';
+import 'prefs_service.dart';
 
 /// 일일 학습 목표 서비스
 class DailyGoalService {
+  // 싱글톤 패턴
+  static final DailyGoalService _instance = DailyGoalService._internal();
+  factory DailyGoalService() => _instance;
+  DailyGoalService._internal();
+
   static const _keyTodayGoal = 'bible_speak_daily_goal';
   static const _keyGoalPreset = 'bible_speak_goal_preset';
   static const _keyCustomTargets = 'bible_speak_custom_targets';
@@ -14,7 +20,8 @@ class DailyGoalService {
 
   /// 초기화
   Future<void> init() async {
-    _prefs ??= await SharedPreferences.getInstance();
+    // PrefsService 캐시 사용 (이미 main.dart에서 초기화됨)
+    _prefs ??= PrefsService.instanceSync ?? await PrefsService.instance;
     await _loadTodayGoal();
   }
 

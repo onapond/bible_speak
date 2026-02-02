@@ -5,6 +5,11 @@ import '../models/daily_quiz.dart';
 
 /// 일일 퀴즈 서비스
 class DailyQuizService {
+  // 싱글톤 패턴
+  static final DailyQuizService _instance = DailyQuizService._internal();
+  factory DailyQuizService() => _instance;
+  DailyQuizService._internal();
+
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 

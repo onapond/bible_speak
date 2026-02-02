@@ -13,20 +13,26 @@ import 'services/navigation_service.dart';
 import 'services/offline/offline_services.dart';
 import 'services/offline/bible_offline_service.dart';
 import 'services/accessibility_service.dart';
+import 'services/prefs_service.dart';
+import 'services/app_update_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 1단계: 필수 초기화 (Firebase) - 앱 실행에 필수
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  // 1단계: 필수 초기화 (Firebase + SharedPreferences) - 앱 실행에 필수
+  await Future.wait([
+    Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform),
+    PrefsService.init(), // SharedPreferences 전역 캐싱
+  ]);
 
   // FCM 백그라운드 핸들러 등록 (동기, 빠름)
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
   // 앱 즉시 실행 - 나머지는 백그라운드에서
   runApp(const BibleSpeakApp());
+
+  // PWA 업데이트 서비스 초기화 (웹 전용)
+  AppUpdateService().initialize();
 
   // 2단계: 비필수 초기화 백그라운드 실행 (앱 실행 후)
   _initializeInBackground();

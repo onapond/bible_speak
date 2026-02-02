@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../models/subscription.dart';
 import '../../services/iap_service.dart';
 
@@ -47,6 +48,13 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   void dispose() {
     _iapService.dispose();
     super.dispose();
+  }
+
+  Future<void> _launchUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 
   Future<void> _purchase() async {
@@ -464,9 +472,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               TextButton(
-                onPressed: () {
-                  // TODO: 이용약관 페이지
-                },
+                onPressed: () => _launchUrl('https://bible-speak.web.app/legal/terms.html'),
                 child: Text(
                   '이용약관',
                   style: TextStyle(
@@ -480,9 +486,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 style: TextStyle(color: Colors.white.withValues(alpha:0.3)),
               ),
               TextButton(
-                onPressed: () {
-                  // TODO: 개인정보처리방침 페이지
-                },
+                onPressed: () => _launchUrl('https://bible-speak.web.app/legal/privacy.html'),
                 child: Text(
                   '개인정보처리방침',
                   style: TextStyle(

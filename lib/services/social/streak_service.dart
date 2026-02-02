@@ -4,6 +4,11 @@ import '../../models/user_streak.dart';
 
 /// 스트릭 관리 서비스
 class StreakService {
+  // 싱글톤 패턴
+  static final StreakService _instance = StreakService._internal();
+  factory StreakService() => _instance;
+  StreakService._internal();
+
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 

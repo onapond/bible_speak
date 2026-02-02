@@ -19,6 +19,8 @@
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="바이블스픽 - AI 발음 코칭으로 영어 성경 암송">
+  <!-- 앱 버전 (빌드 시 자동 갱신) -->
+  <meta name="app-version" content="BUILD_TIMESTAMP">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
@@ -115,7 +117,218 @@
   </div>
 
   <script>
-    // Flutter 앱이 로드되면 로딩 화면 숨기기
+    // ========================================
+    // PWA 업데이트 감지 시스템 (iOS Safari 최적화)
+    // ========================================
+    window.appUpdateReady = false;
+    window.newServiceWorker = null;
+    window.currentAppVersion = null;
+    window.updateCheckInProgress = false;
+
+    // iOS PWA 환경 감지
+    var isIOSPWA = (function() {
+      var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      var isStandalone = window.navigator.standalone === true;
+      return isIOS && isStandalone;
+    })();
+
+    console.log('[PWA] iOS PWA mode:', isIOSPWA);
+
+    // 현재 앱 버전 가져오기
+    window.getAppVersion = function() {
+      return document.querySelector('meta[name="app-version"]')?.content || 'unknown';
+    };
+
+    // version.json에서 서버 버전 확인 (iOS PWA 핵심!)
+    async function checkVersionFromServer() {
+      if (window.updateCheckInProgress) return;
+      window.updateCheckInProgress = true;
+
+      try {
+        // 캐시 우회를 위해 타임스탬프 추가
+        var response = await fetch('/version.json?t=' + Date.now(), {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' }
+        });
+
+        if (!response.ok) {
+          console.log('[PWA] version.json fetch failed:', response.status);
+          return;
+        }
+
+        var serverVersion = await response.json();
+        var currentVersion = window.getAppVersion();
+
+        console.log('[PWA] Version check - Current:', currentVersion, 'Server:', serverVersion.version);
+
+        // 버전이 다르면 업데이트 필요
+        if (currentVersion !== 'unknown' &&
+            currentVersion !== 'BUILD_TIMESTAMP' &&
+            serverVersion.version &&
+            currentVersion !== serverVersion.version) {
+          console.log('[PWA] New version detected via version.json!');
+          window.appUpdateReady = true;
+          notifyFlutterUpdate();
+        }
+      } catch (e) {
+        console.log('[PWA] Version check error:', e);
+      } finally {
+        window.updateCheckInProgress = false;
+      }
+    }
+
+    // 서비스 워커 업데이트 감지 및 처리
+    function initServiceWorkerUpdate() {
+      if (!('serviceWorker' in navigator)) return;
+
+      navigator.serviceWorker.ready.then(function(registration) {
+        // 업데이트 확인 간격 (iOS PWA는 더 자주)
+        var checkInterval = isIOSPWA ? 30000 : 60000;
+
+        // 주기적으로 업데이트 확인
+        setInterval(function() {
+          // 서비스 워커 업데이트 확인
+          registration.update().catch(function(e) {
+            console.log('[SW] Update check failed:', e);
+          });
+
+          // version.json도 확인 (iOS PWA에서 더 신뢰성 있음)
+          checkVersionFromServer();
+        }, checkInterval);
+
+        // 앱 시작 시 즉시 업데이트 확인
+        registration.update();
+        setTimeout(checkVersionFromServer, 2000); // Flutter 로드 후 확인
+
+        // 새 서비스 워커 감지
+        registration.addEventListener('updatefound', function() {
+          var newWorker = registration.installing;
+          console.log('[SW] New service worker found');
+
+          newWorker.addEventListener('statechange', function() {
+            console.log('[SW] State changed:', newWorker.state);
+
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              // 새 버전이 설치되어 대기 중
+              console.log('[SW] New version ready!');
+              window.appUpdateReady = true;
+              window.newServiceWorker = newWorker;
+
+              // Flutter에 업데이트 알림
+              notifyFlutterUpdate();
+            }
+          });
+        });
+      });
+
+      // 컨트롤러 변경 감지 (새 SW가 활성화됨)
+      navigator.serviceWorker.addEventListener('controllerchange', function() {
+        console.log('[SW] Controller changed, reloading...');
+        // 새 서비스 워커가 제어권을 가져감 - 페이지 새로고침
+        if (window.appUpdateReady) {
+          window.location.reload();
+        }
+      });
+    }
+
+    // 앱이 다시 foreground로 올 때 업데이트 확인 (iOS PWA 핵심!)
+    document.addEventListener('visibilitychange', function() {
+      if (document.visibilityState === 'visible') {
+        console.log('[PWA] App became visible, checking for updates...');
+        checkVersionFromServer();
+
+        // 서비스 워커도 업데이트 확인
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+          navigator.serviceWorker.ready.then(function(registration) {
+            registration.update();
+          });
+        }
+      }
+    });
+
+    // iOS PWA: pageshow 이벤트도 감시 (bfcache 대응)
+    window.addEventListener('pageshow', function(event) {
+      if (event.persisted || isIOSPWA) {
+        console.log('[PWA] Page shown (persisted:', event.persisted, '), checking updates...');
+        setTimeout(checkVersionFromServer, 500);
+      }
+    });
+
+    // Flutter 앱에 업데이트 알림
+    function notifyFlutterUpdate() {
+      // 이미 알림 상태면 중복 방지
+      if (window.updateNotified) return;
+      window.updateNotified = true;
+
+      // Flutter가 로드된 후에만 알림
+      if (window.flutterUpdateCallback) {
+        window.flutterUpdateCallback();
+      } else {
+        // Flutter 로드 대기
+        window.pendingUpdateNotification = true;
+      }
+    }
+
+    // 업데이트 적용 (Flutter에서 호출)
+    window.applyAppUpdate = function() {
+      if (window.newServiceWorker) {
+        // waiting 상태의 SW에 skipWaiting 메시지 전송
+        window.newServiceWorker.postMessage({ type: 'SKIP_WAITING' });
+      } else {
+        // fallback: 강제 새로고침 (캐시 삭제 후)
+        if ('caches' in window) {
+          caches.keys().then(function(names) {
+            Promise.all(names.map(function(name) {
+              return caches.delete(name);
+            })).then(function() {
+              console.log('[PWA] Caches cleared, reloading...');
+              window.location.reload(true);
+            });
+          });
+        } else {
+          window.location.reload(true);
+        }
+      }
+    };
+
+    // 강제 새로고침 (수동 업데이트용)
+    window.forceAppRefresh = function() {
+      console.log('[PWA] Force refresh requested');
+      if ('caches' in window) {
+        caches.keys().then(function(names) {
+          return Promise.all(names.map(function(name) {
+            console.log('[PWA] Deleting cache:', name);
+            return caches.delete(name);
+          }));
+        }).then(function() {
+          // 서비스 워커 등록 해제 후 새로고침
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+              Promise.all(registrations.map(function(reg) {
+                return reg.unregister();
+              })).then(function() {
+                window.location.reload(true);
+              });
+            });
+          } else {
+            window.location.reload(true);
+          }
+        });
+      } else {
+        window.location.reload(true);
+      }
+    };
+
+    // 서비스 워커 초기화
+    initServiceWorkerUpdate();
+
+    // 현재 버전 저장 (디버깅용)
+    window.currentAppVersion = window.getAppVersion();
+    console.log('[PWA] App version:', window.currentAppVersion);
+
+    // ========================================
+    // Flutter 앱 로딩 처리
+    // ========================================
     window.addEventListener('flutter-first-frame', function() {
       // 폰트가 로드될 때까지 잠시 대기 후 로딩 화면 숨기기
       var hideLoading = function() {
@@ -137,6 +350,11 @@
         });
       } else {
         setTimeout(hideLoading, 500);
+      }
+
+      // 대기 중인 업데이트 알림 처리
+      if (window.pendingUpdateNotification && window.flutterUpdateCallback) {
+        window.flutterUpdateCallback();
       }
     });
   </script>

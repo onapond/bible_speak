@@ -53,6 +53,12 @@ dependencies:
   # 이미지 캐싱
   cached_network_image: ^3.4.1
 
+  # URL 런처
+  url_launcher: ^6.2.5
+
+  # 웹 플랫폼 지원 (PWA 업데이트 서비스용)
+  web: ^1.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

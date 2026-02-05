@@ -203,12 +203,12 @@ class GroupService {
     }
   }
 
-  /// 그룹 멤버 수 증가
+  /// 그룹 멤버 수 증가 (set + merge로 안전하게)
   Future<void> incrementMemberCount(String groupId) async {
     try {
-      await _firestore.collection('groups').doc(groupId).update({
+      await _firestore.collection('groups').doc(groupId).set({
         'memberCount': FieldValue.increment(1),
-      });
+      }, SetOptions(merge: true));
     } catch (e) {
       print('❌ 멤버 수 증가 오류: $e');
     }
@@ -290,10 +290,10 @@ class GroupService {
         return GroupJoinResult(success: false, message: '그룹을 찾을 수 없습니다');
       }
 
-      // 사용자 문서 업데이트
-      await _firestore.collection('users').doc(userId).update({
+      // 사용자 문서 업데이트 (set + merge로 안전하게)
+      await _firestore.collection('users').doc(userId).set({
         'groupId': groupId,
-      });
+      }, SetOptions(merge: true));
 
       // 그룹 멤버 수 증가
       await incrementMemberCount(groupId);

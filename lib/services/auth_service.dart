@@ -419,10 +419,10 @@ class AuthService {
 
       await _firestore.collection('users').doc(uid).set(userData);
 
-      // 그룹 멤버 수 증가
-      await _firestore.collection('groups').doc(groupId).update({
+      // 그룹 멤버 수 증가 (set + merge로 안전하게)
+      await _firestore.collection('groups').doc(groupId).set({
         'memberCount': FieldValue.increment(1),
-      });
+      }, SetOptions(merge: true));
 
       // 로컬 저장
       final prefs = await SharedPreferences.getInstance();
@@ -467,12 +467,12 @@ class AuthService {
 
       await _auth.currentUser!.linkWithCredential(credential);
 
-      // 사용자 정보 업데이트
-      await _firestore.collection('users').doc(_currentUser!.uid).update({
+      // 사용자 정보 업데이트 (set + merge로 안전하게)
+      await _firestore.collection('users').doc(_currentUser!.uid).set({
         'email': googleUser.email,
         'photoUrl': googleUser.photoUrl,
         'isAnonymous': false,
-      });
+      }, SetOptions(merge: true));
 
       print('✅ Google 계정 연결 완료');
       return AuthResult.success(user: _currentUser);
@@ -545,11 +545,11 @@ class AuthService {
       // Firestore에서 사용자 삭제
       await _firestore.collection('users').doc(_currentUser!.uid).delete();
 
-      // 그룹 멤버 수 감소
+      // 그룹 멤버 수 감소 (set + merge로 안전하게)
       if (_currentUser!.groupId.isNotEmpty) {
-        await _firestore.collection('groups').doc(_currentUser!.groupId).update({
+        await _firestore.collection('groups').doc(_currentUser!.groupId).set({
           'memberCount': FieldValue.increment(-1),
-        });
+        }, SetOptions(merge: true));
       }
 
       // Firebase Auth에서 삭제
@@ -646,9 +646,10 @@ class AuthService {
     if (_currentUser!.talants < amount) return false;
 
     try {
-      await _firestore.collection('users').doc(_currentUser!.uid).update({
+      // set + merge로 안전하게 업데이트
+      await _firestore.collection('users').doc(_currentUser!.uid).set({
         'talants': FieldValue.increment(-amount),
-      });
+      }, SetOptions(merge: true));
 
       _currentUser = _currentUser!.copyWith(
         talants: _currentUser!.talants - amount,

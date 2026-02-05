@@ -109,11 +109,14 @@ class ReviewService {
     }
   }
 
-  /// 복습 결과 저장
+  /// 복습 결과 저장 (set + merge로 안전하게)
   Future<ReviewItem?> submitReview(ReviewItem item, ReviewQuality quality) async {
     try {
       final updated = item.applyReview(quality);
-      await _reviewCollection.doc(item.id).update(updated.toFirestore());
+      await _reviewCollection.doc(item.id).set(
+        updated.toFirestore(),
+        SetOptions(merge: true),
+      );
       return updated;
     } catch (e) {
       print('Submit review error: $e');

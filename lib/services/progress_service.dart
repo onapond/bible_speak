@@ -469,13 +469,15 @@ class ProgressService {
       _cache.remove('${book}_${chapter}_$i');
     }
 
-    // Firestore 삭제
+    // Firestore 삭제 (set + merge로 안전하게)
     final doc = _progressDoc(book);
     if (doc != null) {
       try {
-        await doc.update({
-          'chapters.$chapter': FieldValue.delete(),
-        });
+        await doc.set({
+          'chapters': {
+            chapter.toString(): FieldValue.delete(),
+          },
+        }, SetOptions(merge: true));
       } catch (e) {
         // 무시
       }

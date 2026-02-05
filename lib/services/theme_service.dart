@@ -200,17 +200,17 @@ class ThemeService extends ChangeNotifier {
       final batch = _firestore.batch();
 
       for (final doc in activeSnapshot.docs) {
-        batch.update(doc.reference, {'isActive': false});
+        batch.set(doc.reference, {'isActive': false}, SetOptions(merge: true));
       }
 
-      // 새 테마 활성화
+      // 새 테마 활성화 (set + merge로 안전하게)
       final newThemeRef = _firestore
           .collection('users')
           .doc(userId)
           .collection('inventory')
           .doc(themeId);
 
-      batch.update(newThemeRef, {'isActive': true});
+      batch.set(newThemeRef, {'isActive': true}, SetOptions(merge: true));
 
       await batch.commit();
 
@@ -242,7 +242,7 @@ class ThemeService extends ChangeNotifier {
       final batch = _firestore.batch();
 
       for (final doc in activeSnapshot.docs) {
-        batch.update(doc.reference, {'isActive': false});
+        batch.set(doc.reference, {'isActive': false}, SetOptions(merge: true));
       }
 
       await batch.commit();

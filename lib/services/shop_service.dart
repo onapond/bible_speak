@@ -264,17 +264,17 @@ class ShopService {
       final batch = _firestore.batch();
 
       for (final doc in inventorySnapshot.docs) {
-        batch.update(doc.reference, {'isActive': false});
+        batch.set(doc.reference, {'isActive': false}, SetOptions(merge: true));
       }
 
-      // 선택한 아이템 활성화
+      // 선택한 아이템 활성화 (set + merge로 안전하게)
       final itemRef = _firestore
           .collection('users')
           .doc(userId)
           .collection('inventory')
           .doc(itemId);
 
-      batch.update(itemRef, {'isActive': true});
+      batch.set(itemRef, {'isActive': true}, SetOptions(merge: true));
 
       await batch.commit();
       return true;
@@ -306,11 +306,11 @@ class ShopService {
         // 마지막 하나면 삭제
         await itemRef.delete();
       } else {
-        // 수량 감소
-        await itemRef.update({
+        // 수량 감소 (set + merge로 안전하게)
+        await itemRef.set({
           'quantity': FieldValue.increment(-1),
           'usedAt': FieldValue.serverTimestamp(),
-        });
+        }, SetOptions(merge: true));
       }
 
       return true;

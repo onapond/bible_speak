@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../services/auth_service.dart';
 import '../home/main_menu_screen.dart';
 import '../practice/verse_practice_screen.dart';
 import '../stats/stats_dashboard_screen.dart';
@@ -10,12 +9,7 @@ import '../onboarding/onboarding_screen.dart';
 /// 스크린샷 촬영 도우미 화면
 /// 스토어 배포용 스크린샷을 쉽게 촬영할 수 있도록 도와줍니다.
 class ScreenshotHelperScreen extends StatelessWidget {
-  final AuthService authService;
-
-  const ScreenshotHelperScreen({
-    super.key,
-    required this.authService,
-  });
+  const ScreenshotHelperScreen({super.key});
 
   static const _bgColor = Color(0xFF0F0F1A);
   static const _cardColor = Color(0xFF1E1E2E);
@@ -56,7 +50,7 @@ class ScreenshotHelperScreen extends StatelessWidget {
             subtitle: '홈 대시보드',
             onTap: () => _navigateTo(
               context,
-              MainMenuScreen(authService: authService),
+              const MainMenuScreen(),
             ),
           ),
           _buildScreenButton(
@@ -66,8 +60,7 @@ class ScreenshotHelperScreen extends StatelessWidget {
             subtitle: '핵심 학습 화면',
             onTap: () => _navigateTo(
               context,
-              VersePracticeScreen(
-                authService: authService,
+              const VersePracticeScreen(
                 book: 'john',
                 chapter: 3,
                 initialVerse: 16,

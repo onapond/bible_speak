@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:audioplayers/audioplayers.dart';
-import '../../services/auth_service.dart';
+import '../../providers/auth_provider.dart';
 import '../../services/tts_service.dart';
 import '../../services/recording_service.dart';
 import '../../services/progress_service.dart';
@@ -27,8 +28,7 @@ import '../../models/verse_progress.dart';
 /// - 따뜻한 양피지 색상
 /// - 골드 악센트
 /// - 영적/명상적 분위기
-class VersePracticeRedesigned extends StatefulWidget {
-  final AuthService authService;
+class VersePracticeRedesigned extends ConsumerStatefulWidget {
   final String book;
   final int chapter;
   final int? initialVerse;
@@ -36,7 +36,6 @@ class VersePracticeRedesigned extends StatefulWidget {
 
   const VersePracticeRedesigned({
     super.key,
-    required this.authService,
     this.book = 'malachi',
     this.chapter = 1,
     this.initialVerse,
@@ -44,10 +43,10 @@ class VersePracticeRedesigned extends StatefulWidget {
   });
 
   @override
-  State<VersePracticeRedesigned> createState() => _VersePracticeRedesignedState();
+  ConsumerState<VersePracticeRedesigned> createState() => _VersePracticeRedesignedState();
 }
 
-class _VersePracticeRedesignedState extends State<VersePracticeRedesigned>
+class _VersePracticeRedesignedState extends ConsumerState<VersePracticeRedesigned>
     with TickerProviderStateMixin {
   // Parchment 테마 색상
   static const _primaryColor = ParchmentTheme.manuscriptGold;
@@ -91,8 +90,6 @@ class _VersePracticeRedesignedState extends State<VersePracticeRedesigned>
   bool _isAudioReady = false;
 
   String? _lastRecordingPath;
-  PronunciationResult? _pronunciationResult;
-  PronunciationFeedback? _feedback;
   TutorFeedback? _aiFeedback;
   bool _isLoadingAiFeedback = false;
   Map<int, VerseProgress> _verseProgressMap = {};
@@ -317,8 +314,6 @@ class _VersePracticeRedesignedState extends State<VersePracticeRedesigned>
   }
 
   void _resetState() {
-    _pronunciationResult = null;
-    _feedback = null;
     _aiFeedback = null;
     _isLoadingAiFeedback = false;
     _lastRecordingPath = null;
@@ -483,7 +478,7 @@ class _VersePracticeRedesignedState extends State<VersePracticeRedesigned>
 
       if (_currentStage == LearningStage.realSpeak &&
           result.overallScore >= LearningStage.realSpeak.passThreshold) {
-        final added = await widget.authService.addTalant(_currentVerse!.verse);
+        final added = await ref.read(authServiceProvider).addTalant(_currentVerse!.verse);
         if (added) {
           _showSnackBar('달란트 +1 획득! 암송 완료!', isError: false);
           _checkAchievements();
@@ -507,8 +502,6 @@ class _VersePracticeRedesignedState extends State<VersePracticeRedesigned>
       }
 
       setState(() {
-        _pronunciationResult = result;
-        _feedback = feedback;
         _isProcessing = false;
       });
 
@@ -629,7 +622,7 @@ class _VersePracticeRedesignedState extends State<VersePracticeRedesigned>
   Future<void> _checkAchievements() async {
     try {
       final achievementService = AchievementService();
-      final user = widget.authService.currentUser;
+      final user = ref.read(authServiceProvider).currentUser;
       if (user == null) return;
 
       final verseResults = await achievementService.checkVerseAchievements(
@@ -655,7 +648,7 @@ class _VersePracticeRedesignedState extends State<VersePracticeRedesigned>
   }
 
   Future<void> _postActivityAndChallenge({bool isStage3 = false}) async {
-    final user = widget.authService.currentUser;
+    final user = ref.read(authServiceProvider).currentUser;
     if (user == null || user.groupId.isEmpty || _currentVerse == null) return;
 
     final verseRef = '$_bookNameKo ${widget.chapter}:${_currentVerse!.verse}';
@@ -909,7 +902,7 @@ class _VersePracticeRedesignedState extends State<VersePracticeRedesigned>
             children: [
               Row(
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.auto_graph_rounded,
                     color: _primaryColor,
                     size: 20,
@@ -1398,7 +1391,6 @@ class _ModernResultBottomSheet extends StatelessWidget {
   final bool isPlayingMyVoice;
 
   static const _primaryColor = ParchmentTheme.manuscriptGold;
-  static const _primaryLight = ParchmentTheme.goldHighlight;
   static const _successColor = ParchmentTheme.success;
   static const _warningColor = ParchmentTheme.warning;
 

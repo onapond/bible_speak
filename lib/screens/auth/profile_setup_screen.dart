@@ -1,32 +1,26 @@
 import 'package:flutter/material.dart';
-import '../../services/auth_service.dart';
-import '../../services/group_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../providers/auth_provider.dart';
 import '../home/main_menu_screen.dart';
 import '../group/group_select_screen.dart';
 
 /// 프로필 설정 화면 (개선된 다크 테마)
 /// - 이름 입력
 /// - 그룹 선택/생성/코드 가입
-class ProfileSetupScreen extends StatefulWidget {
-  final AuthService authService;
-
-  const ProfileSetupScreen({
-    super.key,
-    required this.authService,
-  });
+class ProfileSetupScreen extends ConsumerStatefulWidget {
+  const ProfileSetupScreen({super.key});
 
   @override
-  State<ProfileSetupScreen> createState() => _ProfileSetupScreenState();
+  ConsumerState<ProfileSetupScreen> createState() => _ProfileSetupScreenState();
 }
 
-class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
+class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   // 다크 테마 상수
   static const _bgColor = Color(0xFF0F0F1A);
   static const _cardColor = Color(0xFF1E1E2E);
   static const _accentColor = Color(0xFF6C63FF);
 
   final _nameController = TextEditingController();
-  final _groupService = GroupService();
 
   String? _selectedGroupId;
   String? _selectedGroupName;
@@ -55,7 +49,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     setState(() => _isSubmitting = true);
 
     // completeProfile 사용 (Google/Apple 로그인 사용자의 프로필 완성)
-    final user = await widget.authService.completeProfile(
+    final authNotifier = ref.read(authNotifierProvider.notifier);
+    final user = await authNotifier.completeProfile(
       name: name,
       groupId: _selectedGroupId!,
     );
@@ -63,7 +58,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     if (user != null && mounted) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (_) => MainMenuScreen(authService: widget.authService),
+          builder: (_) => const MainMenuScreen(),
         ),
       );
     } else {
@@ -265,12 +260,12 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 color: Colors.white,
               ),
             )
-          : Row(
+          : const Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.play_arrow),
-                const SizedBox(width: 8),
-                const Text(
+                Icon(Icons.play_arrow),
+                SizedBox(width: 8),
+                Text(
                   '암송 시작하기',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),

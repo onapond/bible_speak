@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -26,8 +27,8 @@ void main() async {
   // FCM 백그라운드 핸들러 등록 (동기, 빠름)
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
-  // 앱 즉시 실행 - 나머지는 백그라운드에서
-  runApp(const BibleSpeakApp());
+  // 앱 즉시 실행 - ProviderScope로 Riverpod 활성화
+  runApp(const ProviderScope(child: BibleSpeakApp()));
 
   // PWA update service (web only)
   AppUpdateService().initialize();

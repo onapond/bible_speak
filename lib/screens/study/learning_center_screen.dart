@@ -31,8 +31,6 @@ class LearningCenterScreen extends StatefulWidget {
 class _LearningCenterScreenState extends State<LearningCenterScreen>
     with SingleTickerProviderStateMixin {
   // Parchment Theme 색상
-  static const _bgColor = ParchmentTheme.agedParchment;
-  static const _cardColor = ParchmentTheme.softPapyrus;
   static const _accentColor = ParchmentTheme.manuscriptGold;
 
   late TabController _tabController;
@@ -455,7 +453,9 @@ class _PracticeTabState extends State<_PracticeTab>
                 chipColor = ParchmentTheme.weatheredGray;
               }
 
-              return GestureDetector(
+              return KeyedSubtree(
+                key: ValueKey('chapter_$chapter'),
+                child: GestureDetector(
                 onTap: () async {
                   setState(() => _selectedChapter = chapter);
                   await _loadVerseProgress();
@@ -507,6 +507,7 @@ class _PracticeTabState extends State<_PracticeTab>
                     ],
                   ),
                 ),
+              ),
               );
             },
           ),
@@ -805,7 +806,6 @@ class _PracticeTabState extends State<_PracticeTab>
       context,
       MaterialPageRoute(
         builder: (_) => VersePracticeRedesigned(
-          authService: widget.authService,
           book: _selectedBook!.id,
           chapter: _selectedChapter,
           initialVerse: verse,
@@ -1357,7 +1357,6 @@ class _QuizTab extends StatefulWidget {
 
 class _QuizTabState extends State<_QuizTab>
     with AutomaticKeepAliveClientMixin {
-  static const _bgColor = ParchmentTheme.agedParchment;
   static const _cardColor = ParchmentTheme.softPapyrus;
   static const _accentColor = ParchmentTheme.manuscriptGold;
 
@@ -1667,7 +1666,7 @@ class _QuizTabState extends State<_QuizTab>
             ],
           ),
           const SizedBox(height: 20),
-          Divider(color: ParchmentTheme.warmVellum),
+          const Divider(color: ParchmentTheme.warmVellum),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -1863,7 +1862,7 @@ class _QuizTabState extends State<_QuizTab>
 
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: _cardColor,
         border: Border(bottom: BorderSide(color: ParchmentTheme.warmVellum)),
       ),
@@ -1907,7 +1906,7 @@ class _QuizTabState extends State<_QuizTab>
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: _cardColor,
-        border: Border(top: BorderSide(color: ParchmentTheme.warmVellum)),
+        border: const Border(top: BorderSide(color: ParchmentTheme.warmVellum)),
         boxShadow: [
           BoxShadow(
             color: ParchmentTheme.warmVellum.withValues(alpha: 0.5),

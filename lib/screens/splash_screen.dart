@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../services/auth_service.dart';
+import '../providers/auth_provider.dart';
 import '../services/data_preloader_service.dart';
 import 'auth/login_screen.dart';
 import 'home/main_menu_screen.dart';
@@ -16,7 +17,6 @@ class _SplashColors {
 
   // 텍스트 (잉크)
   static const ancientInk = Color(0xFF3D3229);     // 제목
-  static const fadedScript = Color(0xFF6B5D4D);    // 본문
   static const weatheredGray = Color(0xFF8C7E6D);  // 보조
 
   // 악센트 (금박)
@@ -27,15 +27,14 @@ class _SplashColors {
 /// - 인증 상태 확인
 /// - 로그인/메인 화면 분기
 /// - 라이트 테마 + 골드 글로우 아이콘 + 정적 로딩 점
-class SplashScreen extends StatefulWidget {
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
-  final AuthService _authService = AuthService();
+class _SplashScreenState extends ConsumerState<SplashScreen> {
   final DataPreloaderService _preloader = DataPreloaderService();
 
   @override
@@ -57,7 +56,7 @@ class _SplashScreenState extends State<SplashScreen> {
                     // 목표 설정 완료 후 로그인 화면으로
                     Navigator.of(goalCtx).pushReplacement(
                       MaterialPageRoute(
-                        builder: (_) => LoginScreen(authService: _authService),
+                        builder: (_) => const LoginScreen(),
                       ),
                     );
                   },
@@ -73,7 +72,7 @@ class _SplashScreenState extends State<SplashScreen> {
   void _navigateToLogin() {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
-        builder: (_) => LoginScreen(authService: _authService),
+        builder: (_) => const LoginScreen(),
       ),
     );
   }
@@ -88,7 +87,8 @@ class _SplashScreenState extends State<SplashScreen> {
       onboardingDone = prefs.getBool('onboarding_completed') ?? false;
 
       final savedUserId = prefs.getString('bible_speak_userId');
-      final hasFirebaseUser = _authService.firebaseUser != null;
+      final authService = ref.read(authServiceProvider);
+      final hasFirebaseUser = authService.firebaseUser != null;
       isLoggedIn = savedUserId != null && hasFirebaseUser;
     } catch (e) {
       debugPrint('❌ 인증 상태 확인 오류: $e');
@@ -104,13 +104,12 @@ class _SplashScreenState extends State<SplashScreen> {
         _navigateToLogin();
       }
     } else {
-      // 로그인된 경우 - Firestore 로드는 백그라운드에서
-      _authService.init(); // 백그라운드에서 실행 (await 없음)
+      // 로그인된 경우 - Riverpod Provider가 자동으로 초기화
       _preloader.preloadMainScreenData();
 
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (_) => MainMenuScreen(authService: _authService),
+          builder: (_) => const MainMenuScreen(),
         ),
       );
     }

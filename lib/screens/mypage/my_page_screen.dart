@@ -276,7 +276,7 @@ class _MyPageScreenState extends State<MyPageScreen>
           Container(
             width: 80,
             height: 80,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               gradient: ParchmentTheme.goldButtonGradient,
               shape: BoxShape.circle,
             ),
@@ -664,7 +664,7 @@ class _MyPageScreenState extends State<MyPageScreen>
               );
             },
           ),
-          Divider(color: ParchmentTheme.warmVellum, height: 1, indent: 60),
+          const Divider(color: ParchmentTheme.warmVellum, height: 1, indent: 60),
           _buildMenuItem(
             icon: Icons.inventory_2,
             iconColor: Colors.teal,
@@ -757,7 +757,7 @@ class _MyPageScreenState extends State<MyPageScreen>
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => ScreenshotHelperScreen(authService: widget.authService),
+                  builder: (_) => const ScreenshotHelperScreen(),
                 ),
               );
             },

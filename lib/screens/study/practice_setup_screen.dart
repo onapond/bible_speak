@@ -350,6 +350,7 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
             itemCount: _selectedBook!.chapterCount,
             itemBuilder: (context, index) {
               final chapter = index + 1;
+              // Note: using index as key since chapters are 1-indexed contiguous integers
               final progress = _chapterProgress[chapter];
               final isSelected = chapter == _selectedChapter;
 
@@ -362,7 +363,9 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
                 chipColor = ParchmentTheme.weatheredGray;
               }
 
-              return GestureDetector(
+              return KeyedSubtree(
+                key: ValueKey('chapter_$chapter'),
+                child: GestureDetector(
                 onTap: () async {
                   setState(() => _selectedChapter = chapter);
                   await _loadVerseProgress();
@@ -416,6 +419,7 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
                     ],
                   ),
                 ),
+              ),
               );
             },
           ),
@@ -715,7 +719,6 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
       context,
       MaterialPageRoute(
         builder: (_) => VersePracticeRedesigned(
-          authService: widget.authService,
           book: _selectedBook!.id,
           chapter: _selectedChapter,
           initialVerse: verse,

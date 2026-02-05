@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:audioplayers/audioplayers.dart';
-import '../../services/auth_service.dart';
+import '../../providers/auth_provider.dart';
 import '../../services/tts_service.dart';
 import '../../services/recording_service.dart';
 import '../../services/progress_service.dart';
@@ -23,8 +24,7 @@ import '../../models/verse_progress.dart';
 
 /// 구절 연습 화면
 /// - 3단계 학습: Listen & Repeat → Key Expressions → Real Speak
-class VersePracticeScreen extends StatefulWidget {
-  final AuthService authService;
+class VersePracticeScreen extends ConsumerStatefulWidget {
   final String book;
   final int chapter;
   final int? initialVerse;
@@ -32,7 +32,6 @@ class VersePracticeScreen extends StatefulWidget {
 
   const VersePracticeScreen({
     super.key,
-    required this.authService,
     this.book = 'malachi',
     this.chapter = 1,
     this.initialVerse,
@@ -40,10 +39,10 @@ class VersePracticeScreen extends StatefulWidget {
   });
 
   @override
-  State<VersePracticeScreen> createState() => _VersePracticeScreenState();
+  ConsumerState<VersePracticeScreen> createState() => _VersePracticeScreenState();
 }
 
-class _VersePracticeScreenState extends State<VersePracticeScreen> {
+class _VersePracticeScreenState extends ConsumerState<VersePracticeScreen> {
   // 서비스
   final TTSService _tts = TTSService();
   final RecordingService _recorder = RecordingService();
@@ -495,7 +494,7 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
       // 달란트 적립 (Stage 3에서 85% 이상)
       if (_currentStage == LearningStage.realSpeak &&
           result.overallScore >= LearningStage.realSpeak.passThreshold) {
-        final added = await widget.authService.addTalant(_currentVerse!.verse);
+        final added = await ref.read(authServiceProvider).addTalant(_currentVerse!.verse);
         if (added) {
           _showSnackBar('달란트 +1 획득! 암송 완료!', isError: false);
           // 업적 체크
@@ -699,7 +698,7 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
   Future<void> _checkAchievements() async {
     try {
       final achievementService = AchievementService();
-      final user = widget.authService.currentUser;
+      final user = ref.read(authServiceProvider).currentUser;
       if (user == null) return;
 
       // 구절 완료 업적 체크
@@ -729,7 +728,7 @@ class _VersePracticeScreenState extends State<VersePracticeScreen> {
 
   /// 그룹 활동 게시 및 챌린지 기여 (비동기, UI 블로킹 없음)
   Future<void> _postActivityAndChallenge({bool isStage3 = false}) async {
-    final user = widget.authService.currentUser;
+    final user = ref.read(authServiceProvider).currentUser;
     if (user == null || user.groupId.isEmpty || _currentVerse == null) return;
 
     final verseRef = '$_bookNameKo ${widget.chapter}:${_currentVerse!.verse}';
@@ -2309,7 +2308,7 @@ class _ResultBottomSheet extends StatelessWidget {
         ),
         child: Row(
           children: [
-            SizedBox(
+            const SizedBox(
               width: 20,
               height: 20,
               child: CircularProgressIndicator(
@@ -2318,7 +2317,7 @@ class _ResultBottomSheet extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
-            Text(
+            const Text(
               'AI 코치가 분석 중...',
               style: TextStyle(color: _accentColor),
             ),
@@ -2345,10 +2344,10 @@ class _ResultBottomSheet extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            const Row(
               children: [
                 Icon(Icons.auto_awesome, size: 18, color: _accentColor),
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
                 Text(
                   'AI 코치',
                   style: TextStyle(

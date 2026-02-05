@@ -318,11 +318,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             children: [
-              const Icon(Icons.bar_chart, color: _accentColor, size: 20),
-              const SizedBox(width: 8),
-              const Text(
+              Icon(Icons.bar_chart, color: _accentColor, size: 20),
+              SizedBox(width: 8),
+              Text(
                 '학습 통계',
                 style: TextStyle(
                   fontSize: 16,
@@ -670,7 +670,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => ScreenshotHelperScreen(authService: _authService),
+                  builder: (_) => const ScreenshotHelperScreen(),
                 ),
               );
             },

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../services/auth_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../providers/auth_provider.dart';
 import '../../services/group_service.dart';
 import '../../services/social/group_challenge_service.dart';
 import '../../services/social/streak_service.dart';
@@ -33,19 +34,14 @@ import '../mypage/my_page_screen.dart';
 
 /// 메인 메뉴 화면
 /// - 각 기능으로 이동하는 허브
-class MainMenuScreen extends StatefulWidget {
-  final AuthService authService;
-
-  const MainMenuScreen({
-    super.key,
-    required this.authService,
-  });
+class MainMenuScreen extends ConsumerStatefulWidget {
+  const MainMenuScreen({super.key});
 
   @override
-  State<MainMenuScreen> createState() => _MainMenuScreenState();
+  ConsumerState<MainMenuScreen> createState() => _MainMenuScreenState();
 }
 
-class _MainMenuScreenState extends State<MainMenuScreen> {
+class _MainMenuScreenState extends ConsumerState<MainMenuScreen> {
   final _groupService = GroupService();
   final _challengeService = GroupChallengeService();
   final _streakService = StreakService();
@@ -87,7 +83,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
 
   /// 모든 데이터 병렬 로드 (타임아웃 적용)
   Future<void> _loadAllData() async {
-    final user = widget.authService.currentUser;
+    final user = ref.read(currentUserProvider);
 
     // 스트릭과 만나 데이터 병렬 로드 (그룹 무관)
     await Future.wait([
@@ -208,7 +204,8 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = widget.authService.currentUser;
+    final user = ref.watch(currentUserProvider);
+    final talants = ref.watch(userTalantsProvider);
     final hasGroup = user != null && user.groupId.isNotEmpty;
 
     return Scaffold(
@@ -222,7 +219,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
             slivers: [
             // 헤더
             SliverToBoxAdapter(
-              child: _buildHeader(user?.name ?? '사용자', user?.talants ?? 0),
+              child: _buildHeader(user?.name ?? '사용자', talants),
             ),
 
             // 라이브 활동 티커 (그룹 있을 때만)
@@ -538,7 +535,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
           ),
         );
         // 유저 달란트 새로고침
-        await widget.authService.refreshUser();
+        await ref.read(authServiceProvider).refreshUser();
         return;
       }
     }
@@ -554,11 +551,10 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
       context,
       MaterialPageRoute(
         builder: (_) => VersePracticeRedesigned(
-          authService: widget.authService,
           book: _dailyVerse!.bookId,
           chapter: _dailyVerse!.chapter,
           initialVerse: _dailyVerse!.verse,
-          dailyVerseKoreanText: _dailyVerse!.textKo, // 한글 텍스트 전달
+          dailyVerseKoreanText: _dailyVerse!.textKo,
         ),
       ),
     );
@@ -568,7 +564,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => RankingScreen(authService: widget.authService),
+        builder: (_) => RankingScreen(authService: ref.read(authServiceProvider)),
       ),
     );
   }
@@ -577,18 +573,18 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => WordStudyHomeScreen(authService: widget.authService),
+        builder: (_) => WordStudyHomeScreen(authService: ref.read(authServiceProvider)),
       ),
     );
   }
 
   void _navigateToGroupDashboard() {
-    final user = widget.authService.currentUser;
+    final user = ref.read(authServiceProvider).currentUser;
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => CommunityScreen(
-          authService: widget.authService,
+          authService: ref.read(authServiceProvider),
           initialGroupId: user?.groupId.isNotEmpty == true ? user!.groupId : null,
         ),
       ),
@@ -601,7 +597,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
       context,
       MaterialPageRoute(
         builder: (_) => LearningCenterScreen(
-          authService: widget.authService,
+          authService: ref.read(authServiceProvider),
           initialTabIndex: tabIndex,
         ),
       ),
@@ -892,7 +888,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
           // 주간 통계 (있을 경우)
           if (stats != null) ...[
             const SizedBox(height: 16),
-            Divider(color: ParchmentTheme.warmVellum),
+            const Divider(color: ParchmentTheme.warmVellum),
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -981,7 +977,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
           width: 70,
           child: Text(
             label,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 13,
               color: ParchmentTheme.fadedScript,
             ),
@@ -1053,7 +1049,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     final success = await _dailyGoalService.claimBonus();
     if (success && mounted) {
       // 달란트 새로고침
-      await widget.authService.refreshUser();
+      await ref.read(authServiceProvider).refreshUser();
       setState(() {
         _dailyGoal = _dailyGoalService.todayGoal;
       });
@@ -1183,13 +1179,13 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => MyPageScreen(authService: widget.authService),
+        builder: (_) => MyPageScreen(authService: ref.read(authServiceProvider)),
       ),
     );
   }
 
   void _showNudgeDialog(InactiveMember member) {
-    final user = widget.authService.currentUser;
+    final user = ref.read(authServiceProvider).currentUser;
     if (user == null) return;
 
     showDialog(
@@ -1240,7 +1236,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
   }
 
   void _showProtectionDialog() async {
-    final user = widget.authService.currentUser;
+    final user = ref.read(authServiceProvider).currentUser;
     if (user == null) return;
 
     final result = await showDialog<bool>(
@@ -1255,7 +1251,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
 
     if (result == true) {
       // 달란트 차감
-      final deducted = await widget.authService.deductTalant(100);
+      final deducted = await ref.read(authServiceProvider).deductTalant(100);
       if (!deducted) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

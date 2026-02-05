@@ -1,7 +1,9 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../providers/auth_provider.dart';
 import '../../services/auth_service.dart';
 import 'profile_setup_screen.dart';
 import '../home/main_menu_screen.dart';
@@ -29,19 +31,14 @@ class _LoginColors {
 /// 로그인 화면
 /// - Google, Apple, Email 로그인 지원
 /// - 라이트 테마 (양피지 스타일)
-class LoginScreen extends StatefulWidget {
-  final AuthService authService;
-
-  const LoginScreen({
-    super.key,
-    required this.authService,
-  });
+class LoginScreen extends ConsumerStatefulWidget {
+  const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _isLoading = false;
   bool _showEmailForm = false;
   bool _isSignUp = false;
@@ -67,7 +64,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _checkAppleAvailability() async {
     if (!kIsWeb && (Platform.isIOS || Platform.isMacOS)) {
-      final available = await widget.authService.isAppleSignInAvailable();
+      final authService = ref.read(authServiceProvider);
+      final available = await authService.isAppleSignInAvailable();
       if (mounted) {
         setState(() => _appleAvailable = available);
       }
@@ -89,7 +87,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (_) => ProfileSetupScreen(authService: widget.authService),
+            builder: (_) => const ProfileSetupScreen(),
           ),
         );
       }
@@ -98,7 +96,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (_) => MainMenuScreen(authService: widget.authService),
+            builder: (_) => const MainMenuScreen(),
           ),
         );
       }
@@ -107,14 +105,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _signInWithGoogle() async {
     setState(() => _isLoading = true);
-    final result = await widget.authService.signInWithGoogle();
+    final authNotifier = ref.read(authNotifierProvider.notifier);
+    final result = await authNotifier.signInWithGoogle();
     setState(() => _isLoading = false);
     await _handleAuthResult(result);
   }
 
   Future<void> _signInWithApple() async {
     setState(() => _isLoading = true);
-    final result = await widget.authService.signInWithApple();
+    final authNotifier = ref.read(authNotifierProvider.notifier);
+    final result = await authNotifier.signInWithApple();
     setState(() => _isLoading = false);
     await _handleAuthResult(result);
   }
@@ -130,6 +130,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isLoading = true);
 
+    final authNotifier = ref.read(authNotifierProvider.notifier);
     AuthResult result;
     if (_isSignUp) {
       final name = _nameController.text.trim();
@@ -138,13 +139,13 @@ class _LoginScreenState extends State<LoginScreen> {
         setState(() => _isLoading = false);
         return;
       }
-      result = await widget.authService.signUpWithEmail(
+      result = await authNotifier.signUpWithEmail(
         email: email,
         password: password,
         name: name,
       );
     } else {
-      result = await widget.authService.signInWithEmail(
+      result = await authNotifier.signInWithEmail(
         email: email,
         password: password,
       );
@@ -162,7 +163,8 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     setState(() => _isLoading = true);
-    final result = await widget.authService.sendPasswordResetEmail(email);
+    final authService = ref.read(authServiceProvider);
+    final result = await authService.sendPasswordResetEmail(email);
     setState(() => _isLoading = false);
 
     if (result.success) {
@@ -580,7 +582,7 @@ class _LoginScreenState extends State<LoginScreen> {
           onPressed: () {
             Navigator.of(context).pushReplacement(
               MaterialPageRoute(
-                builder: (_) => ProfileSetupScreen(authService: widget.authService),
+                builder: (_) => const ProfileSetupScreen(),
               ),
             );
           },

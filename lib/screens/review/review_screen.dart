@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/review_item.dart';
 import '../../services/review_service.dart';
+import '../../styles/parchment_theme.dart';
 import '../../widgets/ux_widgets.dart';
 
 /// 복습 화면
@@ -12,9 +13,9 @@ class ReviewScreen extends StatefulWidget {
 }
 
 class _ReviewScreenState extends State<ReviewScreen> {
-  static const _bgColor = Color(0xFF0F0F1A);
-  static const _cardColor = Color(0xFF1E1E2E);
-  static const _accentColor = Color(0xFF6C63FF);
+  // Parchment 테마 색상
+  static const _cardColor = ParchmentTheme.softPapyrus;
+  static const _accentColor = ParchmentTheme.manuscriptGold;
 
   final ReviewService _reviewService = ReviewService();
 
@@ -93,7 +94,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: ParchmentTheme.ancientInk,
               ),
             ),
             const SizedBox(height: 24),
@@ -115,6 +116,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
               Navigator.pop(context);
               Navigator.pop(context);
             },
+            style: TextButton.styleFrom(foregroundColor: _accentColor),
             child: const Text('확인'),
           ),
         ],
@@ -130,13 +132,13 @@ class _ReviewScreenState extends State<ReviewScreen> {
         children: [
           Text(
             label,
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+            style: const TextStyle(color: ParchmentTheme.fadedScript),
           ),
           Text(
             value,
             style: const TextStyle(
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: ParchmentTheme.ancientInk,
             ),
           ),
         ],
@@ -147,35 +149,65 @@ class _ReviewScreenState extends State<ReviewScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bgColor,
-      appBar: AppBar(
-        backgroundColor: _cardColor,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: const Text(
-          '오늘의 복습',
-          style: TextStyle(fontWeight: FontWeight.bold),
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: ParchmentTheme.backgroundGradient,
         ),
-        actions: [
-          if (_dueItems.isNotEmpty)
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.only(right: 16),
-                child: Text(
-                  '${_currentIndex + 1}/${_dueItems.length}',
-                  style: const TextStyle(fontSize: 16),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Custom AppBar
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios),
+                      color: ParchmentTheme.ancientInk,
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    const Expanded(
+                      child: Text(
+                        '오늘의 복습',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: ParchmentTheme.ancientInk,
+                        ),
+                      ),
+                    ),
+                    if (_dueItems.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: Text(
+                          '${_currentIndex + 1}/${_dueItems.length}',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: ParchmentTheme.fadedScript,
+                          ),
+                        ),
+                      )
+                    else
+                      const SizedBox(width: 48),
+                  ],
                 ),
               ),
-            ),
-        ],
+              // Body content
+              Expanded(
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator(color: _accentColor))
+                    : _dueItems.isEmpty
+                        ? _buildEmptyState()
+                        : _currentIndex >= _dueItems.length
+                            ? _buildCompletedState()
+                            : _buildReviewCard(),
+              ),
+            ],
+          ),
+        ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: _accentColor))
-          : _dueItems.isEmpty
-              ? _buildEmptyState()
-              : _currentIndex >= _dueItems.length
-                  ? _buildCompletedState()
-                  : _buildReviewCard(),
     );
   }
 
@@ -202,6 +234,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.3)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Column(
         children: [
@@ -209,7 +243,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
             '복습 현황',
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: ParchmentTheme.ancientInk,
             ),
           ),
           const SizedBox(height: 16),
@@ -239,9 +273,9 @@ class _ReviewScreenState extends State<ReviewScreen> {
         ),
         Text(
           label,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 12,
-            color: Colors.white.withValues(alpha: 0.6),
+            color: ParchmentTheme.fadedScript,
           ),
         ),
       ],
@@ -252,7 +286,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
     return const Center(
       child: Text(
         '모든 복습을 완료했습니다!',
-        style: TextStyle(color: Colors.white),
+        style: TextStyle(color: ParchmentTheme.ancientInk),
       ),
     );
   }
@@ -265,10 +299,14 @@ class _ReviewScreenState extends State<ReviewScreen> {
       child: Column(
         children: [
           // 진행 바
-          LinearProgressIndicator(
-            value: (_currentIndex + 1) / _dueItems.length,
-            backgroundColor: Colors.white.withValues(alpha: 0.1),
-            valueColor: const AlwaysStoppedAnimation(_accentColor),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: (_currentIndex + 1) / _dueItems.length,
+              backgroundColor: ParchmentTheme.warmVellum,
+              valueColor: const AlwaysStoppedAnimation(_accentColor),
+              minHeight: 6,
+            ),
           ),
           const SizedBox(height: 24),
 
@@ -276,7 +314,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: Color(item.levelColor).withValues(alpha: 0.2),
+              color: Color(item.levelColor).withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
@@ -296,7 +334,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
             style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: ParchmentTheme.ancientInk,
             ),
           ),
           const SizedBox(height: 32),
@@ -333,6 +371,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
           color: _accentColor.withValues(alpha: 0.3),
           width: 2,
         ),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -347,14 +386,14 @@ class _ReviewScreenState extends State<ReviewScreen> {
             '이 구절을 기억하시나요?',
             style: TextStyle(
               fontSize: 18,
-              color: Colors.white,
+              color: ParchmentTheme.ancientInk,
             ),
           ),
           const SizedBox(height: 32),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             decoration: BoxDecoration(
-              color: _accentColor.withValues(alpha: 0.2),
+              color: _accentColor.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Text(
@@ -378,6 +417,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.2)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: SingleChildScrollView(
         child: Column(
@@ -389,7 +430,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
               style: const TextStyle(
                 fontSize: 20,
                 height: 1.6,
-                color: Colors.white,
+                color: ParchmentTheme.ancientInk,
               ),
             ),
           ],
@@ -406,7 +447,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
           const Text(
             '얼마나 잘 기억했나요?',
             style: TextStyle(
-              color: Colors.white70,
+              color: ParchmentTheme.fadedScript,
               fontSize: 14,
             ),
           ),
@@ -417,7 +458,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                 child: _buildQualityButton(
                   ReviewQuality.forgot,
                   '다시',
-                  Colors.red,
+                  ParchmentTheme.error,
                 ),
               ),
               const SizedBox(width: 8),
@@ -425,7 +466,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                 child: _buildQualityButton(
                   ReviewQuality.hard,
                   '어려움',
-                  Colors.orange,
+                  ParchmentTheme.warning,
                 ),
               ),
               const SizedBox(width: 8),
@@ -433,7 +474,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                 child: _buildQualityButton(
                   ReviewQuality.normal,
                   '보통',
-                  Colors.blue,
+                  ParchmentTheme.info,
                 ),
               ),
               const SizedBox(width: 8),
@@ -441,7 +482,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
                 child: _buildQualityButton(
                   ReviewQuality.easy,
                   '쉬움',
-                  Colors.green,
+                  ParchmentTheme.success,
                 ),
               ),
             ],

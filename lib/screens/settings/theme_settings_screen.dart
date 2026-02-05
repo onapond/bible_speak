@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/shop_item.dart';
 import '../../services/shop_service.dart';
 import '../../services/theme_service.dart';
+import '../../styles/parchment_theme.dart';
 
 /// 테마 설정 화면
 class ThemeSettingsScreen extends StatefulWidget {
@@ -12,10 +13,9 @@ class ThemeSettingsScreen extends StatefulWidget {
 }
 
 class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
-  // 다크 테마 상수
-  static const _bgColor = Color(0xFF0F0F1A);
-  static const _cardColor = Color(0xFF1E1E2E);
-  static const _accentColor = Color(0xFF6C63FF);
+  // Parchment 테마 색상
+  static const _cardColor = ParchmentTheme.softPapyrus;
+  static const _accentColor = ParchmentTheme.manuscriptGold;
 
   final ShopService _shopService = ShopService();
   final ThemeService _themeService = ThemeService();
@@ -78,92 +78,121 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bgColor,
-      appBar: AppBar(
-        backgroundColor: _cardColor,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: const Text(
-          '테마 설정',
-          style: TextStyle(fontWeight: FontWeight.bold),
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: ParchmentTheme.backgroundGradient,
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Custom AppBar
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios),
+                      color: ParchmentTheme.ancientInk,
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    const Expanded(
+                      child: Text(
+                        '테마 설정',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: ParchmentTheme.ancientInk,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 48),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator(color: _accentColor))
+                    : RefreshIndicator(
+                        onRefresh: _loadData,
+                        color: _accentColor,
+                        child: ListView(
+                          padding: const EdgeInsets.all(16),
+                          children: [
+                            // 현재 테마
+                            _buildCurrentThemeCard(),
+                            const SizedBox(height: 24),
+
+                            // 보유 테마 목록
+                            _buildSectionTitle('보유한 테마'),
+                            const SizedBox(height: 12),
+
+                            // 기본 테마
+                            _buildThemeCard(
+                              theme: AppTheme.defaultTheme,
+                              isOwned: true,
+                              isActive: _currentTheme.id == 'default',
+                              onTap: () => _resetToDefault(),
+                            ),
+                            const SizedBox(height: 12),
+
+                            // 구매한 테마
+                            if (_ownedThemes.isEmpty)
+                              _buildEmptyState()
+                            else
+                              ..._ownedThemes.map((item) {
+                                final theme = ThemeService.availableThemes.firstWhere(
+                                  (t) => t.id == item.itemId,
+                                  orElse: () => AppTheme(
+                                    id: item.itemId,
+                                    name: item.itemName,
+                                    emoji: item.emoji,
+                                    primaryColor: _accentColor,
+                                    accentColor: _accentColor,
+                                    bgColor: ParchmentTheme.agedParchment,
+                                    cardColor: _cardColor,
+                                  ),
+                                );
+
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 12),
+                                  child: _buildThemeCard(
+                                    theme: theme,
+                                    isOwned: true,
+                                    isActive: _currentTheme.id == item.itemId,
+                                    onTap: () => _applyTheme(item.itemId),
+                                  ),
+                                );
+                              }),
+
+                            const SizedBox(height: 24),
+
+                            // 미보유 테마 목록 (샵 유도)
+                            _buildSectionTitle('미보유 테마'),
+                            const SizedBox(height: 12),
+
+                            ...ThemeService.availableThemes
+                                .where((t) =>
+                                    t.id != 'default' &&
+                                    !_ownedThemes.any((o) => o.itemId == t.id))
+                                .map((theme) => Padding(
+                                      padding: const EdgeInsets.only(bottom: 12),
+                                      child: _buildThemeCard(
+                                        theme: theme,
+                                        isOwned: false,
+                                        isActive: false,
+                                        onTap: () => _showPurchaseHint(theme),
+                                      ),
+                                    )),
+                          ],
+                        ),
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: _accentColor))
-          : RefreshIndicator(
-              onRefresh: _loadData,
-              color: _accentColor,
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  // 현재 테마
-                  _buildCurrentThemeCard(),
-                  const SizedBox(height: 24),
-
-                  // 보유 테마 목록
-                  _buildSectionTitle('보유한 테마'),
-                  const SizedBox(height: 12),
-
-                  // 기본 테마
-                  _buildThemeCard(
-                    theme: AppTheme.defaultTheme,
-                    isOwned: true,
-                    isActive: _currentTheme.id == 'default',
-                    onTap: () => _resetToDefault(),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // 구매한 테마
-                  if (_ownedThemes.isEmpty)
-                    _buildEmptyState()
-                  else
-                    ..._ownedThemes.map((item) {
-                      final theme = ThemeService.availableThemes.firstWhere(
-                        (t) => t.id == item.itemId,
-                        orElse: () => AppTheme(
-                          id: item.itemId,
-                          name: item.itemName,
-                          emoji: item.emoji,
-                          primaryColor: _accentColor,
-                          accentColor: _accentColor,
-                          bgColor: _bgColor,
-                          cardColor: _cardColor,
-                        ),
-                      );
-
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _buildThemeCard(
-                          theme: theme,
-                          isOwned: true,
-                          isActive: _currentTheme.id == item.itemId,
-                          onTap: () => _applyTheme(item.itemId),
-                        ),
-                      );
-                    }),
-
-                  const SizedBox(height: 24),
-
-                  // 미보유 테마 목록 (샵 유도)
-                  _buildSectionTitle('미보유 테마'),
-                  const SizedBox(height: 12),
-
-                  ...ThemeService.availableThemes
-                      .where((t) =>
-                          t.id != 'default' &&
-                          !_ownedThemes.any((o) => o.itemId == t.id))
-                      .map((theme) => Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: _buildThemeCard(
-                              theme: theme,
-                              isOwned: false,
-                              isActive: false,
-                              onTap: () => _showPurchaseHint(theme),
-                            ),
-                          )),
-                ],
-              ),
-            ),
     );
   }
 
@@ -171,19 +200,13 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            _currentTheme.primaryColor.withValues(alpha: 0.3),
-            _currentTheme.accentColor.withValues(alpha: 0.1),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: _cardColor,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: _currentTheme.primaryColor.withValues(alpha: 0.5),
+          color: _accentColor.withValues(alpha: 0.5),
           width: 2,
         ),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -203,7 +226,7 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
                       '현재 테마',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.white70,
+                        color: ParchmentTheme.fadedScript,
                       ),
                     ),
                     Text(
@@ -211,7 +234,7 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
                       style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: ParchmentTheme.ancientInk,
                       ),
                     ),
                   ],
@@ -226,7 +249,7 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
                 '색상 미리보기',
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.white70,
+                  color: ParchmentTheme.fadedScript,
                 ),
               ),
               const SizedBox(width: 12),
@@ -247,7 +270,7 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
       decoration: BoxDecoration(
         color: color,
         shape: BoxShape.circle,
-        border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+        border: Border.all(color: ParchmentTheme.warmVellum),
       ),
     );
   }
@@ -258,7 +281,7 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
       style: const TextStyle(
         fontSize: 16,
         fontWeight: FontWeight.bold,
-        color: Colors.white70,
+        color: ParchmentTheme.fadedScript,
       ),
     );
   }
@@ -278,10 +301,11 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isActive
-                ? theme.primaryColor
-                : Colors.transparent,
-            width: 2,
+                ? _accentColor
+                : _accentColor.withValues(alpha: 0.2),
+            width: isActive ? 2 : 1,
           ),
+          boxShadow: ParchmentTheme.cardShadow,
         ),
         child: Row(
           children: [
@@ -314,7 +338,7 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
                     theme.name,
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: isOwned ? Colors.white : Colors.white54,
+                      color: isOwned ? ParchmentTheme.ancientInk : ParchmentTheme.weatheredGray,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -329,8 +353,8 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
                         style: TextStyle(
                           fontSize: 12,
                           color: isActive
-                              ? theme.primaryColor
-                              : Colors.white.withValues(alpha: 0.5),
+                              ? _accentColor
+                              : ParchmentTheme.fadedScript,
                         ),
                       ),
                     ],
@@ -344,10 +368,10 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: theme.primaryColor,
+                  color: _accentColor,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.check, color: Colors.white, size: 16),
+                child: const Icon(Icons.check, color: ParchmentTheme.softPapyrus, size: 16),
               )
             else if (!isOwned)
               Container(
@@ -384,27 +408,29 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.2)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Column(
         children: [
           Icon(
             Icons.palette_outlined,
             size: 48,
-            color: Colors.white.withValues(alpha: 0.3),
+            color: ParchmentTheme.warmVellum,
           ),
           const SizedBox(height: 16),
-          Text(
+          const Text(
             '구매한 테마가 없습니다',
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.6),
+              color: ParchmentTheme.fadedScript,
             ),
           ),
           const SizedBox(height: 8),
-          Text(
+          const Text(
             '샵에서 테마를 구매해보세요!',
             style: TextStyle(
               fontSize: 12,
-              color: Colors.white.withValues(alpha: 0.4),
+              color: ParchmentTheme.weatheredGray,
             ),
           ),
         ],
@@ -416,16 +442,15 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('${theme.name}은(는) 샵에서 구매할 수 있습니다'),
-        backgroundColor: Colors.amber.shade700,
+        backgroundColor: ParchmentTheme.warning,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        duration: const Duration(seconds: 4), // 4초 후 자동 사라짐
+        duration: const Duration(seconds: 4),
         action: SnackBarAction(
           label: '샵으로',
-          textColor: Colors.white,
+          textColor: ParchmentTheme.softPapyrus,
           onPressed: () {
-            Navigator.pop(context); // 현재 화면 닫기
-            // 샵으로 이동하는 로직은 부모에서 처리
+            Navigator.pop(context);
           },
         ),
       ),

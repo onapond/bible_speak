@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/user_stats.dart';
 import '../../services/stats_service.dart';
+import '../../styles/parchment_theme.dart';
 import '../../widgets/ux_widgets.dart';
 
 /// 통계 대시보드 화면
@@ -12,9 +13,9 @@ class StatsDashboardScreen extends StatefulWidget {
 }
 
 class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
-  static const _bgColor = Color(0xFF0F0F1A);
-  static const _cardColor = Color(0xFF1E1E2E);
-  static const _accentColor = Color(0xFF6C63FF);
+  // Parchment 테마 색상
+  static const _cardColor = ParchmentTheme.softPapyrus;
+  static const _accentColor = ParchmentTheme.manuscriptGold;
 
   final StatsService _statsService = StatsService();
   UserStats? _stats;
@@ -42,49 +43,78 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bgColor,
-      appBar: AppBar(
-        backgroundColor: _cardColor,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: const Text(
-          '학습 통계',
-          style: TextStyle(fontWeight: FontWeight.bold),
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: ParchmentTheme.backgroundGradient,
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Custom AppBar
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios),
+                      color: ParchmentTheme.ancientInk,
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    const Expanded(
+                      child: Text(
+                        '학습 통계',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: ParchmentTheme.ancientInk,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 48),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: _isLoading
+                    ? LoadingStateWidget.syncing()
+                    : RefreshIndicator(
+                        onRefresh: _loadStats,
+                        color: _accentColor,
+                        child: _stats == null
+                            ? EmptyStateWidget.noLearningHistory(
+                                onStartLearning: () => Navigator.pop(context),
+                              )
+                            : ListView(
+                                padding: const EdgeInsets.all(16),
+                                children: [
+                                  // 요약 카드
+                                  _buildSummaryCard(),
+                                  const SizedBox(height: 16),
+
+                                  // 스트릭 카드
+                                  _buildStreakCard(),
+                                  const SizedBox(height: 16),
+
+                                  // 주간 활동 그래프
+                                  _buildWeeklyActivityCard(),
+                                  const SizedBox(height: 16),
+
+                                  // 상세 통계
+                                  _buildDetailStatsCard(),
+                                  const SizedBox(height: 16),
+
+                                  // 소셜 통계
+                                  _buildSocialStatsCard(),
+                                ],
+                              ),
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
-      body: _isLoading
-          ? LoadingStateWidget.syncing()
-          : RefreshIndicator(
-              onRefresh: _loadStats,
-              color: _accentColor,
-              child: _stats == null
-                  ? EmptyStateWidget.noLearningHistory(
-                      onStartLearning: () => Navigator.pop(context),
-                    )
-                  : ListView(
-                      padding: const EdgeInsets.all(16),
-                      children: [
-                        // 요약 카드
-                        _buildSummaryCard(),
-                        const SizedBox(height: 16),
-
-                        // 스트릭 카드
-                        _buildStreakCard(),
-                        const SizedBox(height: 16),
-
-                        // 주간 활동 그래프
-                        _buildWeeklyActivityCard(),
-                        const SizedBox(height: 16),
-
-                        // 상세 통계
-                        _buildDetailStatsCard(),
-                        const SizedBox(height: 16),
-
-                        // 소셜 통계
-                        _buildSocialStatsCard(),
-                      ],
-                    ),
-            ),
     );
   }
 
@@ -92,15 +122,10 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            _accentColor.withValues(alpha: 0.3),
-            _accentColor.withValues(alpha: 0.1),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: _cardColor,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.3)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -110,7 +135,7 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: ParchmentTheme.ancientInk,
             ),
           ),
           const SizedBox(height: 20),
@@ -129,7 +154,7 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
                   icon: Icons.star,
                   label: '마스터',
                   value: '${_stats!.totalVersesMastered}',
-                  color: Colors.amber,
+                  color: _accentColor,
                 ),
               ),
               Expanded(
@@ -137,7 +162,7 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
                   icon: Icons.timer,
                   label: '학습 시간',
                   value: _stats!.formattedStudyTime,
-                  color: Colors.green,
+                  color: ParchmentTheme.success,
                 ),
               ),
             ],
@@ -169,14 +194,14 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
           style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: ParchmentTheme.ancientInk,
           ),
         ),
         Text(
           label,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 12,
-            color: Colors.white.withValues(alpha: 0.6),
+            color: ParchmentTheme.fadedScript,
           ),
         ),
       ],
@@ -189,6 +214,8 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.2)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Row(
         children: [
@@ -216,14 +243,14 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
                   style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: ParchmentTheme.ancientInk,
                   ),
                 ),
-                Text(
+                const Text(
                   '연속 학습',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.white.withValues(alpha: 0.6),
+                    color: ParchmentTheme.fadedScript,
                   ),
                 ),
               ],
@@ -232,7 +259,7 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
           Container(
             width: 1,
             height: 80,
-            color: Colors.white.withValues(alpha: 0.1),
+            color: ParchmentTheme.warmVellum,
           ),
           // 최장 스트릭
           Expanded(
@@ -241,7 +268,7 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.purple.withValues(alpha: 0.2),
+                    color: _accentColor.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
                   child: const Text(
@@ -255,14 +282,14 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
                   style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: ParchmentTheme.ancientInk,
                   ),
                 ),
-                Text(
+                const Text(
                   '최장 기록',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.white.withValues(alpha: 0.6),
+                    color: ParchmentTheme.fadedScript,
                   ),
                 ),
               ],
@@ -283,6 +310,8 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.2)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -292,7 +321,7 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: ParchmentTheme.ancientInk,
             ),
           ),
           const SizedBox(height: 20),
@@ -312,9 +341,9 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
                     if (data.minutes > 0)
                       Text(
                         '${data.minutes}분',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 10,
-                          color: Colors.white.withValues(alpha: 0.6),
+                          color: ParchmentTheme.fadedScript,
                         ),
                       ),
                     const SizedBox(height: 4),
@@ -324,16 +353,16 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
                       decoration: BoxDecoration(
                         color: data.minutes > 0
                             ? _accentColor
-                            : Colors.white.withValues(alpha: 0.1),
+                            : ParchmentTheme.warmVellum,
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       data.dayLabel,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 12,
-                        color: Colors.white.withValues(alpha: 0.6),
+                        color: ParchmentTheme.fadedScript,
                       ),
                     ),
                   ],
@@ -352,6 +381,8 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.2)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -361,7 +392,7 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: ParchmentTheme.ancientInk,
             ),
           ),
           const SizedBox(height: 16),
@@ -376,14 +407,14 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
             '만점 횟수',
             '${_stats!.perfectQuizCount}회',
             Icons.emoji_events,
-            Colors.amber,
+            _accentColor,
           ),
           const SizedBox(height: 12),
           _buildDetailRow(
             '만점 비율',
             '${(_stats!.perfectQuizRate * 100).toStringAsFixed(1)}%',
             Icons.percent,
-            Colors.green,
+            ParchmentTheme.success,
           ),
         ],
       ),
@@ -410,8 +441,8 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
         Expanded(
           child: Text(
             label,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.8),
+            style: const TextStyle(
+              color: ParchmentTheme.fadedScript,
             ),
           ),
         ),
@@ -419,7 +450,7 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
           value,
           style: const TextStyle(
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: ParchmentTheme.ancientInk,
           ),
         ),
       ],
@@ -432,6 +463,8 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.2)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -441,7 +474,7 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: ParchmentTheme.ancientInk,
             ),
           ),
           const SizedBox(height: 16),
@@ -492,7 +525,7 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
       padding: const EdgeInsets.all(12),
       margin: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: _bgColor,
+        color: ParchmentTheme.warmVellum.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -504,14 +537,14 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
             style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: ParchmentTheme.ancientInk,
             ),
           ),
           Text(
             label,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 11,
-              color: Colors.white.withValues(alpha: 0.6),
+              color: ParchmentTheme.fadedScript,
             ),
           ),
         ],

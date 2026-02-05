@@ -6,6 +6,7 @@ import '../../services/auth_service.dart';
 import '../../services/word_service.dart';
 import '../../services/word_progress_service.dart';
 import '../../services/tts_service.dart';
+import '../../styles/parchment_theme.dart';
 import '../../data/bible_data.dart';
 import 'word_detail_screen.dart';
 import 'flashcard_screen.dart';
@@ -31,11 +32,9 @@ class WordListScreen extends StatefulWidget {
 }
 
 class _WordListScreenState extends State<WordListScreen> {
-  // 다크 테마 상수
-  static const _bgColor = Color(0xFF0F0F1A);
-  static const _cardColor = Color(0xFF1E1E2E);
-  static const _accentColor = Color(0xFF6C63FF);
-  static const _successColor = Color(0xFF4CAF50);
+  // Parchment 테마 색상
+  static const _cardColor = ParchmentTheme.softPapyrus;
+  static const _accentColor = ParchmentTheme.manuscriptGold;
 
   final WordService _wordService = WordService();
   final WordProgressService _progressService = WordProgressService();
@@ -141,9 +140,9 @@ class _WordListScreenState extends State<WordListScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: _cardColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        decoration: const BoxDecoration(
+          color: ParchmentTheme.softPapyrus,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: SafeArea(
           child: Column(
@@ -154,7 +153,7 @@ class _WordListScreenState extends State<WordListScreen> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.3),
+                  color: ParchmentTheme.warmVellum,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -164,15 +163,15 @@ class _WordListScreenState extends State<WordListScreen> {
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: ParchmentTheme.ancientInk,
                 ),
               ),
               const SizedBox(height: 8),
-              Text(
+              const Text(
                 '원하는 퀴즈 유형을 선택하세요',
                 style: TextStyle(
                   fontSize: 14,
-                  color: Colors.white.withValues(alpha: 0.6),
+                  color: ParchmentTheme.fadedScript,
                 ),
               ),
               const SizedBox(height: 24),
@@ -191,7 +190,7 @@ class _WordListScreenState extends State<WordListScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: Material(
-        color: isAvailable ? _accentColor.withValues(alpha: 0.1) : Colors.white.withValues(alpha: 0.05),
+        color: isAvailable ? _accentColor.withValues(alpha: 0.1) : ParchmentTheme.warmVellum.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           onTap: isAvailable
@@ -219,7 +218,7 @@ class _WordListScreenState extends State<WordListScreen> {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: isAvailable ? Colors.white : Colors.white.withValues(alpha: 0.4),
+                          color: isAvailable ? ParchmentTheme.ancientInk : ParchmentTheme.weatheredGray,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -228,8 +227,8 @@ class _WordListScreenState extends State<WordListScreen> {
                         style: TextStyle(
                           fontSize: 12,
                           color: isAvailable
-                              ? Colors.white.withValues(alpha: 0.6)
-                              : Colors.white.withValues(alpha: 0.3),
+                              ? ParchmentTheme.fadedScript
+                              : ParchmentTheme.weatheredGray.withValues(alpha: 0.7),
                         ),
                       ),
                     ],
@@ -239,22 +238,22 @@ class _WordListScreenState extends State<WordListScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.orange.withValues(alpha: 0.2),
+                      color: ParchmentTheme.warning.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Text(
                       '준비중',
                       style: TextStyle(
                         fontSize: 11,
-                        color: Colors.orange,
+                        color: ParchmentTheme.warning,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   )
                 else
-                  Icon(
+                  const Icon(
                     Icons.chevron_right,
-                    color: _accentColor,
+                    color: ParchmentTheme.manuscriptGold,
                   ),
               ],
             ),
@@ -304,43 +303,69 @@ class _WordListScreenState extends State<WordListScreen> {
     final stats = _calculateStats();
 
     return Scaffold(
-      backgroundColor: _bgColor,
-      appBar: AppBar(
-        title: Text('$bookName ${widget.chapter}장 단어'),
-        backgroundColor: _cardColor,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: Column(
-        children: [
-          // 진행률 헤더
-          _buildProgressHeader(stats),
-
-          // 단어 목록
-          Expanded(
-            child: _isLoading
-                ? Center(child: CircularProgressIndicator(color: _accentColor))
-                : _words.isEmpty
-                    ? Center(
-                        child: Text(
-                          '단어 데이터가 없습니다.',
-                          style: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: ParchmentTheme.backgroundGradient,
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Custom AppBar
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios),
+                      color: ParchmentTheme.ancientInk,
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    Expanded(
+                      child: Text(
+                        '$bookName ${widget.chapter}장 단어',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: ParchmentTheme.ancientInk,
                         ),
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _words.length,
-                        itemBuilder: (context, index) {
-                          final word = _words[index];
-                          final progress = _progressMap[word.id];
-                          return _buildWordCard(word, progress);
-                        },
                       ),
-          ),
+                    ),
+                    const SizedBox(width: 48),
+                  ],
+                ),
+              ),
+              // 진행률 헤더
+              _buildProgressHeader(stats),
 
-          // 하단 학습 버튼
-          if (!_isLoading && _words.isNotEmpty) _buildBottomButtons(),
-        ],
+              // 단어 목록
+              Expanded(
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator(color: ParchmentTheme.manuscriptGold))
+                    : _words.isEmpty
+                        ? const Center(
+                            child: Text(
+                              '단어 데이터가 없습니다.',
+                              style: TextStyle(color: ParchmentTheme.fadedScript),
+                            ),
+                          )
+                        : ListView.builder(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: _words.length,
+                            itemBuilder: (context, index) {
+                              final word = _words[index];
+                              final progress = _progressMap[word.id];
+                              return _buildWordCard(word, progress);
+                            },
+                          ),
+              ),
+
+              // 하단 학습 버튼
+              if (!_isLoading && _words.isNotEmpty) _buildBottomButtons(),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -351,43 +376,57 @@ class _WordListScreenState extends State<WordListScreen> {
       decoration: BoxDecoration(
         color: _cardColor,
         border: Border(
-          top: BorderSide(color: _accentColor.withValues(alpha: 0.2)),
+          top: BorderSide(color: _accentColor.withValues(alpha: 0.3)),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: ParchmentTheme.warmVellum.withValues(alpha: 0.5),
+            blurRadius: 8,
+            offset: const Offset(0, -4),
+          ),
+        ],
       ),
       child: SafeArea(
         top: false,
         child: Row(
           children: [
             Expanded(
-              child: ElevatedButton.icon(
-                onPressed: _navigateToFlashcard,
-                icon: const Icon(Icons.style),
-                label: const Text('플래시카드'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _accentColor,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: ParchmentTheme.goldButtonGradient,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: ParchmentTheme.buttonShadow,
+                ),
+                child: ElevatedButton.icon(
+                  onPressed: _navigateToFlashcard,
+                  icon: const Icon(Icons.style),
+                  label: const Text('플래시카드'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    foregroundColor: ParchmentTheme.softPapyrus,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
                   ),
-                  elevation: 0,
                 ),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: ElevatedButton.icon(
+              child: OutlinedButton.icon(
                 onPressed: _navigateToQuiz,
                 icon: const Icon(Icons.quiz),
                 label: const Text('퀴즈'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF9C27B0),
-                  foregroundColor: Colors.white,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: ParchmentTheme.ancientInk,
+                  side: BorderSide(color: _accentColor.withValues(alpha: 0.5), width: 2),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  elevation: 0,
                 ),
               ),
             ),
@@ -427,8 +466,9 @@ class _WordListScreenState extends State<WordListScreen> {
       decoration: BoxDecoration(
         color: _cardColor,
         border: Border(
-          bottom: BorderSide(color: _accentColor.withValues(alpha: 0.2)),
+          bottom: BorderSide(color: _accentColor.withValues(alpha: 0.3)),
         ),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Column(
         children: [
@@ -438,14 +478,14 @@ class _WordListScreenState extends State<WordListScreen> {
               const Text(
                 '학습 진행률',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: ParchmentTheme.ancientInk,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               Text(
                 '${stats.mastered} / ${stats.total} 단어 암기',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.6),
+                style: const TextStyle(
+                  color: ParchmentTheme.fadedScript,
                   fontSize: 12,
                 ),
               ),
@@ -456,9 +496,9 @@ class _WordListScreenState extends State<WordListScreen> {
             borderRadius: BorderRadius.circular(8),
             child: LinearProgressIndicator(
               value: stats.progressPercent,
-              backgroundColor: Colors.white.withValues(alpha: 0.1),
+              backgroundColor: ParchmentTheme.warmVellum,
               valueColor: AlwaysStoppedAnimation<Color>(
-                stats.progressPercent >= 1.0 ? Colors.amber : _successColor,
+                stats.progressPercent >= 1.0 ? ParchmentTheme.manuscriptGold : ParchmentTheme.success,
               ),
               minHeight: 10,
             ),
@@ -478,22 +518,22 @@ class _WordListScreenState extends State<WordListScreen> {
 
     switch (status) {
       case WordStatus.mastered:
-        statusColor = _successColor;
+        statusColor = ParchmentTheme.success;
         statusIcon = Icons.check_circle;
         statusText = '암기완료';
         break;
       case WordStatus.reviewing:
-        statusColor = Colors.blue;
+        statusColor = ParchmentTheme.info;
         statusIcon = Icons.replay;
         statusText = '복습중';
         break;
       case WordStatus.learning:
-        statusColor = Colors.orange;
+        statusColor = ParchmentTheme.warning;
         statusIcon = Icons.pending;
         statusText = '학습중';
         break;
       case WordStatus.notStarted:
-        statusColor = Colors.grey;
+        statusColor = ParchmentTheme.weatheredGray;
         statusIcon = Icons.circle_outlined;
         statusText = '미학습';
     }
@@ -504,8 +544,9 @@ class _WordListScreenState extends State<WordListScreen> {
         color: _cardColor,
         borderRadius: BorderRadius.circular(12),
         border: status == WordStatus.mastered
-            ? Border.all(color: _successColor.withValues(alpha: 0.5), width: 2)
-            : null,
+            ? Border.all(color: ParchmentTheme.success.withValues(alpha: 0.5), width: 2)
+            : Border.all(color: _accentColor.withValues(alpha: 0.2)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: InkWell(
         onTap: () => _navigateToDetail(word),
@@ -538,7 +579,7 @@ class _WordListScreenState extends State<WordListScreen> {
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: ParchmentTheme.ancientInk,
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -553,9 +594,9 @@ class _WordListScreenState extends State<WordListScreen> {
                           ),
                           child: Text(
                             word.partOfSpeechKo,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 10,
-                              color: _accentColor,
+                              color: ParchmentTheme.manuscriptGold,
                             ),
                           ),
                         ),
@@ -564,9 +605,9 @@ class _WordListScreenState extends State<WordListScreen> {
                     const SizedBox(height: 4),
                     Text(
                       word.allMeanings,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 14,
-                        color: Colors.white.withValues(alpha: 0.7),
+                        color: ParchmentTheme.fadedScript,
                       ),
                     ),
                     if (progress != null && progress.totalAttempts > 0) ...[
@@ -587,25 +628,25 @@ class _WordListScreenState extends State<WordListScreen> {
               IconButton(
                 onPressed: () => _playWord(word),
                 icon: isPlaying
-                    ? SizedBox(
+                    ? const SizedBox(
                         width: 24,
                         height: 24,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: _accentColor,
+                          color: ParchmentTheme.manuscriptGold,
                         ),
                       )
-                    : Icon(
+                    : const Icon(
                         Icons.volume_up,
-                        color: _accentColor,
+                        color: ParchmentTheme.manuscriptGold,
                       ),
                 tooltip: '발음 듣기',
               ),
 
               // 화살표
-              Icon(
+              const Icon(
                 Icons.chevron_right,
-                color: Colors.white.withValues(alpha: 0.4),
+                color: ParchmentTheme.weatheredGray,
               ),
             ],
           ),

@@ -8,6 +8,7 @@ import '../../services/auth_service.dart';
 import '../../services/stats_service.dart';
 import '../../services/achievement_service.dart';
 import '../../services/shop_service.dart';
+import '../../styles/parchment_theme.dart';
 import '../../widgets/ux_widgets.dart';
 import '../shop/shop_screen.dart';
 import '../shop/inventory_screen.dart';
@@ -34,9 +35,10 @@ class MyPageScreen extends StatefulWidget {
 
 class _MyPageScreenState extends State<MyPageScreen>
     with SingleTickerProviderStateMixin {
-  static const _bgColor = Color(0xFF0F0F1A);
-  static const _cardColor = Color(0xFF1E1E2E);
-  static const _accentColor = Color(0xFF6C63FF);
+  // Parchment Theme 색상
+  static const _bgColor = ParchmentTheme.agedParchment;
+  static const _cardColor = ParchmentTheme.softPapyrus;
+  static const _accentColor = ParchmentTheme.manuscriptGold;
 
   late TabController _tabController;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -152,43 +154,84 @@ class _MyPageScreenState extends State<MyPageScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bgColor,
-      appBar: AppBar(
-        backgroundColor: _cardColor,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: const Text(
-          '마이페이지',
-          style: TextStyle(fontWeight: FontWeight.bold),
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: ParchmentTheme.backgroundGradient,
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () => _showSettingsSheet(),
-          ),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: _accentColor,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white54,
-          tabs: const [
-            Tab(text: '프로필'),
-            Tab(text: '통계'),
-            Tab(text: '업적'),
+        child: Column(
+          children: [
+            // 커스텀 AppBar
+            SafeArea(
+              bottom: false,
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(8, 8, 16, 0),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back_ios),
+                          color: ParchmentTheme.ancientInk,
+                          onPressed: () => Navigator.of(context).pop(),
+                        ),
+                        const Expanded(
+                          child: Text(
+                            '마이페이지',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: ParchmentTheme.ancientInk,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.settings, color: ParchmentTheme.ancientInk),
+                          onPressed: () => _showSettingsSheet(),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    // TabBar
+                    Container(
+                      decoration: BoxDecoration(
+                        color: ParchmentTheme.warmVellum.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: TabBar(
+                        controller: _tabController,
+                        indicatorColor: _accentColor,
+                        indicatorSize: TabBarIndicatorSize.label,
+                        labelColor: ParchmentTheme.ancientInk,
+                        unselectedLabelColor: ParchmentTheme.weatheredGray,
+                        dividerColor: Colors.transparent,
+                        tabs: const [
+                          Tab(text: '프로필'),
+                          Tab(text: '통계'),
+                          Tab(text: '업적'),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // TabBarView
+            Expanded(
+              child: _isLoading
+                  ? LoadingStateWidget.general()
+                  : TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _buildProfileTab(),
+                        _buildStatsTab(),
+                        _buildAchievementsTab(),
+                      ],
+                    ),
+            ),
           ],
         ),
       ),
-      body: _isLoading
-          ? LoadingStateWidget.general()
-          : TabBarView(
-              controller: _tabController,
-              children: [
-                _buildProfileTab(),
-                _buildStatsTab(),
-                _buildAchievementsTab(),
-              ],
-            ),
     );
   }
 
@@ -226,6 +269,7 @@ class _MyPageScreenState extends State<MyPageScreen>
         color: _cardColor,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: _accentColor.withValues(alpha: 0.3)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Row(
         children: [
@@ -233,11 +277,7 @@ class _MyPageScreenState extends State<MyPageScreen>
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [_accentColor, _accentColor.withValues(alpha: 0.6)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              gradient: ParchmentTheme.goldButtonGradient,
               shape: BoxShape.circle,
             ),
             child: Center(
@@ -246,7 +286,7 @@ class _MyPageScreenState extends State<MyPageScreen>
                 style: const TextStyle(
                   fontSize: 36,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: ParchmentTheme.softPapyrus,
                 ),
               ),
             ),
@@ -261,14 +301,14 @@ class _MyPageScreenState extends State<MyPageScreen>
                   style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: ParchmentTheme.ancientInk,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: _getRoleColor().withValues(alpha: 0.2),
+                    color: _getRoleColor().withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -283,13 +323,13 @@ class _MyPageScreenState extends State<MyPageScreen>
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    const Icon(Icons.toll, color: Colors.amber, size: 18),
+                    const Icon(Icons.toll, color: ParchmentTheme.manuscriptGold, size: 18),
                     const SizedBox(width: 4),
                     Text(
                       '${_user?.talants ?? 0} 탈란트',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 14,
-                        color: Colors.white.withValues(alpha: 0.7),
+                        color: ParchmentTheme.fadedScript,
                       ),
                     ),
                   ],
@@ -314,6 +354,8 @@ class _MyPageScreenState extends State<MyPageScreen>
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -326,7 +368,7 @@ class _MyPageScreenState extends State<MyPageScreen>
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: Colors.amber.withValues(alpha: 0.2),
+                      color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
                     child: Text(
@@ -343,14 +385,14 @@ class _MyPageScreenState extends State<MyPageScreen>
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: ParchmentTheme.ancientInk,
                         ),
                       ),
                       Text(
                         _getLevelTitle(level),
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 12,
-                          color: Colors.white.withValues(alpha: 0.6),
+                          color: ParchmentTheme.weatheredGray,
                         ),
                       ),
                     ],
@@ -359,9 +401,9 @@ class _MyPageScreenState extends State<MyPageScreen>
               ),
               Text(
                 '$currentXP / $xpForNextLevel XP',
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 12,
-                  color: Colors.white.withValues(alpha: 0.5),
+                  color: ParchmentTheme.weatheredGray,
                 ),
               ),
             ],
@@ -371,8 +413,8 @@ class _MyPageScreenState extends State<MyPageScreen>
             borderRadius: BorderRadius.circular(8),
             child: LinearProgressIndicator(
               value: progress.clamp(0.0, 1.0),
-              backgroundColor: Colors.white.withValues(alpha: 0.1),
-              valueColor: const AlwaysStoppedAnimation<Color>(Colors.amber),
+              backgroundColor: ParchmentTheme.warmVellum,
+              valueColor: const AlwaysStoppedAnimation<Color>(ParchmentTheme.manuscriptGold),
               minHeight: 10,
             ),
           ),
@@ -387,6 +429,8 @@ class _MyPageScreenState extends State<MyPageScreen>
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -400,7 +444,7 @@ class _MyPageScreenState extends State<MyPageScreen>
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: ParchmentTheme.ancientInk,
                 ),
               ),
             ],
@@ -410,14 +454,14 @@ class _MyPageScreenState extends State<MyPageScreen>
             children: [
               _buildStatBox(
                 icon: Icons.local_fire_department,
-                iconColor: Colors.orange,
+                iconColor: ParchmentTheme.warning,
                 value: '${_profileStats['currentStreak'] ?? 0}일',
                 label: '연속 학습',
               ),
               const SizedBox(width: 12),
               _buildStatBox(
                 icon: Icons.check_circle,
-                iconColor: Colors.blue,
+                iconColor: ParchmentTheme.info,
                 value: '${_profileStats['completedVerses'] ?? 0}',
                 label: '완료 구절',
               ),
@@ -438,7 +482,7 @@ class _MyPageScreenState extends State<MyPageScreen>
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.05),
+          color: ParchmentTheme.warmVellum.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
@@ -460,14 +504,14 @@ class _MyPageScreenState extends State<MyPageScreen>
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: ParchmentTheme.ancientInk,
                   ),
                 ),
                 Text(
                   label,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 10,
-                    color: Colors.white.withValues(alpha: 0.5),
+                    color: ParchmentTheme.weatheredGray,
                   ),
                 ),
               ],
@@ -484,6 +528,8 @@ class _MyPageScreenState extends State<MyPageScreen>
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -493,21 +539,21 @@ class _MyPageScreenState extends State<MyPageScreen>
             children: [
               Row(
                 children: [
-                  const Icon(Icons.military_tech, color: Colors.amber, size: 20),
+                  const Icon(Icons.military_tech, color: ParchmentTheme.manuscriptGold, size: 20),
                   const SizedBox(width: 8),
                   const Text(
                     '뱃지',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: ParchmentTheme.ancientInk,
                     ),
                   ),
                   const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: _accentColor.withValues(alpha: 0.2),
+                      color: _accentColor.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -528,7 +574,7 @@ class _MyPageScreenState extends State<MyPageScreen>
                     MaterialPageRoute(builder: (_) => const InventoryScreen()),
                   );
                 },
-                child: const Text('전체보기'),
+                child: const Text('전체보기', style: TextStyle(color: ParchmentTheme.manuscriptGold)),
               ),
             ],
           ),
@@ -537,22 +583,22 @@ class _MyPageScreenState extends State<MyPageScreen>
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.05),
+                color: ParchmentTheme.warmVellum.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Center(
+              child: const Center(
                 child: Column(
                   children: [
                     Icon(
                       Icons.emoji_events_outlined,
                       size: 40,
-                      color: Colors.white.withValues(alpha: 0.3),
+                      color: ParchmentTheme.weatheredGray,
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8),
                     Text(
                       '아직 획득한 뱃지가 없습니다',
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.5),
+                        color: ParchmentTheme.weatheredGray,
                       ),
                     ),
                   ],
@@ -568,8 +614,8 @@ class _MyPageScreenState extends State<MyPageScreen>
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: badge.isActive
-                        ? _accentColor.withValues(alpha: 0.2)
-                        : Colors.white.withValues(alpha: 0.05),
+                        ? _accentColor.withValues(alpha: 0.15)
+                        : ParchmentTheme.warmVellum.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(12),
                     border: badge.isActive
                         ? Border.all(color: _accentColor.withValues(alpha: 0.5))
@@ -583,7 +629,7 @@ class _MyPageScreenState extends State<MyPageScreen>
                         badge.itemName,
                         style: TextStyle(
                           fontSize: 10,
-                          color: badge.isActive ? _accentColor : Colors.white70,
+                          color: badge.isActive ? _accentColor : ParchmentTheme.fadedScript,
                         ),
                       ),
                     ],
@@ -601,6 +647,8 @@ class _MyPageScreenState extends State<MyPageScreen>
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Column(
         children: [
@@ -616,7 +664,7 @@ class _MyPageScreenState extends State<MyPageScreen>
               );
             },
           ),
-          const Divider(color: Colors.white12, height: 1, indent: 60),
+          Divider(color: ParchmentTheme.warmVellum, height: 1, indent: 60),
           _buildMenuItem(
             icon: Icons.inventory_2,
             iconColor: Colors.teal,
@@ -655,19 +703,19 @@ class _MyPageScreenState extends State<MyPageScreen>
         title,
         style: const TextStyle(
           fontWeight: FontWeight.w600,
-          color: Colors.white,
+          color: ParchmentTheme.ancientInk,
         ),
       ),
       subtitle: Text(
         subtitle,
-        style: TextStyle(
+        style: const TextStyle(
           fontSize: 12,
-          color: Colors.white.withValues(alpha: 0.5),
+          color: ParchmentTheme.weatheredGray,
         ),
       ),
-      trailing: Icon(
+      trailing: const Icon(
         Icons.chevron_right,
-        color: Colors.white.withValues(alpha: 0.3),
+        color: ParchmentTheme.weatheredGray,
       ),
     );
   }
@@ -1457,15 +1505,12 @@ class _MyPageScreenState extends State<MyPageScreen>
                 child: const Icon(Icons.logout, color: Colors.red, size: 22),
               ),
               title: const Text('로그아웃', style: TextStyle(color: Colors.red)),
-              onTap: () async {
+              subtitle: Text('계정에서 로그아웃',
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12)),
+              trailing: const Icon(Icons.chevron_right, color: Colors.white38),
+              onTap: () {
                 Navigator.pop(context);
-                await widget.authService.signOut();
-                if (mounted) {
-                  Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (_) => const SplashScreen()),
-                    (_) => false,
-                  );
-                }
+                _showLogoutConfirmDialog();
               },
             ),
             const SizedBox(height: 16),
@@ -1559,6 +1604,60 @@ class _MyPageScreenState extends State<MyPageScreen>
         Text(label, style: const TextStyle(color: Colors.white54, fontSize: 14)),
         Text(value, style: const TextStyle(color: Colors.white, fontSize: 14)),
       ],
+    );
+  }
+
+  // ============ 로그아웃 확인 다이얼로그 ============
+  void _showLogoutConfirmDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: _cardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.logout, color: Colors.red, size: 28),
+            SizedBox(width: 12),
+            Text(
+              '로그아웃',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          '정말 로그아웃 하시겠습니까?',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('취소', style: TextStyle(color: Colors.white54)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await widget.authService.signOut();
+              if (mounted) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const SplashScreen()),
+                  (_) => false,
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text('로그아웃'),
+          ),
+        ],
+      ),
     );
   }
 

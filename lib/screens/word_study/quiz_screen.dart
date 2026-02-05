@@ -4,6 +4,7 @@ import '../../models/quiz_type.dart';
 import '../../services/word_progress_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/daily_goal_service.dart';
+import '../../styles/parchment_theme.dart';
 import 'quiz_result_screen.dart';
 
 /// 퀴즈 화면 (4지선다)
@@ -26,11 +27,9 @@ class QuizScreen extends StatefulWidget {
 }
 
 class _QuizScreenState extends State<QuizScreen> {
-  // 다크 테마 상수
-  static const _bgColor = Color(0xFF0F0F1A);
-  static const _cardColor = Color(0xFF1E1E2E);
-  static const _accentColor = Color(0xFF6C63FF);
-  static const _successColor = Color(0xFF4CAF50);
+  // Parchment 테마 색상
+  static const _cardColor = ParchmentTheme.softPapyrus;
+  static const _accentColor = ParchmentTheme.manuscriptGold;
 
   final WordProgressService _progressService = WordProgressService();
 
@@ -201,44 +200,68 @@ class _QuizScreenState extends State<QuizScreen> {
         : widget.bookName;
 
     return Scaffold(
-      backgroundColor: _bgColor,
-      appBar: AppBar(
-        title: Text('$quizTitle ${widget.quizType.displayName}'),
-        backgroundColor: _cardColor,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // 진행률
-            _buildProgress(),
-
-            // 문제
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: Column(
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: ParchmentTheme.backgroundGradient,
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Custom AppBar
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                child: Row(
                   children: [
-                    _buildQuestionCard(word),
-                    const SizedBox(height: 24),
-                    ...List.generate(
-                      options.length,
-                      (i) => _buildOptionButton(
-                        i,
-                        options[i],
-                        correctIndex,
-                        word,
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios),
+                      color: ParchmentTheme.ancientInk,
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    Expanded(
+                      child: Text(
+                        '$quizTitle ${widget.quizType.displayName}',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: ParchmentTheme.ancientInk,
+                        ),
                       ),
                     ),
+                    const SizedBox(width: 48),
                   ],
                 ),
               ),
-            ),
+              // 진행률
+              _buildProgress(),
 
-            // 다음 버튼
-            if (_hasAnswered) _buildNextButton(),
-          ],
+              // 문제
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      _buildQuestionCard(word),
+                      const SizedBox(height: 24),
+                      ...List.generate(
+                        options.length,
+                        (i) => _buildOptionButton(
+                          i,
+                          options[i],
+                          correctIndex,
+                          word,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // 다음 버튼
+              if (_hasAnswered) _buildNextButton(),
+            ],
+          ),
         ),
       ),
     );
@@ -250,8 +273,9 @@ class _QuizScreenState extends State<QuizScreen> {
       decoration: BoxDecoration(
         color: _cardColor,
         border: Border(
-          bottom: BorderSide(color: _accentColor.withValues(alpha: 0.2)),
+          bottom: BorderSide(color: _accentColor.withValues(alpha: 0.3)),
         ),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Column(
         children: [
@@ -261,28 +285,28 @@ class _QuizScreenState extends State<QuizScreen> {
               Text(
                 '문제 ${_currentIndex + 1} / ${_quizWords.length}',
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: ParchmentTheme.ancientInk,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               Row(
                 children: [
-                  Icon(Icons.check_circle, size: 16, color: _successColor),
+                  const Icon(Icons.check_circle, size: 16, color: ParchmentTheme.success),
                   const SizedBox(width: 4),
                   Text(
                     '$_correctCount',
-                    style: TextStyle(
-                      color: _successColor,
+                    style: const TextStyle(
+                      color: ParchmentTheme.success,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Icon(Icons.cancel, size: 16, color: Colors.red),
+                  const Icon(Icons.cancel, size: 16, color: ParchmentTheme.error),
                   const SizedBox(width: 4),
                   Text(
                     '${_wrongWords.length}',
                     style: const TextStyle(
-                      color: Colors.red,
+                      color: ParchmentTheme.error,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -295,8 +319,8 @@ class _QuizScreenState extends State<QuizScreen> {
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: (_currentIndex + 1) / _quizWords.length,
-              backgroundColor: Colors.white.withValues(alpha: 0.1),
-              valueColor: AlwaysStoppedAnimation<Color>(_accentColor),
+              backgroundColor: ParchmentTheme.warmVellum,
+              valueColor: const AlwaysStoppedAnimation<Color>(_accentColor),
               minHeight: 6,
             ),
           ),
@@ -315,6 +339,7 @@ class _QuizScreenState extends State<QuizScreen> {
         color: _cardColor,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: _accentColor.withValues(alpha: 0.3)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Column(
         children: [
@@ -326,8 +351,8 @@ class _QuizScreenState extends State<QuizScreen> {
             ),
             child: Text(
               isKoreanToEnglish ? '이 뜻의 영단어는?' : '이 단어의 뜻은?',
-              style: TextStyle(
-                color: _accentColor,
+              style: const TextStyle(
+                color: ParchmentTheme.manuscriptGold,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -340,7 +365,7 @@ class _QuizScreenState extends State<QuizScreen> {
               style: const TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: ParchmentTheme.ancientInk,
               ),
               textAlign: TextAlign.center,
             ),
@@ -348,14 +373,14 @@ class _QuizScreenState extends State<QuizScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.1),
+                color: ParchmentTheme.warmVellum,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
                 word.partOfSpeechKo,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 12,
-                  color: Colors.white.withValues(alpha: 0.7),
+                  color: ParchmentTheme.fadedScript,
                 ),
               ),
             ),
@@ -363,9 +388,9 @@ class _QuizScreenState extends State<QuizScreen> {
               const SizedBox(height: 8),
               Text(
                 '(${word.meanings.skip(1).join(", ")})',
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 14,
-                  color: Colors.white.withValues(alpha: 0.5),
+                  color: ParchmentTheme.weatheredGray,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -377,15 +402,15 @@ class _QuizScreenState extends State<QuizScreen> {
               style: const TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: ParchmentTheme.ancientInk,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               word.pronunciation,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 16,
-                color: Colors.white.withValues(alpha: 0.6),
+                color: ParchmentTheme.fadedScript,
                 fontStyle: FontStyle.italic,
               ),
             ),
@@ -393,14 +418,14 @@ class _QuizScreenState extends State<QuizScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.1),
+                color: ParchmentTheme.warmVellum,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
                 word.partOfSpeechKo,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 12,
-                  color: Colors.white.withValues(alpha: 0.7),
+                  color: ParchmentTheme.fadedScript,
                 ),
               ),
             ),
@@ -418,17 +443,17 @@ class _QuizScreenState extends State<QuizScreen> {
   ) {
     Color backgroundColor = _cardColor;
     Color borderColor = Colors.transparent;
-    Color textColor = Colors.white;
+    Color textColor = ParchmentTheme.ancientInk;
 
     if (_hasAnswered) {
       if (index == correctIndex) {
-        backgroundColor = _successColor.withValues(alpha: 0.2);
-        borderColor = _successColor;
-        textColor = _successColor;
+        backgroundColor = ParchmentTheme.success.withValues(alpha: 0.15);
+        borderColor = ParchmentTheme.success;
+        textColor = ParchmentTheme.success;
       } else if (index == _selectedAnswer) {
-        backgroundColor = Colors.red.withValues(alpha: 0.2);
-        borderColor = Colors.red;
-        textColor = Colors.red;
+        backgroundColor = ParchmentTheme.error.withValues(alpha: 0.15);
+        borderColor = ParchmentTheme.error;
+        textColor = ParchmentTheme.error;
       }
     } else if (index == _selectedAnswer) {
       borderColor = _accentColor;
@@ -449,10 +474,11 @@ class _QuizScreenState extends State<QuizScreen> {
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: borderColor == Colors.transparent
-                    ? Colors.white.withValues(alpha: 0.1)
+                    ? _accentColor.withValues(alpha: 0.2)
                     : borderColor,
                 width: 2,
               ),
+              boxShadow: ParchmentTheme.cardShadow,
             ),
             child: Row(
               children: [
@@ -462,10 +488,10 @@ class _QuizScreenState extends State<QuizScreen> {
                   decoration: BoxDecoration(
                     color: _hasAnswered
                         ? (index == correctIndex
-                            ? _successColor
+                            ? ParchmentTheme.success
                             : (index == _selectedAnswer
-                                ? Colors.red
-                                : Colors.white.withValues(alpha: 0.1)))
+                                ? ParchmentTheme.error
+                                : ParchmentTheme.warmVellum))
                         : _accentColor.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
@@ -478,13 +504,13 @@ class _QuizScreenState extends State<QuizScreen> {
                                     ? Icons.close
                                     : null),
                             size: 20,
-                            color: Colors.white,
+                            color: ParchmentTheme.softPapyrus,
                           )
                         : Text(
                             '${index + 1}',
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontWeight: FontWeight.bold,
-                              color: _accentColor,
+                              color: ParchmentTheme.manuscriptGold,
                             ),
                           ),
                   ),
@@ -516,16 +542,29 @@ class _QuizScreenState extends State<QuizScreen> {
       decoration: BoxDecoration(
         color: _cardColor,
         border: Border(
-          top: BorderSide(color: _accentColor.withValues(alpha: 0.2)),
+          top: BorderSide(color: _accentColor.withValues(alpha: 0.3)),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: ParchmentTheme.warmVellum.withValues(alpha: 0.5),
+            blurRadius: 8,
+            offset: const Offset(0, -4),
+          ),
+        ],
       ),
-      child: SizedBox(
+      child: Container(
         width: double.infinity,
+        decoration: BoxDecoration(
+          gradient: ParchmentTheme.goldButtonGradient,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: ParchmentTheme.buttonShadow,
+        ),
         child: ElevatedButton(
           onPressed: _nextQuestion,
           style: ElevatedButton.styleFrom(
-            backgroundColor: _accentColor,
-            foregroundColor: Colors.white,
+            backgroundColor: Colors.transparent,
+            shadowColor: Colors.transparent,
+            foregroundColor: ParchmentTheme.softPapyrus,
             padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),

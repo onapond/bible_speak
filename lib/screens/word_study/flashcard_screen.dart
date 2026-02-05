@@ -5,6 +5,7 @@ import '../../services/tts_service.dart';
 import '../../services/word_progress_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/daily_goal_service.dart';
+import '../../styles/parchment_theme.dart';
 
 /// 플래시카드 화면
 class FlashcardScreen extends StatefulWidget {
@@ -25,11 +26,9 @@ class FlashcardScreen extends StatefulWidget {
 
 class _FlashcardScreenState extends State<FlashcardScreen>
     with SingleTickerProviderStateMixin {
-  // 다크 테마 상수
-  static const _bgColor = Color(0xFF0F0F1A);
-  static const _cardColor = Color(0xFF1E1E2E);
-  static const _accentColor = Color(0xFF6C63FF);
-  static const _successColor = Color(0xFF4CAF50);
+  // Parchment 테마 색상
+  static const _cardColor = ParchmentTheme.softPapyrus;
+  static const _accentColor = ParchmentTheme.manuscriptGold;
 
   final TTSService _tts = TTSService();
   final WordProgressService _progressService = WordProgressService();
@@ -149,22 +148,23 @@ class _FlashcardScreenState extends State<FlashcardScreen>
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         backgroundColor: _cardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text(
           '학습 완료!',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: ParchmentTheme.ancientInk),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildResultRow('암기 완료', _knownCount, Colors.green),
-            _buildResultRow('애매함', _vagueCount, Colors.orange),
-            _buildResultRow('모름', _unknownCount, Colors.red),
-            const Divider(color: Colors.white24),
+            _buildResultRow('암기 완료', _knownCount, ParchmentTheme.success),
+            _buildResultRow('애매함', _vagueCount, ParchmentTheme.warning),
+            _buildResultRow('모름', _unknownCount, ParchmentTheme.error),
+            Divider(color: ParchmentTheme.warmVellum.withValues(alpha: 0.5)),
             Text(
               '총 ${_shuffledWords.length}개 단어 학습',
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: ParchmentTheme.ancientInk,
               ),
             ),
             if (earnedTalants > 0) ...[
@@ -172,20 +172,20 @@ class _FlashcardScreenState extends State<FlashcardScreen>
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Colors.amber.withValues(alpha: 0.2),
+                  color: _accentColor.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.amber.withValues(alpha: 0.5)),
+                  border: Border.all(color: _accentColor.withValues(alpha: 0.5)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.monetization_on, color: Colors.amber),
+                    const Icon(Icons.monetization_on, color: ParchmentTheme.manuscriptGold),
                     const SizedBox(width: 8),
                     Text(
                       '+$earnedTalants 달란트',
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: Colors.amber,
+                        color: ParchmentTheme.manuscriptGold,
                         fontSize: 16,
                       ),
                     ),
@@ -201,9 +201,9 @@ class _FlashcardScreenState extends State<FlashcardScreen>
               Navigator.pop(context);
               _resetStudy();
             },
-            child: Text(
+            child: const Text(
               '다시 학습',
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+              style: TextStyle(color: ParchmentTheme.fadedScript),
             ),
           ),
           ElevatedButton(
@@ -213,7 +213,7 @@ class _FlashcardScreenState extends State<FlashcardScreen>
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: _accentColor,
-              foregroundColor: Colors.white,
+              foregroundColor: ParchmentTheme.softPapyrus,
             ),
             child: const Text('완료'),
           ),
@@ -233,7 +233,10 @@ class _FlashcardScreenState extends State<FlashcardScreen>
             decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
           const SizedBox(width: 8),
-          Text(label),
+          Text(
+            label,
+            style: const TextStyle(color: ParchmentTheme.fadedScript),
+          ),
           const Spacer(),
           Text(
             '$count개',
@@ -266,62 +269,85 @@ class _FlashcardScreenState extends State<FlashcardScreen>
   @override
   Widget build(BuildContext context) {
     final word = _shuffledWords[_currentIndex];
+    final titleText = widget.chapter > 0
+        ? '${widget.bookName} ${widget.chapter}장 플래시카드'
+        : '${widget.bookName} 플래시카드';
 
     return Scaffold(
-      backgroundColor: _bgColor,
-      appBar: AppBar(
-        title: Text(
-          widget.chapter > 0
-              ? '${widget.bookName} ${widget.chapter}장 플래시카드'
-              : '${widget.bookName} 플래시카드',
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: ParchmentTheme.backgroundGradient,
         ),
-        backgroundColor: _cardColor,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // 진행 표시
-            _buildProgressIndicator(),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Custom AppBar
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios),
+                      color: ParchmentTheme.ancientInk,
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    Expanded(
+                      child: Text(
+                        titleText,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: ParchmentTheme.ancientInk,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 48),
+                  ],
+                ),
+              ),
+              // 진행 표시
+              _buildProgressIndicator(),
 
-            // 카드
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: GestureDetector(
-                  onTap: _flipCard,
-                  child: AnimatedBuilder(
-                    animation: _flipAnimation,
-                    builder: (context, child) {
-                      final angle = _flipAnimation.value * pi;
-                      final isFront = angle < pi / 2;
+              // 카드
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: GestureDetector(
+                    onTap: _flipCard,
+                    child: AnimatedBuilder(
+                      animation: _flipAnimation,
+                      builder: (context, child) {
+                        final angle = _flipAnimation.value * pi;
+                        final isFront = angle < pi / 2;
 
-                      return Transform(
-                        alignment: Alignment.center,
-                        transform: Matrix4.identity()
-                          ..setEntry(3, 2, 0.001)
-                          ..rotateY(angle),
-                        child: isFront
-                            ? _buildFrontCard(word)
-                            : Transform(
-                                alignment: Alignment.center,
-                                transform: Matrix4.identity()..rotateY(pi),
-                                child: _buildBackCard(word),
-                              ),
-                      );
-                    },
+                        return Transform(
+                          alignment: Alignment.center,
+                          transform: Matrix4.identity()
+                            ..setEntry(3, 2, 0.001)
+                            ..rotateY(angle),
+                          child: isFront
+                              ? _buildFrontCard(word)
+                              : Transform(
+                                  alignment: Alignment.center,
+                                  transform: Matrix4.identity()..rotateY(pi),
+                                  child: _buildBackCard(word),
+                                ),
+                        );
+                      },
+                    ),
                   ),
                 ),
               ),
-            ),
 
-            // 평가 버튼 (뒤집힌 상태에서만)
-            if (_isFlipped) _buildEvaluationButtons(),
+              // 평가 버튼 (뒤집힌 상태에서만)
+              if (_isFlipped) _buildEvaluationButtons(),
 
-            // 네비게이션
-            _buildNavigation(),
-          ],
+              // 네비게이션
+              _buildNavigation(),
+            ],
+          ),
         ),
       ),
     );
@@ -333,8 +359,9 @@ class _FlashcardScreenState extends State<FlashcardScreen>
       decoration: BoxDecoration(
         color: _cardColor,
         border: Border(
-          bottom: BorderSide(color: _accentColor.withValues(alpha: 0.2)),
+          bottom: BorderSide(color: _accentColor.withValues(alpha: 0.3)),
         ),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Column(
         children: [
@@ -344,18 +371,18 @@ class _FlashcardScreenState extends State<FlashcardScreen>
               Text(
                 '${_currentIndex + 1} / ${_shuffledWords.length}',
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: ParchmentTheme.ancientInk,
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                 ),
               ),
               Row(
                 children: [
-                  _buildMiniStat(Icons.check_circle, _knownCount, _successColor),
+                  _buildMiniStat(Icons.check_circle, _knownCount, ParchmentTheme.success),
                   const SizedBox(width: 12),
-                  _buildMiniStat(Icons.help, _vagueCount, Colors.orange),
+                  _buildMiniStat(Icons.help, _vagueCount, ParchmentTheme.warning),
                   const SizedBox(width: 12),
-                  _buildMiniStat(Icons.cancel, _unknownCount, Colors.red),
+                  _buildMiniStat(Icons.cancel, _unknownCount, ParchmentTheme.error),
                 ],
               ),
             ],
@@ -365,8 +392,8 @@ class _FlashcardScreenState extends State<FlashcardScreen>
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: (_currentIndex + 1) / _shuffledWords.length,
-              backgroundColor: Colors.white.withValues(alpha: 0.1),
-              valueColor: AlwaysStoppedAnimation<Color>(_accentColor),
+              backgroundColor: ParchmentTheme.warmVellum,
+              valueColor: const AlwaysStoppedAnimation<Color>(_accentColor),
               minHeight: 6,
             ),
           ),
@@ -396,6 +423,7 @@ class _FlashcardScreenState extends State<FlashcardScreen>
         color: _cardColor,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: _accentColor.withValues(alpha: 0.3)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -407,47 +435,55 @@ class _FlashcardScreenState extends State<FlashcardScreen>
             style: const TextStyle(
               fontSize: 36,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: ParchmentTheme.ancientInk,
             ),
           ),
           const SizedBox(height: 8),
           // 발음 기호
           Text(
             word.pronunciation,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 18,
-              color: Colors.white.withValues(alpha: 0.6),
+              color: ParchmentTheme.fadedScript,
               fontStyle: FontStyle.italic,
             ),
           ),
           const SizedBox(height: 24),
           // 발음 버튼
-          ElevatedButton.icon(
-            onPressed: _playPronunciation,
-            icon: _isPlaying
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : const Icon(Icons.volume_up),
-            label: const Text('발음 듣기'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _accentColor,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              elevation: 0,
+          Container(
+            decoration: BoxDecoration(
+              gradient: ParchmentTheme.goldButtonGradient,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: ParchmentTheme.buttonShadow,
+            ),
+            child: ElevatedButton.icon(
+              onPressed: _playPronunciation,
+              icon: _isPlaying
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: ParchmentTheme.softPapyrus,
+                      ),
+                    )
+                  : const Icon(Icons.volume_up),
+              label: const Text('발음 듣기'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                foregroundColor: ParchmentTheme.softPapyrus,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                elevation: 0,
+              ),
             ),
           ),
           const Spacer(),
           // 힌트
-          Text(
+          const Text(
             '탭하여 뜻 보기',
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.4),
+              color: ParchmentTheme.weatheredGray,
               fontSize: 14,
             ),
           ),
@@ -466,12 +502,13 @@ class _FlashcardScreenState extends State<FlashcardScreen>
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            _accentColor.withValues(alpha: 0.3),
-            const Color(0xFF9C27B0).withValues(alpha: 0.2),
+            _accentColor.withValues(alpha: 0.15),
+            ParchmentTheme.agedParchment,
           ],
         ),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: _accentColor.withValues(alpha: 0.5)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -480,15 +517,23 @@ class _FlashcardScreenState extends State<FlashcardScreen>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             decoration: BoxDecoration(
-              color: _accentColor.withValues(alpha: 0.3),
+              color: _accentColor.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(20),
             ),
-            child: Text(
-              word.partOfSpeechKo,
+            child: const Text(
+              '품사',
               style: TextStyle(
-                color: _accentColor,
+                color: ParchmentTheme.manuscriptGold,
                 fontWeight: FontWeight.bold,
               ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            word.partOfSpeechKo,
+            style: const TextStyle(
+              color: ParchmentTheme.fadedScript,
+              fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 24),
@@ -498,7 +543,7 @@ class _FlashcardScreenState extends State<FlashcardScreen>
             style: const TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: ParchmentTheme.ancientInk,
             ),
             textAlign: TextAlign.center,
           ),
@@ -508,25 +553,26 @@ class _FlashcardScreenState extends State<FlashcardScreen>
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: _cardColor,
+                color: ParchmentTheme.warmVellum.withValues(alpha: 0.7),
                 borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: _accentColor.withValues(alpha: 0.2)),
               ),
               child: Column(
                 children: [
                   Text(
                     '"${word.verses.first.excerpt}"',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontStyle: FontStyle.italic,
                       fontSize: 14,
-                      color: Colors.white.withValues(alpha: 0.9),
+                      color: ParchmentTheme.ancientInk,
                     ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
                   Text(
                     '- ${word.verses.first.reference}',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.5),
+                    style: const TextStyle(
+                      color: ParchmentTheme.fadedScript,
                       fontSize: 12,
                     ),
                   ),
@@ -540,13 +586,13 @@ class _FlashcardScreenState extends State<FlashcardScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.lightbulb, size: 16, color: Colors.amber),
+                const Icon(Icons.lightbulb, size: 16, color: ParchmentTheme.manuscriptGold),
                 const SizedBox(width: 4),
                 Flexible(
                   child: Text(
                     word.memoryTip!,
                     style: const TextStyle(
-                      color: Colors.amber,
+                      color: ParchmentTheme.manuscriptGold,
                       fontSize: 13,
                     ),
                   ),
@@ -568,7 +614,7 @@ class _FlashcardScreenState extends State<FlashcardScreen>
             child: _buildEvalButton(
               '모름',
               Icons.sentiment_dissatisfied,
-              Colors.red,
+              ParchmentTheme.error,
               () => _markAnswer('unknown'),
             ),
           ),
@@ -577,7 +623,7 @@ class _FlashcardScreenState extends State<FlashcardScreen>
             child: _buildEvalButton(
               '애매함',
               Icons.sentiment_neutral,
-              Colors.orange,
+              ParchmentTheme.warning,
               () => _markAnswer('vague'),
             ),
           ),
@@ -586,7 +632,7 @@ class _FlashcardScreenState extends State<FlashcardScreen>
             child: _buildEvalButton(
               '암기!',
               Icons.sentiment_very_satisfied,
-              _successColor,
+              ParchmentTheme.success,
               () => _markAnswer('known'),
             ),
           ),
@@ -604,7 +650,7 @@ class _FlashcardScreenState extends State<FlashcardScreen>
     return ElevatedButton(
       onPressed: onTap,
       style: ElevatedButton.styleFrom(
-        backgroundColor: color.withValues(alpha: 0.2),
+        backgroundColor: color.withValues(alpha: 0.15),
         foregroundColor: color,
         padding: const EdgeInsets.symmetric(vertical: 12),
         shape: RoundedRectangleBorder(
@@ -632,19 +678,19 @@ class _FlashcardScreenState extends State<FlashcardScreen>
           IconButton(
             onPressed: _currentIndex > 0 ? _previousCard : null,
             icon: const Icon(Icons.arrow_back_ios),
-            color: Colors.white,
-            disabledColor: Colors.white.withValues(alpha: 0.3),
+            color: ParchmentTheme.ancientInk,
+            disabledColor: ParchmentTheme.weatheredGray.withValues(alpha: 0.5),
           ),
-          Text(
+          const Text(
             '카드를 탭하여 뒤집기',
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
+            style: TextStyle(color: ParchmentTheme.fadedScript),
           ),
           IconButton(
             onPressed:
                 _currentIndex < _shuffledWords.length - 1 ? _nextCard : null,
             icon: const Icon(Icons.arrow_forward_ios),
-            color: Colors.white,
-            disabledColor: Colors.white.withValues(alpha: 0.3),
+            color: ParchmentTheme.ancientInk,
+            disabledColor: ParchmentTheme.weatheredGray.withValues(alpha: 0.5),
           ),
         ],
       ),

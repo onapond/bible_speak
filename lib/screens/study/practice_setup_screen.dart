@@ -4,7 +4,8 @@ import '../../services/auth_service.dart';
 import '../../services/bible_data_service.dart';
 import '../../services/progress_service.dart';
 import '../../models/verse_progress.dart';
-import '../practice/verse_practice_screen.dart';
+import '../../styles/parchment_theme.dart';
+import '../practice/verse_practice_redesigned.dart';
 
 /// 통합 암송 연습 설정 화면
 /// - 책 선택 (드롭다운)
@@ -43,10 +44,9 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
   Map<int, VerseProgress> _verseProgress = {};
   int _verseCount = 0;
 
-  // 디자인 상수
-  static const _bgColor = Color(0xFF0F0F1A);
-  static const _cardColor = Color(0xFF1E1E2E);
-  static const _accentColor = Color(0xFF6C63FF);
+  // Parchment 테마 색상
+  static const _cardColor = ParchmentTheme.softPapyrus;
+  static const _accentColor = ParchmentTheme.manuscriptGold;
 
   @override
   void initState() {
@@ -142,23 +142,53 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bgColor,
-      appBar: AppBar(
-        title: const Text(
-          '암송 연습',
-          style: TextStyle(fontWeight: FontWeight.bold),
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: ParchmentTheme.backgroundGradient,
         ),
-        backgroundColor: _bgColor,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios),
-          onPressed: () => Navigator.pop(context),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Custom AppBar
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios),
+                      color: ParchmentTheme.ancientInk,
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    const Expanded(
+                      child: Text(
+                        '암송 연습',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: ParchmentTheme.ancientInk,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 48), // Balance for back button
+                  ],
+                ),
+              ),
+              // Body content
+              Expanded(
+                child: _isLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          color: ParchmentTheme.manuscriptGold,
+                        ),
+                      )
+                    : _buildContent(),
+              ),
+            ],
+          ),
         ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: _accentColor))
-          : _buildContent(),
     );
   }
 
@@ -202,15 +232,16 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<Book>(
           value: _selectedBook,
           isExpanded: true,
           dropdownColor: _cardColor,
-          icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white70),
-          style: const TextStyle(color: Colors.white, fontSize: 16),
+          icon: const Icon(Icons.keyboard_arrow_down, color: ParchmentTheme.fadedScript),
+          style: const TextStyle(color: ParchmentTheme.ancientInk, fontSize: 16),
           items: _books.map((book) {
             return DropdownMenuItem<Book>(
               value: book,
@@ -221,7 +252,7 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
                     height: 36,
                     decoration: BoxDecoration(
                       color: book.testament == 'OT'
-                          ? Colors.amber.withValues(alpha: 0.2)
+                          ? ParchmentTheme.warning.withValues(alpha: 0.2)
                           : _accentColor.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -229,7 +260,9 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
                       child: Text(
                         book.nameKo[0],
                         style: TextStyle(
-                          color: book.testament == 'OT' ? Colors.amber : _accentColor,
+                          color: book.testament == 'OT'
+                              ? ParchmentTheme.warning
+                              : _accentColor,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -240,7 +273,7 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
                     child: Text(
                       book.nameKo,
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: ParchmentTheme.ancientInk,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -249,14 +282,14 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: Colors.green.withValues(alpha: 0.2),
+                        color: ParchmentTheme.success.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: const Text(
                         '무료',
                         style: TextStyle(
                           fontSize: 10,
-                          color: Colors.green,
+                          color: ParchmentTheme.success,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -290,20 +323,20 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
       children: [
         Row(
           children: [
-            const Icon(Icons.layers, color: Colors.white70, size: 18),
+            const Icon(Icons.layers, color: ParchmentTheme.fadedScript, size: 18),
             const SizedBox(width: 8),
             const Text(
               '장 선택',
               style: TextStyle(
-                color: Colors.white70,
+                color: ParchmentTheme.fadedScript,
                 fontWeight: FontWeight.w500,
               ),
             ),
             const Spacer(),
             Text(
               '${_selectedBook!.chapterCount}장',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.5),
+              style: const TextStyle(
+                color: ParchmentTheme.weatheredGray,
                 fontSize: 12,
               ),
             ),
@@ -322,11 +355,11 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
 
               Color chipColor;
               if (progress?.status == ChapterStatus.completed) {
-                chipColor = Colors.green;
+                chipColor = ParchmentTheme.success;
               } else if (progress?.status == ChapterStatus.inProgress) {
-                chipColor = Colors.blue;
+                chipColor = ParchmentTheme.info;
               } else {
-                chipColor = Colors.grey;
+                chipColor = ParchmentTheme.weatheredGray;
               }
 
               return GestureDetector(
@@ -340,13 +373,16 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
                   margin: const EdgeInsets.only(right: 8),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? chipColor.withValues(alpha: 0.2)
+                        ? chipColor.withValues(alpha: 0.15)
                         : _cardColor,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: isSelected ? chipColor : Colors.white10,
+                      color: isSelected
+                          ? chipColor
+                          : ParchmentTheme.manuscriptGold.withValues(alpha: 0.2),
                       width: isSelected ? 2 : 1,
                     ),
+                    boxShadow: isSelected ? ParchmentTheme.cardShadow : null,
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -356,7 +392,7 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: isSelected ? chipColor : Colors.white70,
+                          color: isSelected ? chipColor : ParchmentTheme.fadedScript,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -370,11 +406,11 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
                           ),
                         )
                       else
-                        Text(
+                        const Text(
                           '미시작',
                           style: TextStyle(
                             fontSize: 10,
-                            color: Colors.white.withValues(alpha: 0.4),
+                            color: ParchmentTheme.weatheredGray,
                           ),
                         ),
                     ],
@@ -396,19 +432,9 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [_accentColor, Colors.purple.shade700],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        gradient: ParchmentTheme.goldButtonGradient,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: _accentColor.withValues(alpha: 0.3),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
-          ),
-        ],
+        boxShadow: ParchmentTheme.goldGlow,
       ),
       child: Column(
         children: [
@@ -421,7 +447,7 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
                   Text(
                     '${_selectedBook?.nameKo ?? ""} $_selectedChapter장',
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: ParchmentTheme.softPapyrus,
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
@@ -430,7 +456,7 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
                   Text(
                     '$completedVerses / $_verseCount절 완료',
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.8),
+                      color: ParchmentTheme.softPapyrus.withValues(alpha: 0.9),
                       fontSize: 14,
                     ),
                   ),
@@ -444,8 +470,8 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
             borderRadius: BorderRadius.circular(8),
             child: LinearProgressIndicator(
               value: progressRate,
-              backgroundColor: Colors.white24,
-              valueColor: const AlwaysStoppedAnimation<Color>(Colors.greenAccent),
+              backgroundColor: ParchmentTheme.softPapyrus.withValues(alpha: 0.3),
+              valueColor: const AlwaysStoppedAnimation<Color>(ParchmentTheme.success),
               minHeight: 8,
             ),
           ),
@@ -466,15 +492,15 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
             child: CircularProgressIndicator(
               value: progress,
               strokeWidth: 5,
-              backgroundColor: Colors.white24,
-              valueColor: const AlwaysStoppedAnimation<Color>(Colors.greenAccent),
+              backgroundColor: ParchmentTheme.softPapyrus.withValues(alpha: 0.3),
+              valueColor: const AlwaysStoppedAnimation<Color>(ParchmentTheme.success),
             ),
           ),
           Center(
             child: Text(
               '${(progress * 100).toInt()}%',
               style: const TextStyle(
-                color: Colors.white,
+                color: ParchmentTheme.softPapyrus,
                 fontWeight: FontWeight.bold,
                 fontSize: 14,
               ),
@@ -497,27 +523,30 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
             decoration: BoxDecoration(
               color: _cardColor,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white10),
+              border: Border.all(
+                color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3),
+              ),
+              boxShadow: ParchmentTheme.cardShadow,
             ),
             child: Row(
               children: [
                 Icon(
                   _showVerseList ? Icons.expand_less : Icons.expand_more,
-                  color: Colors.white70,
+                  color: ParchmentTheme.fadedScript,
                 ),
                 const SizedBox(width: 8),
                 const Text(
                   '구절 목록',
                   style: TextStyle(
-                    color: Colors.white70,
+                    color: ParchmentTheme.fadedScript,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
                 const Spacer(),
                 Text(
                   '$_verseCount절',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.5),
+                  style: const TextStyle(
+                    color: ParchmentTheme.weatheredGray,
                     fontSize: 12,
                   ),
                 ),
@@ -554,20 +583,20 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
         IconData? icon;
 
         if (isCompleted) {
-          bgColor = Colors.green.withValues(alpha: 0.2);
-          borderColor = Colors.green;
+          bgColor = ParchmentTheme.success.withValues(alpha: 0.15);
+          borderColor = ParchmentTheme.success;
           icon = Icons.check;
         } else if (isInProgress) {
-          bgColor = Colors.blue.withValues(alpha: 0.2);
-          borderColor = Colors.blue;
+          bgColor = ParchmentTheme.info.withValues(alpha: 0.15);
+          borderColor = ParchmentTheme.info;
           icon = Icons.play_arrow;
         } else if (isNext) {
-          bgColor = Colors.amber.withValues(alpha: 0.2);
-          borderColor = Colors.amber;
+          bgColor = ParchmentTheme.manuscriptGold.withValues(alpha: 0.15);
+          borderColor = ParchmentTheme.manuscriptGold;
           icon = Icons.arrow_forward;
         } else {
           bgColor = _cardColor;
-          borderColor = Colors.white10;
+          borderColor = ParchmentTheme.warmVellum;
           icon = null;
         }
 
@@ -591,7 +620,7 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
                     fontWeight: FontWeight.bold,
                     color: isCompleted || isInProgress || isNext
                         ? borderColor
-                        : Colors.white54,
+                        : ParchmentTheme.weatheredGray,
                   ),
                 ),
                 if (icon != null)
@@ -623,9 +652,14 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        border: Border(
+          top: BorderSide(
+            color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3),
+          ),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
+            color: ParchmentTheme.warmVellum.withValues(alpha: 0.5),
             blurRadius: 10,
             offset: const Offset(0, -3),
           ),
@@ -633,14 +667,20 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
       ),
       child: SafeArea(
         top: false,
-        child: SizedBox(
+        child: Container(
           width: double.infinity,
           height: 56,
+          decoration: BoxDecoration(
+            gradient: ParchmentTheme.goldButtonGradient,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: ParchmentTheme.buttonShadow,
+          ),
           child: ElevatedButton(
             onPressed: () => _startPractice(nextVerse),
             style: ElevatedButton.styleFrom(
-              backgroundColor: _accentColor,
-              foregroundColor: Colors.white,
+              backgroundColor: Colors.transparent,
+              shadowColor: Colors.transparent,
+              foregroundColor: ParchmentTheme.softPapyrus,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
@@ -674,7 +714,7 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => VersePracticeScreen(
+        builder: (_) => VersePracticeRedesigned(
           authService: widget.authService,
           book: _selectedBook!.id,
           chapter: _selectedChapter,

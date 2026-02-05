@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/achievement.dart';
 import '../../services/achievement_service.dart';
+import '../../styles/parchment_theme.dart';
 import '../../widgets/ux_widgets.dart';
 
 /// 업적 화면
@@ -13,10 +14,9 @@ class AchievementScreen extends StatefulWidget {
 
 class _AchievementScreenState extends State<AchievementScreen>
     with SingleTickerProviderStateMixin {
-  // 다크 테마 상수
-  static const _bgColor = Color(0xFF0F0F1A);
-  static const _cardColor = Color(0xFF1E1E2E);
-  static const _accentColor = Color(0xFF6C63FF);
+  // Parchment 테마 색상
+  static const _cardColor = ParchmentTheme.softPapyrus;
+  static const _accentColor = ParchmentTheme.manuscriptGold;
 
   final AchievementService _achievementService = AchievementService();
 
@@ -104,48 +104,86 @@ class _AchievementScreenState extends State<AchievementScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bgColor,
-      appBar: AppBar(
-        backgroundColor: _cardColor,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: const Text(
-          '업적',
-          style: TextStyle(fontWeight: FontWeight.bold),
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: ParchmentTheme.backgroundGradient,
         ),
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          indicatorColor: _accentColor,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white54,
-          tabs: [
-            const Tab(text: '전체'),
-            ...AchievementCategory.values.map((c) => Tab(text: c.label)),
-          ],
-        ),
-      ),
-      body: _isLoading
-          ? LoadingStateWidget.general()
-          : Column(
-              children: [
-                // 통계 헤더
-                if (_stats != null) _buildStatsHeader(),
-
-                // 탭 컨텐츠
-                Expanded(
-                  child: TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _buildAchievementList(null),
-                      ...AchievementCategory.values.map(
-                        (c) => _buildAchievementList(c),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Custom AppBar
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios),
+                      color: ParchmentTheme.ancientInk,
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    const Expanded(
+                      child: Text(
+                        '업적',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: ParchmentTheme.ancientInk,
+                        ),
                       ),
-                    ],
+                    ),
+                    const SizedBox(width: 48),
+                  ],
+                ),
+              ),
+              // TabBar
+              Container(
+                decoration: BoxDecoration(
+                  color: _cardColor,
+                  border: Border(
+                    bottom: BorderSide(color: _accentColor.withValues(alpha: 0.3)),
                   ),
                 ),
-              ],
-            ),
+                child: TabBar(
+                  controller: _tabController,
+                  isScrollable: true,
+                  indicatorColor: _accentColor,
+                  labelColor: ParchmentTheme.ancientInk,
+                  unselectedLabelColor: ParchmentTheme.fadedScript,
+                  tabs: [
+                    const Tab(text: '전체'),
+                    ...AchievementCategory.values.map((c) => Tab(text: c.label)),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: _isLoading
+                    ? LoadingStateWidget.general()
+                    : Column(
+                        children: [
+                          // 통계 헤더
+                          if (_stats != null) _buildStatsHeader(),
+
+                          // 탭 컨텐츠
+                          Expanded(
+                            child: TabBarView(
+                              controller: _tabController,
+                              children: [
+                                _buildAchievementList(null),
+                                ...AchievementCategory.values.map(
+                                  (c) => _buildAchievementList(c),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -156,6 +194,8 @@ class _AchievementScreenState extends State<AchievementScreen>
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.3)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Row(
         children: [
@@ -167,7 +207,7 @@ class _AchievementScreenState extends State<AchievementScreen>
               children: [
                 CircularProgressIndicator(
                   value: _stats!.progressRate,
-                  backgroundColor: _bgColor,
+                  backgroundColor: ParchmentTheme.warmVellum,
                   valueColor: const AlwaysStoppedAnimation(_accentColor),
                   strokeWidth: 6,
                 ),
@@ -176,7 +216,7 @@ class _AchievementScreenState extends State<AchievementScreen>
                     '${_stats!.progressPercent}%',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: ParchmentTheme.ancientInk,
                     ),
                   ),
                 ),
@@ -195,31 +235,31 @@ class _AchievementScreenState extends State<AchievementScreen>
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: ParchmentTheme.ancientInk,
                   ),
                 ),
                 const SizedBox(height: 4),
                 if (_stats!.unclaimedRewards > 0)
                   Row(
                     children: [
-                      const Icon(Icons.card_giftcard,
-                          color: Colors.amber, size: 16),
+                      Icon(Icons.card_giftcard,
+                          color: _accentColor, size: 16),
                       const SizedBox(width: 4),
                       Text(
                         '${_stats!.unclaimedRewards}개 보상 수령 가능',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: Colors.amber,
+                          color: _accentColor,
                         ),
                       ),
                     ],
                   )
                 else
-                  Text(
+                  const Text(
                     '계속 도전하세요!',
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.white.withValues(alpha: 0.6),
+                      color: ParchmentTheme.fadedScript,
                     ),
                   ),
               ],
@@ -284,9 +324,8 @@ class _AchievementCard extends StatelessWidget {
     required this.onClaimReward,
   });
 
-  static const _cardColor = Color(0xFF1E1E2E);
-  static const _bgColor = Color(0xFF0F0F1A);
-  static const _accentColor = Color(0xFF6C63FF);
+  static const _cardColor = ParchmentTheme.softPapyrus;
+  static const _accentColor = ParchmentTheme.manuscriptGold;
 
   @override
   Widget build(BuildContext context) {
@@ -307,9 +346,10 @@ class _AchievementCard extends StatelessWidget {
           border: Border.all(
             color: isUnlocked
                 ? achievement.tier.color.withValues(alpha: 0.5)
-                : Colors.transparent,
-            width: 2,
+                : _accentColor.withValues(alpha: 0.2),
+            width: isUnlocked ? 2 : 1,
           ),
+          boxShadow: ParchmentTheme.cardShadow,
         ),
         child: Row(
           children: [
@@ -320,7 +360,7 @@ class _AchievementCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: isUnlocked
                     ? achievement.tier.color.withValues(alpha: 0.2)
-                    : _bgColor,
+                    : ParchmentTheme.warmVellum.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Center(
@@ -347,7 +387,7 @@ class _AchievementCard extends StatelessWidget {
                           achievement.name,
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: isUnlocked ? Colors.white : Colors.white54,
+                            color: isUnlocked ? ParchmentTheme.ancientInk : ParchmentTheme.weatheredGray,
                           ),
                         ),
                       ),
@@ -361,7 +401,7 @@ class _AchievementCard extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: isUnlocked
                               ? achievement.tier.color.withValues(alpha: 0.2)
-                              : _bgColor,
+                              : ParchmentTheme.warmVellum,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
@@ -371,7 +411,7 @@ class _AchievementCard extends StatelessWidget {
                             fontWeight: FontWeight.bold,
                             color: isUnlocked
                                 ? achievement.tier.color
-                                : Colors.white38,
+                                : ParchmentTheme.weatheredGray,
                           ),
                         ),
                       ),
@@ -383,8 +423,8 @@ class _AchievementCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 12,
                       color: isUnlocked
-                          ? Colors.white.withValues(alpha: 0.7)
-                          : Colors.white38,
+                          ? ParchmentTheme.fadedScript
+                          : ParchmentTheme.weatheredGray,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -395,13 +435,13 @@ class _AchievementCard extends StatelessWidget {
                   else
                     Row(
                       children: [
-                        const Icon(Icons.toll, color: Colors.amber, size: 16),
+                        Icon(Icons.toll, color: _accentColor, size: 16),
                         const SizedBox(width: 4),
                         Text(
                           '+${achievement.talantReward}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: Colors.amber,
+                            color: _accentColor,
                           ),
                         ),
                       ],
@@ -417,18 +457,18 @@ class _AchievementCard extends StatelessWidget {
                 icon: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.amber,
+                    color: _accentColor,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Icon(
                     Icons.card_giftcard,
-                    color: Colors.white,
+                    color: ParchmentTheme.softPapyrus,
                     size: 20,
                   ),
                 ),
               )
             else if (isUnlocked)
-              const Icon(Icons.check_circle, color: Colors.green),
+              const Icon(Icons.check_circle, color: ParchmentTheme.success),
           ],
         ),
       ),
@@ -443,7 +483,7 @@ class _AchievementCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(4),
           child: LinearProgressIndicator(
             value: userAchievement.progressRate,
-            backgroundColor: _bgColor,
+            backgroundColor: ParchmentTheme.warmVellum,
             valueColor: AlwaysStoppedAnimation(
               _accentColor.withValues(alpha: 0.7),
             ),
@@ -453,9 +493,9 @@ class _AchievementCard extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           '${userAchievement.progress}/${achievement.requirement}',
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 10,
-            color: Colors.white.withValues(alpha: 0.5),
+            color: ParchmentTheme.weatheredGray,
           ),
         ),
       ],
@@ -473,8 +513,8 @@ class _AchievementDetailSheet extends StatelessWidget {
     required this.onClaimReward,
   });
 
-  static const _bgColor = Color(0xFF0F0F1A);
-  static const _accentColor = Color(0xFF6C63FF);
+  static const _cardColor = ParchmentTheme.softPapyrus;
+  static const _accentColor = ParchmentTheme.manuscriptGold;
 
   @override
   Widget build(BuildContext context) {
@@ -494,7 +534,7 @@ class _AchievementDetailSheet extends StatelessWidget {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.3),
+              color: ParchmentTheme.warmVellum,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -506,7 +546,7 @@ class _AchievementDetailSheet extends StatelessWidget {
             decoration: BoxDecoration(
               color: isUnlocked
                   ? achievement.tier.color.withValues(alpha: 0.2)
-                  : _bgColor,
+                  : ParchmentTheme.warmVellum.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
@@ -522,7 +562,7 @@ class _AchievementDetailSheet extends StatelessWidget {
             style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: ParchmentTheme.ancientInk,
             ),
           ),
           const SizedBox(height: 4),
@@ -547,9 +587,9 @@ class _AchievementDetailSheet extends StatelessWidget {
           // 설명
           Text(
             achievement.description,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 16,
-              color: Colors.white.withValues(alpha: 0.7),
+              color: ParchmentTheme.fadedScript,
             ),
           ),
           const SizedBox(height: 24),
@@ -558,7 +598,7 @@ class _AchievementDetailSheet extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: _bgColor,
+              color: ParchmentTheme.warmVellum.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Column(
@@ -568,13 +608,13 @@ class _AchievementDetailSheet extends StatelessWidget {
                   children: [
                     const Text(
                       '진행 상태',
-                      style: TextStyle(color: Colors.white70),
+                      style: TextStyle(color: ParchmentTheme.fadedScript),
                     ),
                     Text(
                       '${userAchievement.progress}/${achievement.requirement}',
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: ParchmentTheme.ancientInk,
                       ),
                     ),
                   ],
@@ -584,9 +624,9 @@ class _AchievementDetailSheet extends StatelessWidget {
                   borderRadius: BorderRadius.circular(4),
                   child: LinearProgressIndicator(
                     value: userAchievement.progressRate,
-                    backgroundColor: Colors.white.withValues(alpha: 0.1),
+                    backgroundColor: ParchmentTheme.warmVellum,
                     valueColor: AlwaysStoppedAnimation(
-                      isUnlocked ? Colors.green : _accentColor,
+                      isUnlocked ? ParchmentTheme.success : _accentColor,
                     ),
                     minHeight: 8,
                   ),
@@ -597,17 +637,17 @@ class _AchievementDetailSheet extends StatelessWidget {
                   children: [
                     const Text(
                       '보상',
-                      style: TextStyle(color: Colors.white70),
+                      style: TextStyle(color: ParchmentTheme.fadedScript),
                     ),
                     Row(
                       children: [
-                        const Icon(Icons.toll, color: Colors.amber, size: 20),
+                        Icon(Icons.toll, color: _accentColor, size: 20),
                         const SizedBox(width: 4),
                         Text(
                           '+${achievement.talantReward}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: Colors.amber,
+                            color: _accentColor,
                             fontSize: 16,
                           ),
                         ),
@@ -623,29 +663,51 @@ class _AchievementDetailSheet extends StatelessWidget {
           // 버튼
           SizedBox(
             width: double.infinity,
-            child: ElevatedButton(
-              onPressed: canClaim ? onClaimReward : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor:
-                    canClaim ? Colors.amber : Colors.grey.shade700,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: Text(
-                canClaim
-                    ? '보상 받기'
-                    : isUnlocked
-                        ? '보상 수령 완료'
-                        : '미달성',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
+            child: canClaim
+                ? Container(
+                    decoration: BoxDecoration(
+                      gradient: ParchmentTheme.goldButtonGradient,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: ParchmentTheme.buttonShadow,
+                    ),
+                    child: ElevatedButton(
+                      onPressed: onClaimReward,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        foregroundColor: ParchmentTheme.softPapyrus,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        '보상 받기',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  )
+                : ElevatedButton(
+                    onPressed: null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: ParchmentTheme.warmVellum,
+                      foregroundColor: ParchmentTheme.fadedScript,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      isUnlocked ? '보상 수령 완료' : '미달성',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
           ),
           const SizedBox(height: 16),
         ],

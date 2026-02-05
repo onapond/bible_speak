@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/shop_item.dart';
 import '../../services/shop_service.dart';
+import '../../styles/parchment_theme.dart';
 
 /// 인벤토리 화면
 class InventoryScreen extends StatefulWidget {
@@ -11,10 +12,9 @@ class InventoryScreen extends StatefulWidget {
 }
 
 class _InventoryScreenState extends State<InventoryScreen> {
-  // 다크 테마 상수
-  static const _bgColor = Color(0xFF0F0F1A);
-  static const _cardColor = Color(0xFF1E1E2E);
-  static const _accentColor = Color(0xFF6C63FF);
+  // Parchment 테마 색상
+  static const _cardColor = ParchmentTheme.softPapyrus;
+  static const _accentColor = ParchmentTheme.manuscriptGold;
 
   final ShopService _shopService = ShopService();
 
@@ -58,11 +58,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           '${item.emoji} ${item.itemName}',
-          style: const TextStyle(color: Colors.white),
+          style: const TextStyle(color: ParchmentTheme.ancientInk),
         ),
-        content: Text(
+        content: const Text(
           '이 아이템을 사용하시겠습니까?',
-          style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+          style: TextStyle(color: ParchmentTheme.fadedScript),
         ),
         actions: [
           TextButton(
@@ -73,6 +73,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: _accentColor,
+              foregroundColor: ParchmentTheme.softPapyrus,
             ),
             child: const Text('사용'),
           ),
@@ -101,33 +102,62 @@ class _InventoryScreenState extends State<InventoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bgColor,
-      appBar: AppBar(
-        backgroundColor: _cardColor,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: const Text(
-          '내 아이템',
-          style: TextStyle(fontWeight: FontWeight.bold),
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: ParchmentTheme.backgroundGradient,
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Custom AppBar
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios),
+                      color: ParchmentTheme.ancientInk,
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    const Expanded(
+                      child: Text(
+                        '내 아이템',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: ParchmentTheme.ancientInk,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 48),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator(color: _accentColor))
+                    : _inventory.isEmpty
+                        ? _buildEmptyState()
+                        : RefreshIndicator(
+                            onRefresh: _loadInventory,
+                            color: _accentColor,
+                            child: ListView(
+                              padding: const EdgeInsets.all(16),
+                              children: [
+                                // 카테고리별로 그룹화
+                                for (final category in ShopCategory.values) ...[
+                                  _buildCategorySection(category),
+                                ],
+                              ],
+                            ),
+                          ),
+              ),
+            ],
+          ),
         ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: _accentColor))
-          : _inventory.isEmpty
-              ? _buildEmptyState()
-              : RefreshIndicator(
-                  onRefresh: _loadInventory,
-                  color: _accentColor,
-                  child: ListView(
-                    padding: const EdgeInsets.all(16),
-                    children: [
-                      // 카테고리별로 그룹화
-                      for (final category in ShopCategory.values) ...[
-                        _buildCategorySection(category),
-                      ],
-                    ],
-                  ),
-                ),
     );
   }
 
@@ -139,35 +169,43 @@ class _InventoryScreenState extends State<InventoryScreen> {
           Icon(
             Icons.inventory_2_outlined,
             size: 64,
-            color: Colors.white.withValues(alpha: 0.3),
+            color: ParchmentTheme.warmVellum,
           ),
           const SizedBox(height: 16),
-          Text(
+          const Text(
             '보유한 아이템이 없습니다',
             style: TextStyle(
               fontSize: 16,
-              color: Colors.white.withValues(alpha: 0.5),
+              color: ParchmentTheme.fadedScript,
             ),
           ),
           const SizedBox(height: 8),
-          Text(
+          const Text(
             '샵에서 아이템을 구매해보세요!',
             style: TextStyle(
               fontSize: 14,
-              color: Colors.white.withValues(alpha: 0.3),
+              color: ParchmentTheme.weatheredGray,
             ),
           ),
           const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.shopping_bag),
-            label: const Text('샵으로 이동'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _accentColor,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+          Container(
+            decoration: BoxDecoration(
+              gradient: ParchmentTheme.goldButtonGradient,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: ParchmentTheme.buttonShadow,
+            ),
+            child: ElevatedButton.icon(
+              onPressed: () => Navigator.pop(context),
+              icon: const Icon(Icons.shopping_bag),
+              label: const Text('샵으로 이동'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                foregroundColor: ParchmentTheme.softPapyrus,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
           ),
@@ -192,7 +230,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: ParchmentTheme.ancientInk,
                 ),
               ),
               const SizedBox(width: 8),
@@ -204,7 +242,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 ),
                 child: Text(
                   '${categoryItems.length}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
                     color: _accentColor,
@@ -229,9 +267,13 @@ class _InventoryScreenState extends State<InventoryScreen> {
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: item.isActive
-            ? Border.all(color: _accentColor.withValues(alpha: 0.5), width: 2)
-            : null,
+        border: Border.all(
+          color: item.isActive
+              ? _accentColor.withValues(alpha: 0.5)
+              : _accentColor.withValues(alpha: 0.2),
+          width: item.isActive ? 2 : 1,
+        ),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Row(
         children: [
@@ -240,7 +282,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
             width: 50,
             height: 50,
             decoration: BoxDecoration(
-              color: _accentColor.withValues(alpha: 0.1),
+              color: _accentColor.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Center(
@@ -264,7 +306,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         item.itemName,
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: ParchmentTheme.ancientInk,
                         ),
                       ),
                     ),
@@ -281,7 +323,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: ParchmentTheme.softPapyrus,
                           ),
                         ),
                       ),
@@ -292,17 +334,17 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 if (isConsumable)
                   Text(
                     '수량: ${item.quantity}개',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 12,
-                      color: Colors.white.withValues(alpha: 0.6),
+                      color: ParchmentTheme.fadedScript,
                     ),
                   )
                 else
                   Text(
                     category.description,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 12,
-                      color: Colors.white.withValues(alpha: 0.6),
+                      color: ParchmentTheme.fadedScript,
                     ),
                   ),
               ],
@@ -314,7 +356,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
             TextButton(
               onPressed: isConsumable ? () => _useItem(item) : () => _activateItem(item),
               style: TextButton.styleFrom(
-                backgroundColor: _accentColor.withValues(alpha: 0.1),
+                backgroundColor: _accentColor.withValues(alpha: 0.15),
                 foregroundColor: _accentColor,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 shape: RoundedRectangleBorder(

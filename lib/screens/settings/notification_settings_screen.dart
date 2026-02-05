@@ -4,9 +4,10 @@ import 'package:firebase_messaging/firebase_messaging.dart' show AuthorizationSt
 import '../../models/notification_settings.dart' as app_settings;
 import '../../services/notification/notification_service.dart';
 import '../../services/notification/notification_settings_service.dart';
+import '../../styles/parchment_theme.dart';
 import '../../widgets/notification/notification_permission_dialog.dart';
 
-/// 알림 설정 화면 (다크 테마)
+/// 알림 설정 화면
 class NotificationSettingsScreen extends StatefulWidget {
   const NotificationSettingsScreen({super.key});
 
@@ -22,10 +23,9 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
   bool _isLoading = true;
   bool _hasPermission = false;
 
-  // 디자인 상수
-  static const _bgColor = Color(0xFF0F0F1A);
-  static const _cardColor = Color(0xFF1E1E2E);
-  static const _accentColor = Color(0xFF6C63FF);
+  // Parchment 테마 색상
+  static const _cardColor = ParchmentTheme.softPapyrus;
+  static const _accentColor = ParchmentTheme.manuscriptGold;
 
   @override
   void initState() {
@@ -143,48 +143,73 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bgColor,
-      appBar: AppBar(
-        backgroundColor: _bgColor,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: const Text(
-          '알림 설정',
-          style: TextStyle(fontWeight: FontWeight.bold),
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: ParchmentTheme.backgroundGradient,
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios),
-          onPressed: () => Navigator.pop(context),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Custom AppBar
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios),
+                      color: ParchmentTheme.ancientInk,
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    const Expanded(
+                      child: Text(
+                        '알림 설정',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: ParchmentTheme.ancientInk,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 48),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator(color: _accentColor))
+                    : ListView(
+                        padding: const EdgeInsets.all(16),
+                        children: [
+                          // 권한 상태 배너
+                          if (!_hasPermission && !kIsWeb) _buildPermissionBanner(),
+
+                          // 웹 알림 안내
+                          if (kIsWeb) _buildWebNotice(),
+
+                          // 전체 알림 토글
+                          _buildMainToggle(),
+                          const SizedBox(height: 16),
+
+                          // 알림 유형 섹션
+                          _buildSectionTitle('알림 유형'),
+                          const SizedBox(height: 12),
+                          _buildNotificationTypeCard(),
+                          const SizedBox(height: 16),
+
+                          // 알림 옵션 섹션
+                          _buildSectionTitle('알림 옵션'),
+                          const SizedBox(height: 12),
+                          _buildNotificationOptionsCard(),
+                          const SizedBox(height: 32),
+                        ],
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: _accentColor))
-          : ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                // 권한 상태 배너
-                if (!_hasPermission && !kIsWeb) _buildPermissionBanner(),
-
-                // 웹 알림 안내
-                if (kIsWeb) _buildWebNotice(),
-
-                // 전체 알림 토글
-                _buildMainToggle(),
-                const SizedBox(height: 16),
-
-                // 알림 유형 섹션
-                _buildSectionTitle('알림 유형'),
-                const SizedBox(height: 12),
-                _buildNotificationTypeCard(),
-                const SizedBox(height: 16),
-
-                // 알림 옵션 섹션
-                _buildSectionTitle('알림 옵션'),
-                const SizedBox(height: 12),
-                _buildNotificationOptionsCard(),
-                const SizedBox(height: 32),
-              ],
-            ),
     );
   }
 
@@ -193,36 +218,36 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.orange.shade900.withValues(alpha: 0.3),
+        color: ParchmentTheme.warning.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.orange.shade700.withValues(alpha: 0.5)),
+        border: Border.all(color: ParchmentTheme.warning.withValues(alpha: 0.5)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.orange.withValues(alpha: 0.2),
+              color: ParchmentTheme.warning.withValues(alpha: 0.2),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.warning_amber, color: Colors.orange, size: 24),
+            child: const Icon(Icons.warning_amber, color: ParchmentTheme.warning, size: 24),
           ),
           const SizedBox(width: 12),
-          Expanded(
+          const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   '알림 권한이 필요합니다',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: ParchmentTheme.ancientInk,
                   ),
                 ),
-                const SizedBox(height: 2),
+                SizedBox(height: 2),
                 Text(
                   '푸시 알림을 받으려면 권한을 허용해주세요',
-                  style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.7)),
+                  style: TextStyle(fontSize: 12, color: ParchmentTheme.fadedScript),
                 ),
               ],
             ),
@@ -230,8 +255,8 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
           TextButton(
             onPressed: _requestPermission,
             style: TextButton.styleFrom(
-              backgroundColor: Colors.orange,
-              foregroundColor: Colors.white,
+              backgroundColor: ParchmentTheme.warning,
+              foregroundColor: ParchmentTheme.softPapyrus,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
@@ -253,12 +278,12 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
       ),
       child: Row(
         children: [
-          Icon(Icons.info_outline, color: _accentColor.withValues(alpha: 0.8), size: 24),
+          Icon(Icons.info_outline, color: _accentColor, size: 24),
           const SizedBox(width: 12),
-          Expanded(
+          const Expanded(
             child: Text(
               '웹에서는 브라우저 알림으로 제공됩니다.',
-              style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.8)),
+              style: TextStyle(fontSize: 13, color: ParchmentTheme.fadedScript),
             ),
           ),
         ],
@@ -272,16 +297,17 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.3)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: SwitchListTile(
         title: const Text(
           '알림 받기',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          style: TextStyle(color: ParchmentTheme.ancientInk, fontWeight: FontWeight.w600),
         ),
-        subtitle: Text(
+        subtitle: const Text(
           '모든 푸시 알림을 켜거나 끕니다',
-          style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 13),
+          style: TextStyle(color: ParchmentTheme.fadedScript, fontSize: 13),
         ),
         value: _settings.enabled,
         onChanged: (value) => _updateSetting('enabled', value),
@@ -303,10 +329,10 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
       padding: const EdgeInsets.only(left: 4),
       child: Text(
         title,
-        style: TextStyle(
+        style: const TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.bold,
-          color: Colors.white.withValues(alpha: 0.6),
+          color: ParchmentTheme.fadedScript,
         ),
       ),
     );
@@ -317,7 +343,8 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.3)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Column(
         children: [
@@ -406,7 +433,8 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.3)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Column(
         children: [
@@ -457,14 +485,14 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
             title: Text(
               title,
               style: TextStyle(
-                color: onChanged != null ? Colors.white : Colors.white54,
+                color: onChanged != null ? ParchmentTheme.ancientInk : ParchmentTheme.weatheredGray,
                 fontWeight: FontWeight.w500,
               ),
             ),
             subtitle: Text(
               subtitle,
               style: TextStyle(
-                color: onChanged != null ? Colors.white60 : Colors.white38,
+                color: onChanged != null ? ParchmentTheme.fadedScript : ParchmentTheme.warmVellum,
                 fontSize: 12,
               ),
             ),
@@ -513,7 +541,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
   Widget _buildDivider() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Divider(color: Colors.white.withValues(alpha: 0.1), height: 1),
+      child: Divider(color: ParchmentTheme.warmVellum.withValues(alpha: 0.5), height: 1),
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/accessibility_service.dart';
+import '../../styles/parchment_theme.dart';
 
 /// 접근성 설정 화면
 class AccessibilitySettingsScreen extends StatefulWidget {
@@ -12,9 +13,9 @@ class AccessibilitySettingsScreen extends StatefulWidget {
 class _AccessibilitySettingsScreenState extends State<AccessibilitySettingsScreen> {
   final AccessibilityService _a11y = AccessibilityService();
 
-  static const _bgColor = Color(0xFF0F0F1A);
-  static const _cardColor = Color(0xFF1E1E2E);
-  static const _accentColor = Color(0xFF6C63FF);
+  // Parchment 테마 색상
+  static const _cardColor = ParchmentTheme.softPapyrus;
+  static const _accentColor = ParchmentTheme.manuscriptGold;
 
   @override
   void initState() {
@@ -35,51 +36,76 @@ class _AccessibilitySettingsScreenState extends State<AccessibilitySettingsScree
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bgColor,
-      appBar: AppBar(
-        backgroundColor: _bgColor,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: const Text(
-          '접근성',
-          style: TextStyle(fontWeight: FontWeight.bold),
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: ParchmentTheme.backgroundGradient,
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios),
-          onPressed: () => Navigator.pop(context),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Custom AppBar
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios),
+                      color: ParchmentTheme.ancientInk,
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    const Expanded(
+                      child: Text(
+                        '접근성',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: ParchmentTheme.ancientInk,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 48),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    // 텍스트 크기 섹션
+                    _buildSectionTitle('텍스트 크기'),
+                    const SizedBox(height: 12),
+                    _buildTextSizeCard(),
+                    const SizedBox(height: 24),
+
+                    // 시각 섹션
+                    _buildSectionTitle('시각'),
+                    const SizedBox(height: 12),
+                    _buildVisualOptionsCard(),
+                    const SizedBox(height: 24),
+
+                    // 모션 섹션
+                    _buildSectionTitle('모션'),
+                    const SizedBox(height: 12),
+                    _buildMotionOptionsCard(),
+                    const SizedBox(height: 24),
+
+                    // 터치 섹션
+                    _buildSectionTitle('터치'),
+                    const SizedBox(height: 12),
+                    _buildTouchOptionsCard(),
+                    const SizedBox(height: 24),
+
+                    // 초기화 버튼
+                    _buildResetButton(),
+                    const SizedBox(height: 32),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          // 텍스트 크기 섹션
-          _buildSectionTitle('텍스트 크기'),
-          const SizedBox(height: 12),
-          _buildTextSizeCard(),
-          const SizedBox(height: 24),
-
-          // 시각 섹션
-          _buildSectionTitle('시각'),
-          const SizedBox(height: 12),
-          _buildVisualOptionsCard(),
-          const SizedBox(height: 24),
-
-          // 모션 섹션
-          _buildSectionTitle('모션'),
-          const SizedBox(height: 12),
-          _buildMotionOptionsCard(),
-          const SizedBox(height: 24),
-
-          // 터치 섹션
-          _buildSectionTitle('터치'),
-          const SizedBox(height: 12),
-          _buildTouchOptionsCard(),
-          const SizedBox(height: 24),
-
-          // 초기화 버튼
-          _buildResetButton(),
-          const SizedBox(height: 32),
-        ],
       ),
     );
   }
@@ -89,10 +115,10 @@ class _AccessibilitySettingsScreenState extends State<AccessibilitySettingsScree
       padding: const EdgeInsets.only(left: 4),
       child: Text(
         title,
-        style: TextStyle(
+        style: const TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.bold,
-          color: Colors.white.withValues(alpha: 0.6),
+          color: ParchmentTheme.fadedScript,
         ),
       ),
     );
@@ -104,7 +130,8 @@ class _AccessibilitySettingsScreenState extends State<AccessibilitySettingsScree
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.3)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -116,7 +143,7 @@ class _AccessibilitySettingsScreenState extends State<AccessibilitySettingsScree
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.05),
+                color: ParchmentTheme.warmVellum.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
@@ -126,7 +153,7 @@ class _AccessibilitySettingsScreenState extends State<AccessibilitySettingsScree
                     '미리보기',
                     style: TextStyle(
                       fontSize: 12 * _a11y.textScaleFactor,
-                      color: Colors.white54,
+                      color: ParchmentTheme.weatheredGray,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -134,7 +161,7 @@ class _AccessibilitySettingsScreenState extends State<AccessibilitySettingsScree
                     '하나님이 세상을 이처럼 사랑하사',
                     style: TextStyle(
                       fontSize: 16 * _a11y.textScaleFactor,
-                      color: Colors.white,
+                      color: ParchmentTheme.ancientInk,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -143,7 +170,7 @@ class _AccessibilitySettingsScreenState extends State<AccessibilitySettingsScree
                     'For God so loved the world',
                     style: TextStyle(
                       fontSize: 14 * _a11y.textScaleFactor,
-                      color: Colors.white70,
+                      color: ParchmentTheme.fadedScript,
                     ),
                   ),
                 ],
@@ -181,7 +208,7 @@ class _AccessibilitySettingsScreenState extends State<AccessibilitySettingsScree
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isSelected ? _accentColor : Colors.white24,
+              color: isSelected ? _accentColor : ParchmentTheme.warmVellum,
               width: isSelected ? 2 : 1,
             ),
           ),
@@ -191,7 +218,7 @@ class _AccessibilitySettingsScreenState extends State<AccessibilitySettingsScree
                 'Aa',
                 style: TextStyle(
                   fontSize: 16 * option.value,
-                  color: isSelected ? _accentColor : Colors.white70,
+                  color: isSelected ? _accentColor : ParchmentTheme.fadedScript,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -200,7 +227,7 @@ class _AccessibilitySettingsScreenState extends State<AccessibilitySettingsScree
                 option.label,
                 style: TextStyle(
                   fontSize: 11,
-                  color: isSelected ? _accentColor : Colors.white54,
+                  color: isSelected ? _accentColor : ParchmentTheme.weatheredGray,
                 ),
               ),
             ],
@@ -215,7 +242,8 @@ class _AccessibilitySettingsScreenState extends State<AccessibilitySettingsScree
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.3)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Column(
         children: [
@@ -237,7 +265,8 @@ class _AccessibilitySettingsScreenState extends State<AccessibilitySettingsScree
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.3)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Column(
         children: [
@@ -259,7 +288,8 @@ class _AccessibilitySettingsScreenState extends State<AccessibilitySettingsScree
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.3)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Column(
         children: [
@@ -290,14 +320,14 @@ class _AccessibilitySettingsScreenState extends State<AccessibilitySettingsScree
         title: Text(
           title,
           style: const TextStyle(
-            color: Colors.white,
+            color: ParchmentTheme.ancientInk,
             fontWeight: FontWeight.w500,
           ),
         ),
         subtitle: Text(
           subtitle,
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.6),
+          style: const TextStyle(
+            color: ParchmentTheme.fadedScript,
             fontSize: 12,
           ),
         ),
@@ -328,11 +358,11 @@ class _AccessibilitySettingsScreenState extends State<AccessibilitySettingsScree
               backgroundColor: _cardColor,
               title: const Text(
                 '설정 초기화',
-                style: TextStyle(color: Colors.white),
+                style: TextStyle(color: ParchmentTheme.ancientInk),
               ),
               content: const Text(
                 '모든 접근성 설정을 기본값으로 되돌리시겠습니까?',
-                style: TextStyle(color: Colors.white70),
+                style: TextStyle(color: ParchmentTheme.fadedScript),
               ),
               actions: [
                 TextButton(
@@ -343,6 +373,7 @@ class _AccessibilitySettingsScreenState extends State<AccessibilitySettingsScree
                   onPressed: () => Navigator.pop(context, true),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _accentColor,
+                    foregroundColor: ParchmentTheme.softPapyrus,
                   ),
                   child: const Text('초기화'),
                 ),
@@ -356,7 +387,7 @@ class _AccessibilitySettingsScreenState extends State<AccessibilitySettingsScree
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: const Text('접근성 설정이 초기화되었습니다'),
-                  backgroundColor: Colors.green.shade700,
+                  backgroundColor: ParchmentTheme.success,
                   behavior: SnackBarBehavior.floating,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -366,15 +397,15 @@ class _AccessibilitySettingsScreenState extends State<AccessibilitySettingsScree
             }
           }
         },
-        icon: Icon(
+        icon: const Icon(
           Icons.refresh,
-          color: Colors.white.withValues(alpha: 0.6),
+          color: ParchmentTheme.fadedScript,
           size: 18,
         ),
-        label: Text(
+        label: const Text(
           '기본 설정으로 되돌리기',
           style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.6),
+            color: ParchmentTheme.fadedScript,
           ),
         ),
       ),

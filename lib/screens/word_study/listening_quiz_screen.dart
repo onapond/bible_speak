@@ -5,6 +5,7 @@ import '../../services/word_progress_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/daily_goal_service.dart';
 import '../../services/tts_service.dart';
+import '../../styles/parchment_theme.dart';
 import 'quiz_result_screen.dart';
 
 /// 듣고 맞추기 퀴즈 화면
@@ -25,11 +26,9 @@ class ListeningQuizScreen extends StatefulWidget {
 }
 
 class _ListeningQuizScreenState extends State<ListeningQuizScreen> {
-  // 다크 테마 상수
-  static const _bgColor = Color(0xFF0F0F1A);
-  static const _cardColor = Color(0xFF1E1E2E);
-  static const _accentColor = Color(0xFF6C63FF);
-  static const _successColor = Color(0xFF4CAF50);
+  // Parchment 테마 색상
+  static const _cardColor = ParchmentTheme.softPapyrus;
+  static const _accentColor = ParchmentTheme.manuscriptGold;
 
   final WordProgressService _progressService = WordProgressService();
   final TTSService _tts = TTSService();
@@ -168,16 +167,48 @@ class _ListeningQuizScreenState extends State<ListeningQuizScreen> {
   Widget build(BuildContext context) {
     if (_quizWords.isEmpty) {
       return Scaffold(
-        backgroundColor: _bgColor,
-        appBar: AppBar(
-          title: const Text('듣고 맞추기'),
-          backgroundColor: _cardColor,
-          foregroundColor: Colors.white,
-        ),
-        body: const Center(
-          child: Text(
-            '퀴즈에 사용할 단어가 없습니다.',
-            style: TextStyle(color: Colors.white),
+        backgroundColor: Colors.transparent,
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: ParchmentTheme.backgroundGradient,
+          ),
+          child: SafeArea(
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back_ios),
+                        color: ParchmentTheme.ancientInk,
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                      const Expanded(
+                        child: Text(
+                          '듣고 맞추기',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: ParchmentTheme.ancientInk,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 48),
+                    ],
+                  ),
+                ),
+                const Expanded(
+                  child: Center(
+                    child: Text(
+                      '퀴즈에 사용할 단어가 없습니다.',
+                      style: TextStyle(color: ParchmentTheme.ancientInk),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
@@ -189,35 +220,59 @@ class _ListeningQuizScreenState extends State<ListeningQuizScreen> {
         : widget.bookName;
 
     return Scaffold(
-      backgroundColor: _bgColor,
-      appBar: AppBar(
-        title: Text('$quizTitle 듣고 맞추기'),
-        backgroundColor: _cardColor,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildProgress(),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: Column(
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: ParchmentTheme.backgroundGradient,
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Custom AppBar
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                child: Row(
                   children: [
-                    _buildListeningCard(word),
-                    const SizedBox(height: 24),
-                    _buildAnswerInput(word),
-                    if (_hasAnswered) ...[
-                      const SizedBox(height: 16),
-                      _buildResultFeedback(word),
-                    ],
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios),
+                      color: ParchmentTheme.ancientInk,
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    Expanded(
+                      child: Text(
+                        '$quizTitle 듣고 맞추기',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: ParchmentTheme.ancientInk,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 48),
                   ],
                 ),
               ),
-            ),
-            _buildBottomButtons(word),
-          ],
+              _buildProgress(),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      _buildListeningCard(word),
+                      const SizedBox(height: 24),
+                      _buildAnswerInput(word),
+                      if (_hasAnswered) ...[
+                        const SizedBox(height: 16),
+                        _buildResultFeedback(word),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              _buildBottomButtons(word),
+            ],
+          ),
         ),
       ),
     );
@@ -229,8 +284,9 @@ class _ListeningQuizScreenState extends State<ListeningQuizScreen> {
       decoration: BoxDecoration(
         color: _cardColor,
         border: Border(
-          bottom: BorderSide(color: _accentColor.withValues(alpha: 0.2)),
+          bottom: BorderSide(color: _accentColor.withValues(alpha: 0.3)),
         ),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Column(
         children: [
@@ -240,28 +296,28 @@ class _ListeningQuizScreenState extends State<ListeningQuizScreen> {
               Text(
                 '문제 ${_currentIndex + 1} / ${_quizWords.length}',
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: ParchmentTheme.ancientInk,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               Row(
                 children: [
-                  Icon(Icons.check_circle, size: 16, color: _successColor),
+                  const Icon(Icons.check_circle, size: 16, color: ParchmentTheme.success),
                   const SizedBox(width: 4),
                   Text(
                     '$_correctCount',
-                    style: TextStyle(
-                      color: _successColor,
+                    style: const TextStyle(
+                      color: ParchmentTheme.success,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Icon(Icons.cancel, size: 16, color: Colors.red),
+                  const Icon(Icons.cancel, size: 16, color: ParchmentTheme.error),
                   const SizedBox(width: 4),
                   Text(
                     '${_wrongWords.length}',
                     style: const TextStyle(
-                      color: Colors.red,
+                      color: ParchmentTheme.error,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -274,8 +330,8 @@ class _ListeningQuizScreenState extends State<ListeningQuizScreen> {
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: (_currentIndex + 1) / _quizWords.length,
-              backgroundColor: Colors.white.withValues(alpha: 0.1),
-              valueColor: AlwaysStoppedAnimation<Color>(_accentColor),
+              backgroundColor: ParchmentTheme.warmVellum,
+              valueColor: const AlwaysStoppedAnimation<Color>(_accentColor),
               minHeight: 6,
             ),
           ),
@@ -292,6 +348,7 @@ class _ListeningQuizScreenState extends State<ListeningQuizScreen> {
         color: _cardColor,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: _accentColor.withValues(alpha: 0.3)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Column(
         children: [
@@ -304,7 +361,7 @@ class _ListeningQuizScreenState extends State<ListeningQuizScreen> {
             child: const Text(
               '들리는 단어를 입력하세요',
               style: TextStyle(
-                color: Color(0xFF6C63FF),
+                color: ParchmentTheme.manuscriptGold,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -319,17 +376,17 @@ class _ListeningQuizScreenState extends State<ListeningQuizScreen> {
               width: 120,
               height: 120,
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: _isPlaying
-                      ? [Colors.green, Colors.teal]
-                      : [_accentColor, _accentColor.withValues(alpha: 0.7)],
-                ),
+                gradient: _isPlaying
+                    ? LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [ParchmentTheme.success, ParchmentTheme.success.withValues(alpha: 0.7)],
+                      )
+                    : ParchmentTheme.goldButtonGradient,
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: (_isPlaying ? Colors.green : _accentColor)
+                    color: (_isPlaying ? ParchmentTheme.success : _accentColor)
                         .withValues(alpha: 0.4),
                     blurRadius: 20,
                     spreadRadius: 2,
@@ -339,7 +396,7 @@ class _ListeningQuizScreenState extends State<ListeningQuizScreen> {
               child: Icon(
                 _isPlaying ? Icons.volume_up : Icons.play_arrow,
                 size: 60,
-                color: Colors.white,
+                color: ParchmentTheme.softPapyrus,
               ),
             ),
           ),
@@ -347,8 +404,8 @@ class _ListeningQuizScreenState extends State<ListeningQuizScreen> {
           const SizedBox(height: 16),
           Text(
             _isPlaying ? '재생 중...' : '탭하여 다시 듣기',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.6),
+            style: const TextStyle(
+              color: ParchmentTheme.fadedScript,
               fontSize: 14,
             ),
           ),
@@ -357,8 +414,8 @@ class _ListeningQuizScreenState extends State<ListeningQuizScreen> {
             const SizedBox(height: 8),
             Text(
               '재생 횟수: $_playCount',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.4),
+              style: const TextStyle(
+                color: ParchmentTheme.weatheredGray,
                 fontSize: 12,
               ),
             ),
@@ -370,16 +427,16 @@ class _ListeningQuizScreenState extends State<ListeningQuizScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
-                color: Colors.amber.withValues(alpha: 0.2),
+                color: _accentColor.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.amber.withValues(alpha: 0.5)),
+                border: Border.all(color: _accentColor.withValues(alpha: 0.5)),
               ),
               child: Column(
                 children: [
                   Text(
                     '힌트: ${word.primaryMeaning}',
                     style: const TextStyle(
-                      color: Colors.amber,
+                      color: ParchmentTheme.manuscriptGold,
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
                     ),
@@ -387,8 +444,8 @@ class _ListeningQuizScreenState extends State<ListeningQuizScreen> {
                   const SizedBox(height: 4),
                   Text(
                     '(${word.partOfSpeechKo})',
-                    style: TextStyle(
-                      color: Colors.amber.withValues(alpha: 0.7),
+                    style: const TextStyle(
+                      color: ParchmentTheme.fadedScript,
                       fontSize: 12,
                     ),
                   ),
@@ -407,6 +464,8 @@ class _ListeningQuizScreenState extends State<ListeningQuizScreen> {
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.2)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Column(
         children: [
@@ -418,22 +477,22 @@ class _ListeningQuizScreenState extends State<ListeningQuizScreen> {
             style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: ParchmentTheme.ancientInk,
               letterSpacing: 2,
             ),
             decoration: InputDecoration(
               hintText: '영단어 입력',
-              hintStyle: TextStyle(
-                color: Colors.white.withValues(alpha: 0.3),
+              hintStyle: const TextStyle(
+                color: ParchmentTheme.weatheredGray,
                 fontWeight: FontWeight.normal,
                 letterSpacing: 0,
               ),
               filled: true,
               fillColor: _hasAnswered
                   ? (_isCorrect
-                      ? _successColor.withValues(alpha: 0.2)
-                      : Colors.red.withValues(alpha: 0.2))
-                  : Colors.white.withValues(alpha: 0.05),
+                      ? ParchmentTheme.success.withValues(alpha: 0.2)
+                      : ParchmentTheme.error.withValues(alpha: 0.2))
+                  : ParchmentTheme.warmVellum.withValues(alpha: 0.5),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
@@ -446,13 +505,13 @@ class _ListeningQuizScreenState extends State<ListeningQuizScreen> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: _accentColor, width: 2),
+                borderSide: const BorderSide(color: _accentColor, width: 2),
               ),
               disabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(
                   color: _hasAnswered
-                      ? (_isCorrect ? _successColor : Colors.red)
+                      ? (_isCorrect ? ParchmentTheme.success : ParchmentTheme.error)
                       : Colors.transparent,
                   width: 2,
                 ),
@@ -464,16 +523,16 @@ class _ListeningQuizScreenState extends State<ListeningQuizScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
+              const Icon(
                 Icons.info_outline,
                 size: 14,
-                color: Colors.white.withValues(alpha: 0.4),
+                color: ParchmentTheme.weatheredGray,
               ),
               const SizedBox(width: 4),
               Text(
                 '${word.word.length}글자',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.5),
+                style: const TextStyle(
+                  color: ParchmentTheme.fadedScript,
                   fontSize: 12,
                 ),
               ),
@@ -485,15 +544,14 @@ class _ListeningQuizScreenState extends State<ListeningQuizScreen> {
   }
 
   Widget _buildResultFeedback(BibleWord word) {
+    final resultColor = _isCorrect ? ParchmentTheme.success : ParchmentTheme.error;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _isCorrect
-            ? _successColor.withValues(alpha: 0.2)
-            : Colors.red.withValues(alpha: 0.2),
+        color: resultColor.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: _isCorrect ? _successColor : Colors.red,
+          color: resultColor,
           width: 2,
         ),
       ),
@@ -503,7 +561,7 @@ class _ListeningQuizScreenState extends State<ListeningQuizScreen> {
             children: [
               Icon(
                 _isCorrect ? Icons.check_circle : Icons.cancel,
-                color: _isCorrect ? _successColor : Colors.red,
+                color: resultColor,
                 size: 32,
               ),
               const SizedBox(width: 12),
@@ -516,7 +574,7 @@ class _ListeningQuizScreenState extends State<ListeningQuizScreen> {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: _isCorrect ? _successColor : Colors.red,
+                        color: resultColor,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -525,13 +583,13 @@ class _ListeningQuizScreenState extends State<ListeningQuizScreen> {
                       style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: ParchmentTheme.ancientInk,
                       ),
                     ),
                     Text(
                       word.pronunciation,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.6),
+                      style: const TextStyle(
+                        color: ParchmentTheme.fadedScript,
                         fontStyle: FontStyle.italic,
                       ),
                     ),
@@ -556,13 +614,13 @@ class _ListeningQuizScreenState extends State<ListeningQuizScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.1),
+              color: ParchmentTheme.warmVellum.withValues(alpha: 0.7),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
               '${word.primaryMeaning} (${word.partOfSpeechKo})',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.8),
+              style: const TextStyle(
+                color: ParchmentTheme.ancientInk,
               ),
             ),
           ),
@@ -577,8 +635,15 @@ class _ListeningQuizScreenState extends State<ListeningQuizScreen> {
       decoration: BoxDecoration(
         color: _cardColor,
         border: Border(
-          top: BorderSide(color: _accentColor.withValues(alpha: 0.2)),
+          top: BorderSide(color: _accentColor.withValues(alpha: 0.3)),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: ParchmentTheme.warmVellum.withValues(alpha: 0.5),
+            blurRadius: 8,
+            offset: const Offset(0, -4),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -590,8 +655,8 @@ class _ListeningQuizScreenState extends State<ListeningQuizScreen> {
                 icon: const Icon(Icons.lightbulb_outline),
                 label: const Text('뜻 보기'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.orange,
-                  side: BorderSide(color: Colors.orange.withValues(alpha: 0.5)),
+                  foregroundColor: ParchmentTheme.warning,
+                  side: BorderSide(color: ParchmentTheme.warning.withValues(alpha: 0.5)),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -604,24 +669,32 @@ class _ListeningQuizScreenState extends State<ListeningQuizScreen> {
           // 확인/다음 버튼
           Expanded(
             flex: _hasAnswered || _showMeaningHint ? 1 : 2,
-            child: ElevatedButton(
-              onPressed: _hasAnswered ? _nextQuestion : _checkAnswer,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _hasAnswered ? _accentColor : _successColor,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 0,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: ParchmentTheme.goldButtonGradient,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: ParchmentTheme.buttonShadow,
               ),
-              child: Text(
-                _hasAnswered
-                    ? (_currentIndex >= _quizWords.length - 1 ? '결과 보기' : '다음 문제')
-                    : '정답 확인',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+              child: ElevatedButton(
+                onPressed: _hasAnswered ? _nextQuestion : _checkAnswer,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  foregroundColor: ParchmentTheme.softPapyrus,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 0,
+                ),
+                child: Text(
+                  _hasAnswered
+                      ? (_currentIndex >= _quizWords.length - 1 ? '결과 보기' : '다음 문제')
+                      : '정답 확인',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),

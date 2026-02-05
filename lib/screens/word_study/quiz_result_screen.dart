@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
 import '../../models/bible_word.dart';
 import '../../models/quiz_type.dart';
+import '../../styles/parchment_theme.dart';
 import 'quiz_screen.dart';
 import 'fill_blank_quiz_screen.dart';
 import 'listening_quiz_screen.dart';
 
 /// 퀴즈 결과 화면
 class QuizResultScreen extends StatelessWidget {
-  // 다크 테마 상수
-  static const _bgColor = Color(0xFF0F0F1A);
-  static const _cardColor = Color(0xFF1E1E2E);
-  static const _accentColor = Color(0xFF6C63FF);
-  static const _successColor = Color(0xFF4CAF50);
+  // Parchment 테마 색상
+  static const _cardColor = ParchmentTheme.softPapyrus;
+  static const _accentColor = ParchmentTheme.manuscriptGold;
 
   final int totalQuestions;
   final int correctCount;
@@ -51,40 +50,65 @@ class QuizResultScreen extends StatelessWidget {
   }
 
   Color get gradeColor {
-    if (scorePercent >= 90) return Colors.amber;
-    if (scorePercent >= 70) return _successColor;
-    if (scorePercent >= 50) return Colors.orange;
-    return Colors.red;
+    if (scorePercent >= 90) return ParchmentTheme.manuscriptGold;
+    if (scorePercent >= 70) return ParchmentTheme.success;
+    if (scorePercent >= 50) return ParchmentTheme.warning;
+    return ParchmentTheme.error;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bgColor,
-      appBar: AppBar(
-        title: const Text('퀴즈 결과'),
-        backgroundColor: _cardColor,
-        foregroundColor: Colors.white,
-        automaticallyImplyLeading: false,
-        elevation: 0,
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: ParchmentTheme.backgroundGradient,
+        ),
+        child: SafeArea(
           child: Column(
             children: [
-              // 점수 카드
-              _buildScoreCard(),
-              const SizedBox(height: 20),
+              // Custom AppBar
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                child: Row(
+                  children: [
+                    const SizedBox(width: 48),
+                    const Expanded(
+                      child: Text(
+                        '퀴즈 결과',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: ParchmentTheme.ancientInk,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 48),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      // 점수 카드
+                      _buildScoreCard(),
+                      const SizedBox(height: 20),
 
-              // 틀린 단어
-              if (wrongWords.isNotEmpty) ...[
-                _buildWrongWordsCard(),
-                const SizedBox(height: 20),
-              ],
+                      // 틀린 단어
+                      if (wrongWords.isNotEmpty) ...[
+                        _buildWrongWordsCard(),
+                        const SizedBox(height: 20),
+                      ],
 
-              // 버튼들
-              _buildActionButtons(context),
+                      // 버튼들
+                      _buildActionButtons(context),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -99,6 +123,7 @@ class QuizResultScreen extends StatelessWidget {
         color: _cardColor,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: _accentColor.withValues(alpha: 0.3)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Column(
         children: [
@@ -124,7 +149,7 @@ class QuizResultScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
             decoration: BoxDecoration(
-              color: gradeColor.withValues(alpha: 0.2),
+              color: gradeColor.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Row(
@@ -155,17 +180,17 @@ class QuizResultScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _buildStatColumn('정답', correctCount, _successColor),
+              _buildStatColumn('정답', correctCount, ParchmentTheme.success),
               Container(
                 width: 1,
                 height: 40,
-                color: Colors.white.withValues(alpha: 0.2),
+                color: ParchmentTheme.warmVellum,
               ),
-              _buildStatColumn('오답', wrongWords.length, Colors.red),
+              _buildStatColumn('오답', wrongWords.length, ParchmentTheme.error),
               Container(
                 width: 1,
                 height: 40,
-                color: Colors.white.withValues(alpha: 0.2),
+                color: ParchmentTheme.warmVellum,
               ),
               _buildStatColumn('총 문제', totalQuestions, _accentColor),
             ],
@@ -176,20 +201,20 @@ class QuizResultScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               decoration: BoxDecoration(
-                color: Colors.amber.withValues(alpha: 0.2),
+                color: _accentColor.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.amber.withValues(alpha: 0.5)),
+                border: Border.all(color: _accentColor.withValues(alpha: 0.5)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.monetization_on, color: Colors.amber, size: 28),
+                  const Icon(Icons.monetization_on, color: ParchmentTheme.manuscriptGold, size: 28),
                   const SizedBox(width: 8),
                   Text(
                     '+$earnedTalants 달란트 획득!',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: Colors.amber,
+                      color: ParchmentTheme.manuscriptGold,
                       fontSize: 18,
                     ),
                   ),
@@ -215,9 +240,9 @@ class QuizResultScreen extends StatelessWidget {
         ),
         Text(
           label,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 12,
-            color: Colors.white.withValues(alpha: 0.6),
+            color: ParchmentTheme.fadedScript,
           ),
         ),
       ],
@@ -230,40 +255,42 @@ class QuizResultScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.2)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.error_outline, color: Colors.red),
+              const Icon(Icons.error_outline, color: ParchmentTheme.error),
               const SizedBox(width: 8),
               const Text(
                 '틀린 단어',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: ParchmentTheme.ancientInk,
                 ),
               ),
               const Spacer(),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.red.withValues(alpha: 0.2),
+                  color: ParchmentTheme.error.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   '${wrongWords.length}개',
                   style: const TextStyle(
-                    color: Colors.red,
+                    color: ParchmentTheme.error,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
             ],
           ),
-          Divider(height: 24, color: Colors.white.withValues(alpha: 0.1)),
+          Divider(height: 24, color: ParchmentTheme.warmVellum.withValues(alpha: 0.5)),
           ...wrongWords.map((word) => Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: Row(
@@ -277,13 +304,13 @@ class QuizResultScreen extends StatelessWidget {
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
-                              color: Colors.white,
+                              color: ParchmentTheme.ancientInk,
                             ),
                           ),
                           Text(
                             word.allMeanings,
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.6),
+                            style: const TextStyle(
+                              color: ParchmentTheme.fadedScript,
                               fontSize: 14,
                             ),
                           ),
@@ -296,14 +323,14 @@ class QuizResultScreen extends StatelessWidget {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: _accentColor.withValues(alpha: 0.2),
+                        color: _accentColor.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
                         word.partOfSpeechKo,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 11,
-                          color: _accentColor,
+                          color: ParchmentTheme.manuscriptGold,
                         ),
                       ),
                     ),
@@ -358,11 +385,12 @@ class QuizResultScreen extends StatelessWidget {
               icon: const Icon(Icons.replay),
               label: const Text('틀린 단어만 다시 풀기'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-                foregroundColor: Colors.white,
+                backgroundColor: ParchmentTheme.warning.withValues(alpha: 0.15),
+                foregroundColor: ParchmentTheme.warning,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(color: ParchmentTheme.warning.withValues(alpha: 0.5)),
                 ),
                 elevation: 0,
               ),
@@ -371,8 +399,13 @@ class QuizResultScreen extends StatelessWidget {
         const SizedBox(height: 12),
 
         // 전체 다시 풀기
-        SizedBox(
+        Container(
           width: double.infinity,
+          decoration: BoxDecoration(
+            gradient: ParchmentTheme.goldButtonGradient,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: ParchmentTheme.buttonShadow,
+          ),
           child: ElevatedButton.icon(
             onPressed: () {
               Navigator.pushReplacement(
@@ -385,8 +418,9 @@ class QuizResultScreen extends StatelessWidget {
             icon: const Icon(Icons.refresh),
             label: const Text('전체 다시 풀기'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: _accentColor,
-              foregroundColor: Colors.white,
+              backgroundColor: Colors.transparent,
+              shadowColor: Colors.transparent,
+              foregroundColor: ParchmentTheme.softPapyrus,
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
@@ -409,8 +443,8 @@ class QuizResultScreen extends StatelessWidget {
             icon: const Icon(Icons.check),
             label: const Text('완료'),
             style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.white,
-              side: BorderSide(color: Colors.white.withValues(alpha: 0.3), width: 2),
+              foregroundColor: ParchmentTheme.ancientInk,
+              side: BorderSide(color: _accentColor.withValues(alpha: 0.5), width: 2),
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),

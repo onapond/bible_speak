@@ -9,12 +9,14 @@ import '../../services/review_service.dart';
 import '../../services/daily_quiz_service.dart';
 import '../../services/daily_goal_service.dart';
 import '../../services/stats_service.dart';
+import '../../styles/parchment_theme.dart';
 import '../../widgets/social/activity_ticker.dart';
 import '../../widgets/social/live_activity_ticker.dart';
 import '../../widgets/social/group_goal_widget.dart';
 import '../../widgets/social/streak_widget.dart';
 import '../../widgets/social/morning_manna_widget.dart';
 import '../../widgets/social/nudge_widget.dart';
+import '../../widgets/common/parchment_card.dart';
 import '../../models/user_streak.dart';
 import '../../models/daily_verse.dart';
 import '../../models/nudge.dart';
@@ -24,7 +26,7 @@ import '../../widgets/common/shimmer_loading.dart';
 import '../../widgets/common/animated_transitions.dart';
 import '../ranking/ranking_screen.dart';
 import '../word_study/word_study_home_screen.dart';
-import '../practice/verse_practice_screen.dart';
+import '../practice/verse_practice_redesigned.dart';
 import '../social/community_screen.dart';
 import '../study/learning_center_screen.dart';
 import '../mypage/my_page_screen.dart';
@@ -210,10 +212,14 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     final hasGroup = user != null && user.groupId.isNotEmpty;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F1A),
-      body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: ParchmentTheme.backgroundGradient,
+        ),
+        child: SafeArea(
+          child: CustomScrollView(
+            slivers: [
             // 헤더
             SliverToBoxAdapter(
               child: _buildHeader(user?.name ?? '사용자', user?.talants ?? 0),
@@ -387,6 +393,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
             ),
           ],
         ),
+        ),
       ),
     );
   }
@@ -406,7 +413,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: ParchmentTheme.ancientInk,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -414,7 +421,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                   '안녕하세요, $userName님!',
                   style: const TextStyle(
                     fontSize: 14,
-                    color: Colors.white70,
+                    color: ParchmentTheme.fadedScript,
                   ),
                 ),
               ],
@@ -424,21 +431,21 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
-              color: const Color(0xFFFFD700).withOpacity(0.15),
+              color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFFFFD700).withOpacity(0.3)),
+              border: Border.all(color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.4)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.monetization_on, color: Color(0xFFFFD700), size: 18),
+                const Icon(Icons.monetization_on, color: ParchmentTheme.manuscriptGold, size: 18),
                 const SizedBox(width: 6),
                 Text(
                   '$talants',
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFFFFD700),
+                    color: ParchmentTheme.manuscriptGold,
                   ),
                 ),
               ],
@@ -460,9 +467,16 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF1E1E2E),
+          color: ParchmentTheme.softPapyrus,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white10),
+          border: Border.all(color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3)),
+          boxShadow: [
+            BoxShadow(
+              color: ParchmentTheme.warmVellum.withValues(alpha: 0.5),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -470,7 +484,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.15),
+                color: color.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, size: 32, color: color),
@@ -481,7 +495,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: Colors.white,
+                color: ParchmentTheme.ancientInk,
               ),
             ),
             const SizedBox(height: 4),
@@ -489,7 +503,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
               subtitle,
               style: const TextStyle(
                 fontSize: 12,
-                color: Colors.white54,
+                color: ParchmentTheme.weatheredGray,
               ),
             ),
           ],
@@ -539,7 +553,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => VersePracticeScreen(
+        builder: (_) => VersePracticeRedesigned(
           authService: widget.authService,
           book: _dailyVerse!.bookId,
           chapter: _dailyVerse!.chapter,
@@ -600,13 +614,8 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     final hasQuiz = !_hasCompletedQuiz;
     final totalTasks = (hasReview ? 1 : 0) + (hasQuiz ? 1 : 0);
 
-    return Container(
+    return ParchmentCard(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E2E),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white10),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -616,12 +625,12 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.amber.withValues(alpha: 0.2),
+                  color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(
                   Icons.checklist,
-                  color: Colors.amber,
+                  color: ParchmentTheme.manuscriptGold,
                   size: 20,
                 ),
               ),
@@ -632,7 +641,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: ParchmentTheme.ancientInk,
                   ),
                 ),
               ),
@@ -640,7 +649,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.orange.withValues(alpha: 0.2),
+                    color: ParchmentTheme.warning.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
@@ -648,7 +657,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: Colors.orange,
+                      color: ParchmentTheme.warning,
                     ),
                   ),
                 )
@@ -656,7 +665,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.green.withValues(alpha: 0.2),
+                    color: ParchmentTheme.success.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Text(
@@ -664,7 +673,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: Colors.green,
+                      color: ParchmentTheme.success,
                     ),
                   ),
                 ),
@@ -681,7 +690,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
               _buildQuickActionChip(
                 icon: Icons.replay,
                 label: hasReview ? '복습 $_dueReviewCount개' : '복습 완료',
-                color: hasReview ? Colors.teal : Colors.grey,
+                color: hasReview ? ParchmentTheme.info : ParchmentTheme.weatheredGray,
                 isActive: hasReview,
                 onTap: () => _navigateToLearningCenter(tabIndex: 1),
               ),
@@ -689,7 +698,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
               _buildQuickActionChip(
                 icon: Icons.quiz,
                 label: hasQuiz ? '오늘의 퀴즈' : '퀴즈 완료',
-                color: hasQuiz ? Colors.orange : Colors.grey,
+                color: hasQuiz ? ParchmentTheme.warning : ParchmentTheme.weatheredGray,
                 isActive: hasQuiz,
                 onTap: () => _navigateToLearningCenter(tabIndex: 2),
               ),
@@ -697,7 +706,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
               _buildQuickActionChip(
                 icon: Icons.menu_book,
                 label: '암송 연습',
-                color: Colors.blue,
+                color: ParchmentTheme.manuscriptGold,
                 isActive: true,
                 onTap: () => _navigateToLearningCenter(tabIndex: 0),
               ),
@@ -722,10 +731,10 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: isActive ? color.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.05),
+          color: isActive ? color.withValues(alpha: 0.15) : ParchmentTheme.warmVellum.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isActive ? color.withValues(alpha: 0.5) : Colors.white12,
+            color: isActive ? color.withValues(alpha: 0.5) : ParchmentTheme.warmVellum,
           ),
         ),
         child: Row(
@@ -734,7 +743,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
             Icon(
               icon,
               size: 18,
-              color: isActive ? color : Colors.white38,
+              color: isActive ? color : ParchmentTheme.weatheredGray,
             ),
             const SizedBox(width: 8),
             Text(
@@ -742,7 +751,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: isActive ? color : Colors.white38,
+                color: isActive ? color : ParchmentTheme.weatheredGray,
               ),
             ),
             if (isActive) ...[
@@ -765,13 +774,8 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     final overallProgress = goal.overallProgress;
     final stats = _userStats;
 
-    return Container(
+    return ParchmentCard(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E2E),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white10),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -781,12 +785,12 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.purple.withValues(alpha: 0.2),
+                  color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(
                   Icons.trending_up,
-                  color: Colors.purple,
+                  color: ParchmentTheme.manuscriptGold,
                   size: 20,
                 ),
               ),
@@ -797,7 +801,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: ParchmentTheme.ancientInk,
                   ),
                 ),
               ),
@@ -813,7 +817,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
             label: '단어',
             current: goal.studiedWords,
             target: goal.targetWords,
-            color: Colors.blue,
+            color: ParchmentTheme.info,
           ),
           const SizedBox(height: 10),
           _buildGoalProgressRow(
@@ -821,7 +825,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
             label: '퀴즈',
             current: goal.completedQuizzes,
             target: goal.targetQuizzes,
-            color: Colors.orange,
+            color: ParchmentTheme.warning,
           ),
           const SizedBox(height: 10),
           _buildGoalProgressRow(
@@ -829,7 +833,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
             label: '플래시카드',
             current: goal.completedFlashcards,
             target: goal.targetFlashcards,
-            color: Colors.green,
+            color: ParchmentTheme.success,
           ),
 
           // 목표 달성 시 축하 메시지
@@ -838,9 +842,9 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.green.withValues(alpha: 0.15),
+                color: ParchmentTheme.success.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+                border: Border.all(color: ParchmentTheme.success.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
@@ -852,7 +856,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                           ? '오늘 목표 달성! 보너스 달란트 획득 완료'
                           : '오늘 목표 달성! 보너스 달란트를 받으세요',
                       style: const TextStyle(
-                        color: Colors.green,
+                        color: ParchmentTheme.success,
                         fontWeight: FontWeight.w600,
                         fontSize: 13,
                       ),
@@ -867,13 +871,13 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.green,
+                          color: ParchmentTheme.success,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Text(
                           '받기',
                           style: TextStyle(
-                            color: Colors.white,
+                            color: ParchmentTheme.softPapyrus,
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
                           ),
@@ -888,7 +892,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
           // 주간 통계 (있을 경우)
           if (stats != null) ...[
             const SizedBox(height: 16),
-            const Divider(color: Colors.white12),
+            Divider(color: ParchmentTheme.warmVellum),
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -897,19 +901,19 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                   label: '총 암송',
                   value: '${stats.totalVersesLearned}',
                   icon: Icons.menu_book,
-                  color: Colors.blue,
+                  color: ParchmentTheme.info,
                 ),
                 _buildMiniStatItem(
                   label: '마스터',
                   value: '${stats.totalVersesMastered}',
                   icon: Icons.star,
-                  color: Colors.amber,
+                  color: ParchmentTheme.manuscriptGold,
                 ),
                 _buildMiniStatItem(
                   label: '학습 시간',
                   value: '${stats.totalStudyMinutes}분',
                   icon: Icons.timer,
-                  color: Colors.teal,
+                  color: ParchmentTheme.success,
                 ),
               ],
             ),
@@ -935,19 +939,19 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
             child: CircularProgressIndicator(
               value: progress,
               strokeWidth: 4,
-              backgroundColor: Colors.white12,
+              backgroundColor: ParchmentTheme.warmVellum,
               valueColor: AlwaysStoppedAnimation(
-                isComplete ? Colors.green : Colors.purple,
+                isComplete ? ParchmentTheme.success : ParchmentTheme.manuscriptGold,
               ),
             ),
           ),
           Center(
             child: isComplete
-                ? const Icon(Icons.check, color: Colors.green, size: 22)
+                ? const Icon(Icons.check, color: ParchmentTheme.success, size: 22)
                 : Text(
                     '$percent%',
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: ParchmentTheme.ancientInk,
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
                     ),
@@ -979,7 +983,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
             label,
             style: TextStyle(
               fontSize: 13,
-              color: Colors.white.withValues(alpha: 0.8),
+              color: ParchmentTheme.fadedScript,
             ),
           ),
         ),
@@ -988,9 +992,9 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: progress,
-              backgroundColor: Colors.white12,
+              backgroundColor: ParchmentTheme.warmVellum,
               valueColor: AlwaysStoppedAnimation(
-                isComplete ? Colors.green : color,
+                isComplete ? ParchmentTheme.success : color,
               ),
               minHeight: 6,
             ),
@@ -1005,7 +1009,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: isComplete ? Colors.green : Colors.white70,
+              color: isComplete ? ParchmentTheme.success : ParchmentTheme.fadedScript,
             ),
           ),
         ),
@@ -1035,9 +1039,9 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
         const SizedBox(height: 2),
         Text(
           label,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 11,
-            color: Colors.white.withValues(alpha: 0.6),
+            color: ParchmentTheme.weatheredGray,
           ),
         ),
       ],
@@ -1079,7 +1083,6 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     String title;
     String subtitle;
     IconData icon;
-    List<Color> gradientColors;
     VoidCallback onTap;
 
     if (hasReview) {
@@ -1087,14 +1090,12 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
       title = '복습하기';
       subtitle = '오늘 복습할 구절 $_dueReviewCount개';
       icon = Icons.replay;
-      gradientColors = [Colors.teal.shade600, Colors.cyan.shade600];
       onTap = () => _navigateToLearningCenter(tabIndex: 1);
     } else if (hasQuiz) {
       // 퀴즈 다음
       title = '오늘의 퀴즈';
       subtitle = '매일 퀴즈로 실력 점검';
       icon = Icons.quiz;
-      gradientColors = [Colors.orange.shade600, Colors.deepOrange.shade600];
       onTap = () => _navigateToLearningCenter(tabIndex: 2);
     } else {
       // 새 학습
@@ -1103,7 +1104,6 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
           ? _dailyVerse!.reference
           : '새로운 구절을 시작해보세요';
       icon = Icons.play_arrow_rounded;
-      gradientColors = [Colors.blue.shade600, Colors.purple.shade600];
       onTap = () => _navigateToDailyVerse();
     }
 
@@ -1114,15 +1114,11 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: gradientColors,
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          gradient: ParchmentTheme.goldButtonGradient,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: gradientColors[0].withValues(alpha: 0.3),
+              color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3),
               blurRadius: 12,
               offset: const Offset(0, 6),
             ),
@@ -1133,12 +1129,12 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
+                color: ParchmentTheme.softPapyrus.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Icon(
                 icon,
-                color: Colors.white,
+                color: ParchmentTheme.softPapyrus,
                 size: 32,
               ),
             ),
@@ -1152,7 +1148,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: ParchmentTheme.softPapyrus,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -1160,15 +1156,15 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                     subtitle,
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.white.withValues(alpha: 0.9),
+                      color: ParchmentTheme.softPapyrus.withValues(alpha: 0.9),
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(
+            Icon(
               Icons.arrow_forward_ios,
-              color: Colors.white70,
+              color: ParchmentTheme.softPapyrus.withValues(alpha: 0.7),
               size: 20,
             ),
           ],

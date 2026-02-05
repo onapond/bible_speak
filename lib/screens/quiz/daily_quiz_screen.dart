@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/daily_quiz.dart';
 import '../../services/daily_quiz_service.dart';
+import '../../styles/parchment_theme.dart';
 import '../../widgets/common/animated_counter.dart';
 
 /// 일일 퀴즈 화면
@@ -12,10 +13,9 @@ class DailyQuizScreen extends StatefulWidget {
 }
 
 class _DailyQuizScreenState extends State<DailyQuizScreen> {
-  // 다크 테마 상수
-  static const _bgColor = Color(0xFF0F0F1A);
-  static const _cardColor = Color(0xFF1E1E2E);
-  static const _accentColor = Color(0xFF6C63FF);
+  // Parchment 테마 색상
+  static const _cardColor = ParchmentTheme.softPapyrus;
+  static const _accentColor = ParchmentTheme.manuscriptGold;
 
   final DailyQuizService _quizService = DailyQuizService();
 
@@ -135,42 +135,71 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bgColor,
-      appBar: AppBar(
-        backgroundColor: _cardColor,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: const Text(
-          '오늘의 퀴즈',
-          style: TextStyle(fontWeight: FontWeight.bold),
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: ParchmentTheme.backgroundGradient,
         ),
-        actions: [
-          if (_streak != null)
-            Padding(
-              padding: const EdgeInsets.only(right: 16),
-              child: Row(
-                children: [
-                  const Icon(Icons.local_fire_department, color: Colors.orange, size: 20),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${_streak!.currentStreak}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.orange,
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Custom AppBar
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios),
+                      color: ParchmentTheme.ancientInk,
+                      onPressed: () => Navigator.pop(context),
                     ),
-                  ),
-                ],
+                    const Expanded(
+                      child: Text(
+                        '오늘의 퀴즈',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: ParchmentTheme.ancientInk,
+                        ),
+                      ),
+                    ),
+                    if (_streak != null)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.local_fire_department, color: Colors.orange, size: 20),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${_streak!.currentStreak}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.orange,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      const SizedBox(width: 48),
+                  ],
+                ),
               ),
-            ),
-        ],
+              // Body content
+              Expanded(
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator(color: _accentColor))
+                    : _hasCompleted
+                        ? _buildResultView()
+                        : _startTime == null
+                            ? _buildStartView()
+                            : _buildQuizView(),
+              ),
+            ],
+          ),
+        ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: _accentColor))
-          : _hasCompleted
-              ? _buildResultView()
-              : _startTime == null
-                  ? _buildStartView()
-                  : _buildQuizView(),
     );
   }
 
@@ -188,13 +217,19 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
           const SizedBox(height: 24),
 
           // 시작 버튼
-          SizedBox(
+          Container(
             width: double.infinity,
+            decoration: BoxDecoration(
+              gradient: ParchmentTheme.goldButtonGradient,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: ParchmentTheme.buttonShadow,
+            ),
             child: ElevatedButton(
               onPressed: _startQuiz,
               style: ElevatedButton.styleFrom(
-                backgroundColor: _accentColor,
-                foregroundColor: Colors.white,
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                foregroundColor: ParchmentTheme.softPapyrus,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
@@ -224,13 +259,15 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.3)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.orange.withValues(alpha: 0.2),
+              color: Colors.orange.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(16),
             ),
             child: const Icon(
@@ -248,7 +285,7 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
                   '연속 참여',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.white70,
+                    color: ParchmentTheme.fadedScript,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -265,9 +302,9 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
                     const SizedBox(width: 12),
                     Text(
                       '최고: ${_streak!.longestStreak}일',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 12,
-                        color: Colors.white.withValues(alpha: 0.5),
+                        color: ParchmentTheme.weatheredGray,
                       ),
                     ),
                   ],
@@ -280,9 +317,9 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
             children: [
               Text(
                 '총 ${_streak!.totalQuizzesTaken}회',
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 12,
-                  color: Colors.white.withValues(alpha: 0.6),
+                  color: ParchmentTheme.fadedScript,
                 ),
               ),
               const SizedBox(height: 4),
@@ -306,6 +343,8 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.3)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Column(
         children: [
@@ -314,7 +353,7 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: _accentColor.withValues(alpha: 0.2),
+                  color: _accentColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(Icons.quiz, color: _accentColor, size: 28),
@@ -329,15 +368,15 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: ParchmentTheme.ancientInk,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       '${_quiz!.questionCount}문제',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 14,
-                        color: Colors.white.withValues(alpha: 0.6),
+                        color: ParchmentTheme.fadedScript,
                       ),
                     ),
                   ],
@@ -346,7 +385,7 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
             ],
           ),
           const SizedBox(height: 20),
-          const Divider(color: Colors.white12),
+          Divider(color: ParchmentTheme.warmVellum),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -382,9 +421,9 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
         const SizedBox(height: 8),
         Text(
           label,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 12,
-            color: Colors.white.withValues(alpha: 0.6),
+            color: ParchmentTheme.fadedScript,
           ),
         ),
         const SizedBox(height: 4),
@@ -422,7 +461,7 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: _accentColor.withValues(alpha: 0.2),
+                    color: _accentColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -442,7 +481,7 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: ParchmentTheme.ancientInk,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -454,16 +493,17 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
                     decoration: BoxDecoration(
                       color: _cardColor,
                       borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: _accentColor.withValues(alpha: 0.2)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           question.verseText!,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 16,
                             fontStyle: FontStyle.italic,
-                            color: Colors.white.withValues(alpha: 0.9),
+                            color: ParchmentTheme.ancientInk,
                             height: 1.5,
                           ),
                         ),
@@ -471,9 +511,9 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
                           const SizedBox(height: 8),
                           Text(
                             '- ${question.verseReference}',
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 14,
-                              color: Colors.white.withValues(alpha: 0.6),
+                              color: ParchmentTheme.fadedScript,
                             ),
                           ),
                         ],
@@ -492,13 +532,14 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? _accentColor.withValues(alpha: 0.2)
+                            ? _accentColor.withValues(alpha: 0.1)
                             : _cardColor,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: isSelected ? _accentColor : Colors.transparent,
-                          width: 2,
+                          color: isSelected ? _accentColor : ParchmentTheme.warmVellum,
+                          width: isSelected ? 2 : 1,
                         ),
+                        boxShadow: isSelected ? ParchmentTheme.cardShadow : null,
                       ),
                       child: Row(
                         children: [
@@ -507,16 +548,16 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
                             height: 24,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: isSelected ? _accentColor : _bgColor,
+                              color: isSelected ? _accentColor : ParchmentTheme.warmVellum,
                               border: Border.all(
                                 color: isSelected
                                     ? _accentColor
-                                    : Colors.white.withValues(alpha: 0.3),
+                                    : ParchmentTheme.weatheredGray,
                               ),
                             ),
                             child: isSelected
                                 ? const Icon(Icons.check,
-                                    color: Colors.white, size: 16)
+                                    color: ParchmentTheme.softPapyrus, size: 16)
                                 : null,
                           ),
                           const SizedBox(width: 16),
@@ -526,8 +567,8 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
                               style: TextStyle(
                                 fontSize: 16,
                                 color: isSelected
-                                    ? Colors.white
-                                    : Colors.white.withValues(alpha: 0.8),
+                                    ? ParchmentTheme.ancientInk
+                                    : ParchmentTheme.fadedScript,
                               ),
                             ),
                           ),
@@ -552,7 +593,12 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
 
     return Container(
       padding: const EdgeInsets.all(16),
-      color: _cardColor,
+      decoration: BoxDecoration(
+        color: _cardColor,
+        border: Border(
+          bottom: BorderSide(color: _accentColor.withValues(alpha: 0.2)),
+        ),
+      ),
       child: Column(
         children: [
           Row(
@@ -562,13 +608,13 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
                 '문제 ${_currentIndex + 1}/${_quiz!.questionCount}',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: ParchmentTheme.ancientInk,
                 ),
               ),
               Text(
                 '${(_answers[_quiz!.questions[_currentIndex].id] != null ? _currentIndex + 1 : _currentIndex)}개 완료',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.6),
+                style: const TextStyle(
+                  color: ParchmentTheme.fadedScript,
                 ),
               ),
             ],
@@ -577,7 +623,7 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
           AnimatedProgressBar(
             progress: progress,
             height: 6,
-            backgroundColor: _bgColor,
+            backgroundColor: ParchmentTheme.warmVellum,
             valueColor: _accentColor,
           ),
         ],
@@ -593,9 +639,12 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: _cardColor,
+        border: Border(
+          top: BorderSide(color: _accentColor.withValues(alpha: 0.3)),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
+            color: ParchmentTheme.warmVellum.withValues(alpha: 0.5),
             blurRadius: 10,
             offset: const Offset(0, -4),
           ),
@@ -608,8 +657,8 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
               child: OutlinedButton(
                 onPressed: _previousQuestion,
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  side: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
+                  foregroundColor: ParchmentTheme.ancientInk,
+                  side: const BorderSide(color: _accentColor),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -621,19 +670,29 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
           if (_currentIndex > 0) const SizedBox(width: 12),
           Expanded(
             flex: 2,
-            child: ElevatedButton(
-              onPressed: hasAnswer ? _nextQuestion : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: hasAnswer ? _accentColor : Colors.grey.shade700,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+            child: Container(
+              decoration: hasAnswer
+                  ? BoxDecoration(
+                      gradient: ParchmentTheme.goldButtonGradient,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: ParchmentTheme.buttonShadow,
+                    )
+                  : null,
+              child: ElevatedButton(
+                onPressed: hasAnswer ? _nextQuestion : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: hasAnswer ? Colors.transparent : ParchmentTheme.warmVellum,
+                  shadowColor: Colors.transparent,
+                  foregroundColor: hasAnswer ? ParchmentTheme.softPapyrus : ParchmentTheme.weatheredGray,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
-              ),
-              child: Text(
-                isLast ? '제출' : '다음',
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                child: Text(
+                  isLast ? '제출' : '다음',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
             ),
           ),
@@ -657,6 +716,8 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
             decoration: BoxDecoration(
               color: _cardColor,
               borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: _accentColor.withValues(alpha: 0.3)),
+              boxShadow: ParchmentTheme.cardShadow,
             ),
             child: Column(
               children: [
@@ -677,15 +738,15 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
                   style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: ParchmentTheme.ancientInk,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   '${result.correctCount}/${result.totalQuestions} 정답',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 16,
-                    color: Colors.white.withValues(alpha: 0.7),
+                    color: ParchmentTheme.fadedScript,
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -711,7 +772,7 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.purple.withValues(alpha: 0.2),
+                      color: Colors.purple.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -735,6 +796,7 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
             decoration: BoxDecoration(
               color: _cardColor,
               borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: _accentColor.withValues(alpha: 0.2)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -768,15 +830,15 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: _accentColor.withValues(alpha: 0.3)),
             ),
-            child: Row(
+            child: const Row(
               children: [
-                const Icon(Icons.schedule, color: _accentColor),
-                const SizedBox(width: 12),
+                Icon(Icons.schedule, color: _accentColor),
+                SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     '내일 새로운 퀴즈가 준비됩니다!',
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.8),
+                      color: ParchmentTheme.fadedScript,
                     ),
                   ),
                 ),
@@ -786,13 +848,19 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
           const SizedBox(height: 24),
 
           // 홈으로 버튼
-          SizedBox(
+          Container(
             width: double.infinity,
+            decoration: BoxDecoration(
+              gradient: ParchmentTheme.goldButtonGradient,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: ParchmentTheme.buttonShadow,
+            ),
             child: ElevatedButton(
               onPressed: () => Navigator.pop(context),
               style: ElevatedButton.styleFrom(
-                backgroundColor: _accentColor,
-                foregroundColor: Colors.white,
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                foregroundColor: ParchmentTheme.softPapyrus,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -817,13 +885,13 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
   }) {
     return Column(
       children: [
-        Icon(icon, color: Colors.white.withValues(alpha: 0.6), size: 24),
+        Icon(icon, color: ParchmentTheme.fadedScript, size: 24),
         const SizedBox(height: 8),
         Text(
           label,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 12,
-            color: Colors.white.withValues(alpha: 0.6),
+            color: ParchmentTheme.fadedScript,
           ),
         ),
         const SizedBox(height: 4),
@@ -832,7 +900,7 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
-            color: valueColor ?? Colors.white,
+            color: valueColor ?? ParchmentTheme.ancientInk,
           ),
         ),
       ],

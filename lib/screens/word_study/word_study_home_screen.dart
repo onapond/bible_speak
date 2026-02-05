@@ -5,6 +5,7 @@ import '../../services/word_progress_service.dart';
 import '../../services/daily_goal_service.dart';
 import '../../models/daily_goal.dart';
 import '../../data/bible_data.dart';
+import '../../styles/parchment_theme.dart';
 import '../../widgets/word_study/daily_goal_card.dart';
 import 'word_list_screen.dart';
 import 'flashcard_screen.dart';
@@ -25,11 +26,10 @@ class WordStudyHomeScreen extends StatefulWidget {
 }
 
 class _WordStudyHomeScreenState extends State<WordStudyHomeScreen> {
-  // 다크 테마 상수
-  static const _bgColor = Color(0xFF0F0F1A);
-  static const _cardColor = Color(0xFF1E1E2E);
-  static const _accentColor = Color(0xFF6C63FF);
-  static const _successColor = Color(0xFF4CAF50);
+  // Parchment 테마 색상
+  static const _cardColor = ParchmentTheme.softPapyrus;
+  static const _accentColor = ParchmentTheme.manuscriptGold;
+  static const _successColor = ParchmentTheme.success;
 
   final WordService _wordService = WordService();
   final WordProgressService _progressService = WordProgressService();
@@ -101,64 +101,76 @@ class _WordStudyHomeScreenState extends State<WordStudyHomeScreen> {
     final hasWords = chaptersWithWords.contains(_selectedChapter);
 
     return Scaffold(
-      backgroundColor: _bgColor,
-      appBar: AppBar(
-        title: const Text('단어 공부'),
-        backgroundColor: _cardColor,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minHeight: MediaQuery.of(context).size.height -
-                  MediaQuery.of(context).padding.top -
-                  MediaQuery.of(context).padding.bottom -
-                  kToolbarHeight -
-                  40,
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: ParchmentTheme.backgroundGradient,
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Custom AppBar
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                child: Row(
                   children: [
-                    // 헤더 카드
-                    _buildHeaderCard(),
-                    const SizedBox(height: 20),
-
-                    // 일일 학습 목표 카드
-                    DailyGoalCard(
-                      onSettingsTap: _showGoalSettingsDialog,
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios),
+                      color: ParchmentTheme.ancientInk,
+                      onPressed: () => Navigator.pop(context),
                     ),
-                    const SizedBox(height: 20),
+                    const Expanded(
+                      child: Text(
+                        '단어 공부',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: ParchmentTheme.ancientInk,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 48),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      // 헤더 카드
+                      _buildHeaderCard(),
+                      const SizedBox(height: 20),
 
-                    // 오늘의 복습 카드 (SRS)
-                    if (_todayReviewCount > 0) ...[
-                      _buildTodayReviewCard(),
+                      // 일일 학습 목표 카드
+                      DailyGoalCard(
+                        onSettingsTap: _showGoalSettingsDialog,
+                      ),
+                      const SizedBox(height: 20),
+
+                      // 오늘의 복습 카드 (SRS)
+                      if (_todayReviewCount > 0) ...[
+                        _buildTodayReviewCard(),
+                        const SizedBox(height: 20),
+                      ],
+
+                      // 선택 카드
+                      _buildSelectionCard(book, chaptersWithWords),
+                      const SizedBox(height: 20),
+
+                      // 진행률 카드
+                      if (_stats != null && hasWords) _buildProgressCard(),
+                      const SizedBox(height: 20),
+
+                      // 시작 버튼
+                      _buildStartButton(hasWords),
                       const SizedBox(height: 20),
                     ],
-
-                    // 선택 카드
-                    _buildSelectionCard(book, chaptersWithWords),
-                    const SizedBox(height: 20),
-
-                    // 진행률 카드
-                    if (_stats != null && hasWords) _buildProgressCard(),
-                  ],
+                  ),
                 ),
-
-                // 시작 버튼
-                Column(
-                  children: [
-                    const SizedBox(height: 20),
-                    _buildStartButton(hasWords),
-                    const SizedBox(height: 20),
-                  ],
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -214,23 +226,17 @@ class _WordStudyHomeScreenState extends State<WordStudyHomeScreen> {
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Colors.orange.withValues(alpha: 0.3),
-              Colors.red.withValues(alpha: 0.2),
-            ],
-          ),
+          color: _cardColor,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: Colors.orange.withValues(alpha: 0.5)),
+          boxShadow: ParchmentTheme.cardShadow,
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.3),
+                color: Colors.orange.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -249,23 +255,23 @@ class _WordStudyHomeScreenState extends State<WordStudyHomeScreen> {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: ParchmentTheme.ancientInk,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     '$_todayReviewCount개의 단어가 복습을 기다리고 있어요!',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 13,
-                      color: Colors.white.withValues(alpha: 0.8),
+                      color: ParchmentTheme.fadedScript,
                     ),
                   ),
                 ],
               ),
             ),
-            Icon(
+            const Icon(
               Icons.arrow_forward_ios,
-              color: Colors.white.withValues(alpha: 0.5),
+              color: ParchmentTheme.weatheredGray,
               size: 18,
             ),
           ],
@@ -281,21 +287,20 @@ class _WordStudyHomeScreenState extends State<WordStudyHomeScreen> {
         color: _cardColor,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: _accentColor.withValues(alpha: 0.3)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Column(
         children: [
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [_accentColor, _accentColor.withValues(alpha: 0.7)],
-              ),
+              gradient: ParchmentTheme.goldButtonGradient,
               shape: BoxShape.circle,
             ),
             child: const Icon(
               Icons.abc,
               size: 48,
-              color: Colors.white,
+              color: ParchmentTheme.softPapyrus,
             ),
           ),
           const SizedBox(height: 16),
@@ -304,15 +309,15 @@ class _WordStudyHomeScreenState extends State<WordStudyHomeScreen> {
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: ParchmentTheme.ancientInk,
             ),
           ),
           const SizedBox(height: 8),
-          Text(
+          const Text(
             '암송 전에 핵심 단어를 익혀보세요',
             style: TextStyle(
               fontSize: 14,
-              color: Colors.white.withValues(alpha: 0.7),
+              color: ParchmentTheme.fadedScript,
             ),
           ),
         ],
@@ -326,6 +331,8 @@ class _WordStudyHomeScreenState extends State<WordStudyHomeScreen> {
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.2)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -335,7 +342,7 @@ class _WordStudyHomeScreenState extends State<WordStudyHomeScreen> {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: ParchmentTheme.ancientInk,
             ),
           ),
           const SizedBox(height: 16),
@@ -343,16 +350,18 @@ class _WordStudyHomeScreenState extends State<WordStudyHomeScreen> {
           // 책 선택
           Row(
             children: [
-              Icon(Icons.menu_book, color: _accentColor),
+              const Icon(Icons.menu_book, color: _accentColor),
               const SizedBox(width: 12),
               Expanded(
                 child: DropdownButtonFormField<String>(
                   value: _selectedBook,
                   dropdownColor: _cardColor,
-                  style: const TextStyle(color: Colors.white),
+                  style: const TextStyle(color: ParchmentTheme.ancientInk),
                   decoration: InputDecoration(
                     labelText: '성경',
-                    labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+                    labelStyle: const TextStyle(color: ParchmentTheme.fadedScript),
+                    filled: true,
+                    fillColor: ParchmentTheme.warmVellum.withValues(alpha: 0.3),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide(color: _accentColor.withValues(alpha: 0.5)),
@@ -363,7 +372,7 @@ class _WordStudyHomeScreenState extends State<WordStudyHomeScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: _accentColor),
+                      borderSide: const BorderSide(color: _accentColor),
                     ),
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -387,16 +396,18 @@ class _WordStudyHomeScreenState extends State<WordStudyHomeScreen> {
           // 장 선택
           Row(
             children: [
-              Icon(Icons.format_list_numbered, color: _accentColor),
+              const Icon(Icons.format_list_numbered, color: _accentColor),
               const SizedBox(width: 12),
               Expanded(
                 child: DropdownButtonFormField<int>(
                   value: _selectedChapter,
                   dropdownColor: _cardColor,
-                  style: const TextStyle(color: Colors.white),
+                  style: const TextStyle(color: ParchmentTheme.ancientInk),
                   decoration: InputDecoration(
                     labelText: '장',
-                    labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+                    labelStyle: const TextStyle(color: ParchmentTheme.fadedScript),
+                    filled: true,
+                    fillColor: ParchmentTheme.warmVellum.withValues(alpha: 0.3),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide(color: _accentColor.withValues(alpha: 0.5)),
@@ -407,7 +418,7 @@ class _WordStudyHomeScreenState extends State<WordStudyHomeScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: _accentColor),
+                      borderSide: const BorderSide(color: _accentColor),
                     ),
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -430,14 +441,14 @@ class _WordStudyHomeScreenState extends State<WordStudyHomeScreen> {
                                 vertical: 2,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.1),
+                                color: ParchmentTheme.warmVellum,
                                 borderRadius: BorderRadius.circular(4),
                               ),
-                              child: Text(
+                              child: const Text(
                                 '준비중',
                                 style: TextStyle(
                                   fontSize: 10,
-                                  color: Colors.white.withValues(alpha: 0.5),
+                                  color: ParchmentTheme.weatheredGray,
                                 ),
                               ),
                             ),
@@ -464,6 +475,8 @@ class _WordStudyHomeScreenState extends State<WordStudyHomeScreen> {
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.2)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -476,7 +489,7 @@ class _WordStudyHomeScreenState extends State<WordStudyHomeScreen> {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: ParchmentTheme.ancientInk,
                 ),
               ),
               Container(
@@ -485,12 +498,12 @@ class _WordStudyHomeScreenState extends State<WordStudyHomeScreen> {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: _successColor.withValues(alpha: 0.2),
+                  color: _successColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
                   '${stats.mastered} / ${stats.total}',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     color: _successColor,
                   ),
@@ -505,9 +518,9 @@ class _WordStudyHomeScreenState extends State<WordStudyHomeScreen> {
             borderRadius: BorderRadius.circular(8),
             child: LinearProgressIndicator(
               value: stats.progressPercent,
-              backgroundColor: Colors.white.withValues(alpha: 0.1),
+              backgroundColor: ParchmentTheme.warmVellum,
               valueColor: AlwaysStoppedAnimation<Color>(
-                stats.progressPercent >= 1.0 ? Colors.amber : _successColor,
+                stats.progressPercent >= 1.0 ? _accentColor : _successColor,
               ),
               minHeight: 12,
             ),
@@ -521,12 +534,12 @@ class _WordStudyHomeScreenState extends State<WordStudyHomeScreen> {
               _buildStatItem(
                 '미학습',
                 stats.notStarted,
-                Colors.grey,
+                ParchmentTheme.weatheredGray,
               ),
               _buildStatItem(
                 '학습중',
                 stats.learning,
-                Colors.orange,
+                ParchmentTheme.warning,
               ),
               _buildStatItem(
                 '암기완료',
@@ -547,7 +560,7 @@ class _WordStudyHomeScreenState extends State<WordStudyHomeScreen> {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.2),
+            color: color.withValues(alpha: 0.15),
             shape: BoxShape.circle,
           ),
           child: Center(
@@ -564,9 +577,9 @@ class _WordStudyHomeScreenState extends State<WordStudyHomeScreen> {
         const SizedBox(height: 4),
         Text(
           label,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 12,
-            color: Colors.white.withValues(alpha: 0.6),
+            color: ParchmentTheme.fadedScript,
           ),
         ),
       ],
@@ -574,15 +587,21 @@ class _WordStudyHomeScreenState extends State<WordStudyHomeScreen> {
   }
 
   Widget _buildStartButton(bool hasWords) {
-    return SizedBox(
+    return Container(
       width: double.infinity,
+      decoration: hasWords
+          ? BoxDecoration(
+              gradient: ParchmentTheme.goldButtonGradient,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: ParchmentTheme.buttonShadow,
+            )
+          : null,
       child: ElevatedButton(
         onPressed: hasWords ? _navigateToWordList : null,
         style: ElevatedButton.styleFrom(
-          backgroundColor: _accentColor,
-          foregroundColor: Colors.white,
-          disabledBackgroundColor: _accentColor.withValues(alpha: 0.3),
-          disabledForegroundColor: Colors.white.withValues(alpha: 0.5),
+          backgroundColor: hasWords ? Colors.transparent : ParchmentTheme.warmVellum,
+          shadowColor: Colors.transparent,
+          foregroundColor: hasWords ? ParchmentTheme.softPapyrus : ParchmentTheme.weatheredGray,
           padding: const EdgeInsets.symmetric(vertical: 18),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
@@ -610,8 +629,8 @@ class _WordStudyHomeScreenState extends State<WordStudyHomeScreen> {
 
 /// 목표 설정 바텀시트
 class _GoalSettingsSheet extends StatelessWidget {
-  static const _cardColor = Color(0xFF1E1E2E);
-  static const _accentColor = Color(0xFF6C63FF);
+  static const _cardColor = ParchmentTheme.softPapyrus;
+  static const _accentColor = ParchmentTheme.manuscriptGold;
 
   final DailyGoalPreset currentPreset;
   final Function(DailyGoalPreset) onPresetSelected;
@@ -624,9 +643,9 @@ class _GoalSettingsSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: _cardColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: SafeArea(
         child: Column(
@@ -637,7 +656,7 @@ class _GoalSettingsSheet extends StatelessWidget {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.3),
+                color: ParchmentTheme.warmVellum,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -647,15 +666,15 @@ class _GoalSettingsSheet extends StatelessWidget {
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: ParchmentTheme.ancientInk,
               ),
             ),
             const SizedBox(height: 8),
-            Text(
+            const Text(
               '목표를 달성하면 +3 달란트 보너스!',
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.amber.withValues(alpha: 0.8),
+                color: Colors.amber,
               ),
             ),
             const SizedBox(height: 24),
@@ -676,8 +695,8 @@ class _GoalSettingsSheet extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: Material(
         color: isSelected
-            ? _accentColor.withValues(alpha: 0.2)
-            : Colors.white.withValues(alpha: 0.05),
+            ? _accentColor.withValues(alpha: 0.1)
+            : ParchmentTheme.warmVellum.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           onTap: () {
@@ -701,14 +720,14 @@ class _GoalSettingsSheet extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: isSelected
                         ? _accentColor
-                        : Colors.white.withValues(alpha: 0.1),
+                        : ParchmentTheme.warmVellum,
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     isSelected ? Icons.check : Icons.flag,
                     color: isSelected
-                        ? Colors.white
-                        : Colors.white.withValues(alpha: 0.5),
+                        ? ParchmentTheme.softPapyrus
+                        : ParchmentTheme.weatheredGray,
                     size: 20,
                   ),
                 ),
@@ -722,15 +741,15 @@ class _GoalSettingsSheet extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: isSelected ? _accentColor : Colors.white,
+                          color: isSelected ? _accentColor : ParchmentTheme.ancientInk,
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         preset.description,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 12,
-                          color: Colors.white.withValues(alpha: 0.6),
+                          color: ParchmentTheme.fadedScript,
                         ),
                       ),
                     ],

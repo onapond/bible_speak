@@ -14,9 +14,15 @@ import '../models/user_model.dart';
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn(
-    scopes: ['email', 'profile'],
-  );
+
+  // GoogleSignIn 지연 초기화 (웹에서 Client ID 에러 방지)
+  GoogleSignIn? _googleSignInInstance;
+  GoogleSignIn get _googleSignIn {
+    _googleSignInInstance ??= GoogleSignIn(
+      scopes: ['email', 'profile'],
+    );
+    return _googleSignInInstance!;
+  }
 
   // 현재 사용자 캐시
   UserModel? _currentUser;

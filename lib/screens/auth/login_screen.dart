@@ -1,12 +1,34 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../services/auth_service.dart';
 import 'profile_setup_screen.dart';
 import '../home/main_menu_screen.dart';
 
+/// 로그인 화면 색상 팔레트 (Warm Parchment Light Theme)
+class _LoginColors {
+  // 배경 (양피지 그라데이션)
+  static const softPapyrus = Color(0xFFFDF8F3);
+  static const agedParchment = Color(0xFFF5EFE6);
+  static const warmVellum = Color(0xFFEDE4D3);
+
+  // 테두리/그림자
+  static const antiqueEdge = Color(0xFFD4C4A8);
+  static const sepiaShadow = Color(0xFFC9B896);
+
+  // 텍스트 (잉크)
+  static const ancientInk = Color(0xFF3D3229);
+  static const fadedScript = Color(0xFF6B5D4D);
+  static const weatheredGray = Color(0xFF8C7E6D);
+
+  // 악센트 (금박)
+  static const manuscriptGold = Color(0xFFC9A857);
+}
+
 /// 로그인 화면
 /// - Google, Apple, Email 로그인 지원
+/// - 라이트 테마 (양피지 스타일)
 class LoginScreen extends StatefulWidget {
   final AuthService authService;
 
@@ -20,10 +42,6 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  static const _bgColor = Color(0xFF0F0F1A);
-  static const _cardColor = Color(0xFF1E1E2E);
-  static const _accentColor = Color(0xFF6C63FF);
-
   bool _isLoading = false;
   bool _showEmailForm = false;
   bool _isSignUp = false;
@@ -178,29 +196,42 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bgColor,
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // 로고 & 타이틀
-                _buildHeader(),
-                const SizedBox(height: 48),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              _LoginColors.softPapyrus,
+              _LoginColors.agedParchment,
+              _LoginColors.warmVellum,
+            ],
+            stops: [0.0, 0.5, 1.0],
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // 로고 & 타이틀
+                  _buildHeader(),
+                  const SizedBox(height: 48),
 
-                // 로그인 버튼들
-                if (_showEmailForm)
-                  _buildEmailForm()
-                else
-                  _buildSocialButtons(),
+                  // 로그인 버튼들
+                  if (_showEmailForm)
+                    _buildEmailForm()
+                  else
+                    _buildSocialButtons(),
 
-                const SizedBox(height: 24),
+                  const SizedBox(height: 24),
 
-                // 하단 링크
-                _buildFooter(),
-              ],
+                  // 하단 링크
+                  _buildFooter(),
+                ],
+              ),
             ),
           ),
         ),
@@ -212,32 +243,46 @@ class _LoginScreenState extends State<LoginScreen> {
     return Column(
       children: [
         Container(
-          padding: const EdgeInsets.all(20),
+          width: 100,
+          height: 100,
           decoration: BoxDecoration(
-            color: _accentColor.withValues(alpha: 0.2),
-            borderRadius: BorderRadius.circular(24),
+            shape: BoxShape.circle,
+            color: _LoginColors.softPapyrus,
+            border: Border.all(
+              color: _LoginColors.manuscriptGold.withValues(alpha: 0.6),
+              width: 2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: _LoginColors.manuscriptGold.withValues(alpha: 0.4),
+                blurRadius: 28,
+                spreadRadius: 6,
+              ),
+            ],
           ),
-          child: const Icon(
-            Icons.menu_book,
-            size: 64,
-            color: _accentColor,
+          child: const Center(
+            child: Icon(
+              Icons.menu_book,
+              size: 48,
+              color: _LoginColors.manuscriptGold,
+            ),
           ),
         ),
         const SizedBox(height: 24),
-        const Text(
+        Text(
           '바이블 스픽',
-          style: TextStyle(
+          style: GoogleFonts.notoSerifKr(
             fontSize: 32,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
+            fontWeight: FontWeight.w700,
+            color: _LoginColors.ancientInk,
           ),
         ),
         const SizedBox(height: 8),
-        Text(
+        const Text(
           'AI 발음 코칭으로 영어 성경 암송',
           style: TextStyle(
             fontSize: 16,
-            color: Colors.white.withValues(alpha: 0.7),
+            color: _LoginColors.weatheredGray,
           ),
         ),
       ],
@@ -254,7 +299,7 @@ class _LoginScreenState extends State<LoginScreen> {
           iconColor: Colors.red,
           label: 'Google로 계속하기',
           backgroundColor: Colors.white,
-          textColor: Colors.black87,
+          textColor: _LoginColors.ancientInk,
         ),
         const SizedBox(height: 12),
 
@@ -265,7 +310,7 @@ class _LoginScreenState extends State<LoginScreen> {
             icon: '',
             label: 'Apple로 계속하기',
             backgroundColor: Colors.white,
-            textColor: Colors.black87,
+            textColor: _LoginColors.ancientInk,
             useAppleIcon: true,
           ),
           const SizedBox(height: 12),
@@ -277,15 +322,16 @@ class _LoginScreenState extends State<LoginScreen> {
               ? null
               : () => setState(() => _showEmailForm = true),
           icon: '@',
-          iconColor: _accentColor,
+          iconColor: _LoginColors.manuscriptGold,
           label: '이메일로 계속하기',
-          backgroundColor: _cardColor,
-          textColor: Colors.white,
+          backgroundColor: _LoginColors.warmVellum,
+          textColor: _LoginColors.ancientInk,
+          hasBorder: true,
         ),
 
         if (_isLoading) ...[
           const SizedBox(height: 24),
-          const CircularProgressIndicator(color: _accentColor),
+          const CircularProgressIndicator(color: _LoginColors.manuscriptGold),
         ],
       ],
     );
@@ -299,6 +345,7 @@ class _LoginScreenState extends State<LoginScreen> {
     required Color textColor,
     Color? iconColor,
     bool useAppleIcon = false,
+    bool hasBorder = false,
   }) {
     return SizedBox(
       width: double.infinity,
@@ -310,8 +357,12 @@ class _LoginScreenState extends State<LoginScreen> {
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
+            side: hasBorder
+                ? const BorderSide(color: _LoginColors.antiqueEdge, width: 1)
+                : BorderSide.none,
           ),
           elevation: 0,
+          shadowColor: Colors.transparent,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -350,8 +401,19 @@ class _LoginScreenState extends State<LoginScreen> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: _cardColor,
+        color: _LoginColors.softPapyrus,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: _LoginColors.antiqueEdge,
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: _LoginColors.sepiaShadow.withValues(alpha: 0.2),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -363,14 +425,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   _showEmailForm = false;
                   _isSignUp = false;
                 }),
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                icon: const Icon(Icons.arrow_back, color: _LoginColors.ancientInk),
               ),
               Text(
                 _isSignUp ? '회원가입' : '이메일 로그인',
-                style: const TextStyle(
+                style: GoogleFonts.notoSerifKr(
                   fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  color: _LoginColors.ancientInk,
                 ),
               ),
             ],
@@ -381,7 +443,7 @@ class _LoginScreenState extends State<LoginScreen> {
           if (_isSignUp) ...[
             TextField(
               controller: _nameController,
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(color: _LoginColors.ancientInk),
               decoration: _inputDecoration('이름', Icons.person),
               textInputAction: TextInputAction.next,
             ),
@@ -391,7 +453,7 @@ class _LoginScreenState extends State<LoginScreen> {
           // 이메일
           TextField(
             controller: _emailController,
-            style: const TextStyle(color: Colors.white),
+            style: const TextStyle(color: _LoginColors.ancientInk),
             decoration: _inputDecoration('이메일', Icons.email),
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
@@ -401,7 +463,7 @@ class _LoginScreenState extends State<LoginScreen> {
           // 비밀번호
           TextField(
             controller: _passwordController,
-            style: const TextStyle(color: Colors.white),
+            style: const TextStyle(color: _LoginColors.ancientInk),
             decoration: _inputDecoration('비밀번호', Icons.lock),
             obscureText: true,
             textInputAction: TextInputAction.done,
@@ -413,12 +475,13 @@ class _LoginScreenState extends State<LoginScreen> {
           ElevatedButton(
             onPressed: _isLoading ? null : _signInWithEmail,
             style: ElevatedButton.styleFrom(
-              backgroundColor: _accentColor,
+              backgroundColor: _LoginColors.manuscriptGold,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
+              elevation: 0,
             ),
             child: _isLoading
                 ? const SizedBox(
@@ -445,13 +508,13 @@ class _LoginScreenState extends State<LoginScreen> {
             children: [
               Text(
                 _isSignUp ? '이미 계정이 있으신가요?' : '계정이 없으신가요?',
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+                style: const TextStyle(color: _LoginColors.fadedScript),
               ),
               TextButton(
                 onPressed: () => setState(() => _isSignUp = !_isSignUp),
                 child: Text(
                   _isSignUp ? '로그인' : '회원가입',
-                  style: const TextStyle(color: _accentColor),
+                  style: const TextStyle(color: _LoginColors.manuscriptGold),
                 ),
               ),
             ],
@@ -461,10 +524,10 @@ class _LoginScreenState extends State<LoginScreen> {
           if (!_isSignUp)
             TextButton(
               onPressed: _resetPassword,
-              child: Text(
+              child: const Text(
                 '비밀번호를 잊으셨나요?',
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.5),
+                  color: _LoginColors.weatheredGray,
                   fontSize: 13,
                 ),
               ),
@@ -477,13 +540,21 @@ class _LoginScreenState extends State<LoginScreen> {
   InputDecoration _inputDecoration(String hint, IconData icon) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
-      prefixIcon: Icon(icon, color: _accentColor),
+      hintStyle: TextStyle(color: _LoginColors.fadedScript.withValues(alpha: 0.6)),
+      prefixIcon: Icon(icon, color: _LoginColors.manuscriptGold),
       filled: true,
-      fillColor: _bgColor,
+      fillColor: _LoginColors.warmVellum,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
+        borderSide: const BorderSide(color: _LoginColors.antiqueEdge),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: _LoginColors.antiqueEdge),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: _LoginColors.manuscriptGold, width: 2),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     );
@@ -498,7 +569,7 @@ class _LoginScreenState extends State<LoginScreen> {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 12,
-              color: Colors.white.withValues(alpha: 0.4),
+              color: _LoginColors.weatheredGray.withValues(alpha: 0.7),
             ),
           ),
           const SizedBox(height: 16),
@@ -513,10 +584,10 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             );
           },
-          child: Text(
+          child: const Text(
             '게스트로 시작하기',
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.5),
+              color: _LoginColors.weatheredGray,
               fontSize: 14,
             ),
           ),

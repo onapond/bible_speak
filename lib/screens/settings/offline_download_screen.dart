@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../services/offline/bible_offline_service.dart';
 import '../../services/bible_data_service.dart';
 import '../../domain/models/bible/bible_models.dart';
+import '../../styles/parchment_theme.dart';
 
 /// 오프라인 다운로드 관리 화면
 class OfflineDownloadScreen extends StatefulWidget {
@@ -19,9 +20,9 @@ class _OfflineDownloadScreenState extends State<OfflineDownloadScreen> {
   StorageInfo _storageInfo = const StorageInfo(usedBytes: 0, bookCount: 0);
   bool _isLoading = true;
 
-  static const _bgColor = Color(0xFF0F0F1A);
-  static const _cardColor = Color(0xFF1E1E2E);
-  static const _accentColor = Color(0xFF6C63FF);
+  // Parchment 테마 색상
+  static const _cardColor = ParchmentTheme.softPapyrus;
+  static const _accentColor = ParchmentTheme.manuscriptGold;
 
   @override
   void initState() {
@@ -61,42 +62,67 @@ class _OfflineDownloadScreenState extends State<OfflineDownloadScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bgColor,
-      appBar: AppBar(
-        backgroundColor: _bgColor,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: const Text(
-          '오프라인 다운로드',
-          style: TextStyle(fontWeight: FontWeight.bold),
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: ParchmentTheme.backgroundGradient,
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios),
-          onPressed: () => Navigator.pop(context),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Custom AppBar
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios),
+                      color: ParchmentTheme.ancientInk,
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    const Expanded(
+                      child: Text(
+                        '오프라인 다운로드',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: ParchmentTheme.ancientInk,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 48),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator(color: _accentColor))
+                    : Column(
+                        children: [
+                          // 저장 공간 정보
+                          _buildStorageInfo(),
+
+                          // 안내 메시지
+                          _buildInfoBanner(),
+
+                          // 책 목록
+                          Expanded(
+                            child: ListView.builder(
+                              padding: const EdgeInsets.all(16),
+                              itemCount: _books.length,
+                              itemBuilder: (context, index) {
+                                return _buildBookTile(_books[index]);
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: _accentColor))
-          : Column(
-              children: [
-                // 저장 공간 정보
-                _buildStorageInfo(),
-
-                // 안내 메시지
-                _buildInfoBanner(),
-
-                // 책 목록
-                Expanded(
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _books.length,
-                    itemBuilder: (context, index) {
-                      return _buildBookTile(_books[index]);
-                    },
-                  ),
-                ),
-              ],
-            ),
     );
   }
 
@@ -107,7 +133,8 @@ class _OfflineDownloadScreenState extends State<OfflineDownloadScreen> {
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.3)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Row(
         children: [
@@ -128,10 +155,10 @@ class _OfflineDownloadScreenState extends State<OfflineDownloadScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   '저장된 성경책',
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.7),
+                    color: ParchmentTheme.fadedScript,
                     fontSize: 13,
                   ),
                 ),
@@ -139,7 +166,7 @@ class _OfflineDownloadScreenState extends State<OfflineDownloadScreen> {
                 Text(
                   '${_storageInfo.bookCount}권 (약 ${_storageInfo.usedMB}MB)',
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: ParchmentTheme.ancientInk,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
@@ -150,10 +177,10 @@ class _OfflineDownloadScreenState extends State<OfflineDownloadScreen> {
           if (_storageInfo.bookCount > 0)
             TextButton(
               onPressed: _showClearAllDialog,
-              child: Text(
+              child: const Text(
                 '전체 삭제',
                 style: TextStyle(
-                  color: Colors.red.withValues(alpha: 0.8),
+                  color: ParchmentTheme.error,
                   fontSize: 13,
                 ),
               ),
@@ -168,23 +195,23 @@ class _OfflineDownloadScreenState extends State<OfflineDownloadScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.blue.withValues(alpha: 0.1),
+        color: ParchmentTheme.info.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
+        border: Border.all(color: ParchmentTheme.info.withValues(alpha: 0.3)),
       ),
-      child: Row(
+      child: const Row(
         children: [
           Icon(
             Icons.info_outline,
-            color: Colors.blue.withValues(alpha: 0.8),
+            color: ParchmentTheme.info,
             size: 20,
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Expanded(
             child: Text(
               '다운로드한 성경은 인터넷 없이도 읽을 수 있습니다.',
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.8),
+                color: ParchmentTheme.fadedScript,
                 fontSize: 13,
               ),
             ),
@@ -209,8 +236,9 @@ class _OfflineDownloadScreenState extends State<OfflineDownloadScreen> {
           color: _cardColor,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isCached ? _accentColor.withValues(alpha: 0.3) : Colors.white10,
+            color: isCached ? _accentColor.withValues(alpha: 0.5) : _accentColor.withValues(alpha: 0.2),
           ),
+          boxShadow: ParchmentTheme.cardShadow,
         ),
         child: Column(
           children: [
@@ -222,13 +250,13 @@ class _OfflineDownloadScreenState extends State<OfflineDownloadScreen> {
                 decoration: BoxDecoration(
                   color: isCached
                       ? _accentColor.withValues(alpha: 0.15)
-                      : Colors.white.withValues(alpha: 0.05),
+                      : ParchmentTheme.warmVellum.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
                   child: Icon(
                     isCached ? Icons.check_circle : Icons.menu_book,
-                    color: isCached ? _accentColor : Colors.white54,
+                    color: isCached ? _accentColor : ParchmentTheme.fadedScript,
                     size: 24,
                   ),
                 ),
@@ -236,7 +264,7 @@ class _OfflineDownloadScreenState extends State<OfflineDownloadScreen> {
               title: Text(
                 book.nameKo,
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: ParchmentTheme.ancientInk,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -245,8 +273,8 @@ class _OfflineDownloadScreenState extends State<OfflineDownloadScreen> {
                 children: [
                   Text(
                     '${book.chapterCount}장 · ${book.testament == "OT" ? "구약" : "신약"}',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.6),
+                    style: const TextStyle(
+                      color: ParchmentTheme.fadedScript,
                       fontSize: 13,
                     ),
                   ),
@@ -254,7 +282,7 @@ class _OfflineDownloadScreenState extends State<OfflineDownloadScreen> {
                     Text(
                       '다운로드: ${_formatDate(meta['downloadedAt'])}',
                       style: TextStyle(
-                        color: _accentColor.withValues(alpha: 0.7),
+                        color: _accentColor,
                         fontSize: 11,
                       ),
                     ),
@@ -274,7 +302,7 @@ class _OfflineDownloadScreenState extends State<OfflineDownloadScreen> {
                       borderRadius: BorderRadius.circular(4),
                       child: LinearProgressIndicator(
                         value: progress.progress,
-                        backgroundColor: Colors.white.withValues(alpha: 0.1),
+                        backgroundColor: ParchmentTheme.warmVellum,
                         valueColor: const AlwaysStoppedAnimation<Color>(_accentColor),
                         minHeight: 6,
                       ),
@@ -282,8 +310,8 @@ class _OfflineDownloadScreenState extends State<OfflineDownloadScreen> {
                     const SizedBox(height: 8),
                     Text(
                       progress.message,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.6),
+                      style: const TextStyle(
+                        color: ParchmentTheme.fadedScript,
                         fontSize: 12,
                       ),
                     ),
@@ -315,27 +343,27 @@ class _OfflineDownloadScreenState extends State<OfflineDownloadScreen> {
 
     if (isCached) {
       return PopupMenuButton<String>(
-        icon: const Icon(Icons.more_vert, color: Colors.white54),
+        icon: const Icon(Icons.more_vert, color: ParchmentTheme.fadedScript),
         color: _cardColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         itemBuilder: (context) => [
-          PopupMenuItem(
+          const PopupMenuItem(
             value: 'redownload',
             child: Row(
               children: [
-                const Icon(Icons.refresh, color: Colors.white70, size: 20),
-                const SizedBox(width: 12),
-                const Text('다시 다운로드', style: TextStyle(color: Colors.white)),
+                Icon(Icons.refresh, color: ParchmentTheme.fadedScript, size: 20),
+                SizedBox(width: 12),
+                Text('다시 다운로드', style: TextStyle(color: ParchmentTheme.ancientInk)),
               ],
             ),
           ),
-          PopupMenuItem(
+          const PopupMenuItem(
             value: 'delete',
             child: Row(
               children: [
-                Icon(Icons.delete_outline, color: Colors.red.shade300, size: 20),
-                const SizedBox(width: 12),
-                Text('삭제', style: TextStyle(color: Colors.red.shade300)),
+                Icon(Icons.delete_outline, color: ParchmentTheme.error, size: 20),
+                SizedBox(width: 12),
+                Text('삭제', style: TextStyle(color: ParchmentTheme.error)),
               ],
             ),
           ),
@@ -395,10 +423,10 @@ class _OfflineDownloadScreenState extends State<OfflineDownloadScreen> {
       builder: (context) => AlertDialog(
         backgroundColor: _cardColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('오프라인 데이터 삭제', style: TextStyle(color: Colors.white)),
+        title: const Text('오프라인 데이터 삭제', style: TextStyle(color: ParchmentTheme.ancientInk)),
         content: Text(
           '${book.nameKo}의 오프라인 데이터를 삭제하시겠습니까?',
-          style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+          style: const TextStyle(color: ParchmentTheme.fadedScript),
         ),
         actions: [
           TextButton(
@@ -421,7 +449,8 @@ class _OfflineDownloadScreenState extends State<OfflineDownloadScreen> {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade700,
+              backgroundColor: ParchmentTheme.error,
+              foregroundColor: ParchmentTheme.softPapyrus,
             ),
             child: const Text('삭제'),
           ),
@@ -436,10 +465,10 @@ class _OfflineDownloadScreenState extends State<OfflineDownloadScreen> {
       builder: (context) => AlertDialog(
         backgroundColor: _cardColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('전체 삭제', style: TextStyle(color: Colors.white)),
+        title: const Text('전체 삭제', style: TextStyle(color: ParchmentTheme.ancientInk)),
         content: Text(
           '모든 오프라인 성경 데이터를 삭제하시겠습니까?\n${_storageInfo.bookCount}권의 데이터가 삭제됩니다.',
-          style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+          style: const TextStyle(color: ParchmentTheme.fadedScript),
         ),
         actions: [
           TextButton(
@@ -461,7 +490,8 @@ class _OfflineDownloadScreenState extends State<OfflineDownloadScreen> {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade700,
+              backgroundColor: ParchmentTheme.error,
+              foregroundColor: ParchmentTheme.softPapyrus,
             ),
             child: const Text('전체 삭제'),
           ),

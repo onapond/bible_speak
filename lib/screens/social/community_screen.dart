@@ -15,6 +15,7 @@ import '../group/widgets/group_stats_card.dart';
 import '../group/widgets/leaderboard_card.dart';
 import '../group/widgets/activity_feed_card.dart';
 import '../group/widgets/member_list_card.dart';
+import '../../styles/parchment_theme.dart';
 
 /// 통합 커뮤니티 화면
 /// - 그룹 선택 (드롭다운)
@@ -36,10 +37,9 @@ class CommunityScreen extends StatefulWidget {
 
 class _CommunityScreenState extends State<CommunityScreen>
     with SingleTickerProviderStateMixin {
-  // 다크 테마 상수
-  static const _bgColor = Color(0xFF0F0F1A);
-  static const _cardColor = Color(0xFF1E1E2E);
-  static const _accentColor = Color(0xFF6C63FF);
+  // Parchment 테마 색상
+  static const _cardColor = ParchmentTheme.softPapyrus;
+  static const _accentColor = ParchmentTheme.manuscriptGold;
 
   final GroupService _groupService = GroupService();
   final GroupActivityService _activityService = GroupActivityService();
@@ -249,12 +249,12 @@ class _CommunityScreenState extends State<CommunityScreen>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text(
           '초대 코드로 참여',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(color: ParchmentTheme.ancientInk, fontWeight: FontWeight.bold),
         ),
         content: TextField(
           controller: codeController,
           style: const TextStyle(
-            color: Colors.white,
+            color: ParchmentTheme.ancientInk,
             fontSize: 24,
             fontWeight: FontWeight.bold,
             letterSpacing: 8,
@@ -265,11 +265,11 @@ class _CommunityScreenState extends State<CommunityScreen>
           decoration: InputDecoration(
             hintText: 'XXXXXX',
             hintStyle: TextStyle(
-              color: Colors.white.withValues(alpha: 0.3),
+              color: ParchmentTheme.fadedScript.withValues(alpha: 0.5),
               letterSpacing: 8,
             ),
             filled: true,
-            fillColor: _bgColor,
+            fillColor: ParchmentTheme.warmVellum.withValues(alpha: 0.5),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
               borderSide: BorderSide.none,
@@ -280,28 +280,36 @@ class _CommunityScreenState extends State<CommunityScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(
+            child: const Text(
               '취소',
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+              style: TextStyle(color: ParchmentTheme.fadedScript),
             ),
           ),
-          ElevatedButton(
-            onPressed: () async {
-              final code = codeController.text.trim();
-              if (code.length != 6) {
-                _showSnackBar('6자리 코드를 입력해주세요', isError: true);
-                return;
-              }
-              Navigator.pop(context);
-              await _joinGroupByCode(code);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _accentColor,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+          Container(
+            decoration: BoxDecoration(
+              gradient: ParchmentTheme.goldButtonGradient,
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: const Text('참여하기'),
+            child: ElevatedButton(
+              onPressed: () async {
+                final code = codeController.text.trim();
+                if (code.length != 6) {
+                  _showSnackBar('6자리 코드를 입력해주세요', isError: true);
+                  return;
+                }
+                Navigator.pop(context);
+                await _joinGroupByCode(code);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                foregroundColor: ParchmentTheme.softPapyrus,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text('참여하기'),
+            ),
           ),
         ],
       ),
@@ -336,19 +344,19 @@ class _CommunityScreenState extends State<CommunityScreen>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text(
           '새 그룹 만들기',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(color: ParchmentTheme.ancientInk, fontWeight: FontWeight.bold),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: nameController,
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(color: ParchmentTheme.ancientInk),
               decoration: InputDecoration(
                 hintText: '그룹 이름 (최대 20자)',
-                hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+                hintStyle: const TextStyle(color: ParchmentTheme.fadedScript),
                 filled: true,
-                fillColor: _bgColor,
+                fillColor: ParchmentTheme.warmVellum.withValues(alpha: 0.5),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -358,11 +366,11 @@ class _CommunityScreenState extends State<CommunityScreen>
               maxLength: 20,
             ),
             const SizedBox(height: 8),
-            Text(
+            const Text(
               '그룹을 만들면 초대 코드가 생성됩니다.\n코드를 공유하여 멤버를 초대하세요.',
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.white.withValues(alpha: 0.6),
+                color: ParchmentTheme.fadedScript,
               ),
               textAlign: TextAlign.center,
             ),
@@ -371,25 +379,33 @@ class _CommunityScreenState extends State<CommunityScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(
+            child: const Text(
               '취소',
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+              style: TextStyle(color: ParchmentTheme.fadedScript),
             ),
           ),
-          ElevatedButton(
-            onPressed: () async {
-              final name = nameController.text.trim();
-              if (name.isEmpty) return;
-              Navigator.pop(context);
-              await _createGroup(name);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _accentColor,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+          Container(
+            decoration: BoxDecoration(
+              gradient: ParchmentTheme.goldButtonGradient,
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: const Text('만들기'),
+            child: ElevatedButton(
+              onPressed: () async {
+                final name = nameController.text.trim();
+                if (name.isEmpty) return;
+                Navigator.pop(context);
+                await _createGroup(name);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                foregroundColor: ParchmentTheme.softPapyrus,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text('만들기'),
+            ),
           ),
         ],
       ),
@@ -421,7 +437,7 @@ class _CommunityScreenState extends State<CommunityScreen>
           children: [
             Icon(Icons.celebration, color: Colors.amber),
             SizedBox(width: 8),
-            Text('그룹 생성 완료!', style: TextStyle(color: Colors.white)),
+            Text('그룹 생성 완료!', style: TextStyle(color: ParchmentTheme.ancientInk)),
           ],
         ),
         content: Column(
@@ -432,22 +448,22 @@ class _CommunityScreenState extends State<CommunityScreen>
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: ParchmentTheme.ancientInk,
               ),
             ),
             const SizedBox(height: 16),
-            Text(
+            const Text(
               '초대 코드',
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.white.withValues(alpha: 0.6),
+                color: ParchmentTheme.fadedScript,
               ),
             ),
             const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               decoration: BoxDecoration(
-                color: _bgColor,
+                color: ParchmentTheme.warmVellum.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: _accentColor.withValues(alpha: 0.5)),
               ),
@@ -476,25 +492,33 @@ class _CommunityScreenState extends State<CommunityScreen>
               ),
             ),
             const SizedBox(height: 16),
-            Text(
+            const Text(
               '이 코드를 멤버들에게 공유하세요',
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.white.withValues(alpha: 0.6),
+                color: ParchmentTheme.fadedScript,
               ),
             ),
           ],
         ),
         actions: [
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _accentColor,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+          Container(
+            decoration: BoxDecoration(
+              gradient: ParchmentTheme.goldButtonGradient,
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: const Text('확인'),
+            child: ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                foregroundColor: ParchmentTheme.softPapyrus,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text('확인'),
+            ),
           ),
         ],
       ),
@@ -538,71 +562,119 @@ class _CommunityScreenState extends State<CommunityScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bgColor,
-      appBar: AppBar(
-        backgroundColor: _cardColor,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: _buildGroupDropdown(),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              _loadMyGroups();
-              _loadGroupData();
-            },
-          ),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: _accentColor,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white54,
-          tabs: [
-            const Tab(icon: Icon(Icons.dashboard), text: '대시보드'),
-            const Tab(icon: Icon(Icons.chat), text: '채팅'),
-            const Tab(icon: Icon(Icons.people), text: '멤버'),
-            Tab(
-              icon: Badge(
-                isLabelVisible: _friendRequests.isNotEmpty,
-                label: Text('${_friendRequests.length}'),
-                child: const Icon(Icons.person_add),
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: ParchmentTheme.backgroundGradient,
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Custom AppBar
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios),
+                      color: ParchmentTheme.ancientInk,
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    Expanded(child: _buildGroupDropdown()),
+                    IconButton(
+                      icon: const Icon(Icons.refresh),
+                      color: ParchmentTheme.ancientInk,
+                      onPressed: () {
+                        _loadMyGroups();
+                        _loadGroupData();
+                      },
+                    ),
+                  ],
+                ),
               ),
-              text: '친구',
-            ),
-          ],
+              // TabBar
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: _cardColor,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: _accentColor.withValues(alpha: 0.2)),
+                ),
+                child: TabBar(
+                  controller: _tabController,
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  indicatorPadding: const EdgeInsets.all(4),
+                  indicator: BoxDecoration(
+                    color: _accentColor,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  labelColor: ParchmentTheme.softPapyrus,
+                  unselectedLabelColor: ParchmentTheme.fadedScript,
+                  tabs: [
+                    const Tab(icon: Icon(Icons.dashboard, size: 20)),
+                    const Tab(icon: Icon(Icons.chat, size: 20)),
+                    const Tab(icon: Icon(Icons.people, size: 20)),
+                    Tab(
+                      icon: Badge(
+                        isLabelVisible: _friendRequests.isNotEmpty,
+                        label: Text('${_friendRequests.length}'),
+                        child: const Icon(Icons.person_add, size: 20),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Expanded(
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator(color: _accentColor))
+                    : TabBarView(
+                        controller: _tabController,
+                        children: [
+                          _selectedGroup == null ? _buildNoGroupState() : _buildDashboardTab(),
+                          _selectedGroup == null ? _buildNoGroupState() : _buildChatTab(),
+                          _selectedGroup == null ? _buildNoGroupState() : _buildMembersTab(),
+                          _buildFriendsTab(),
+                        ],
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: _accentColor))
-          : TabBarView(
-              controller: _tabController,
-              children: [
-                _selectedGroup == null ? _buildNoGroupState() : _buildDashboardTab(),
-                _selectedGroup == null ? _buildNoGroupState() : _buildChatTab(),
-                _selectedGroup == null ? _buildNoGroupState() : _buildMembersTab(),
-                _buildFriendsTab(),
-              ],
-            ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showGroupOptions,
-        backgroundColor: _accentColor,
-        icon: const Icon(Icons.group_add),
-        label: const Text('그룹'),
+      floatingActionButton: Container(
+        decoration: BoxDecoration(
+          gradient: ParchmentTheme.goldButtonGradient,
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: ParchmentTheme.buttonShadow,
+        ),
+        child: FloatingActionButton.extended(
+          onPressed: _showGroupOptions,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          icon: const Icon(Icons.group_add, color: ParchmentTheme.softPapyrus),
+          label: const Text('그룹', style: TextStyle(color: ParchmentTheme.softPapyrus)),
+        ),
       ),
     );
   }
 
   Widget _buildGroupDropdown() {
     if (_myGroups.isEmpty) {
-      return const Text('커뮤니티', style: TextStyle(fontWeight: FontWeight.bold));
+      return const Text(
+        '커뮤니티',
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: ParchmentTheme.ancientInk,
+        ),
+      );
     }
 
     return DropdownButtonHideUnderline(
       child: DropdownButton<GroupModel>(
         value: _selectedGroup,
         dropdownColor: _cardColor,
-        icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+        icon: const Icon(Icons.arrow_drop_down, color: ParchmentTheme.ancientInk),
         items: _myGroups.map((group) {
           return DropdownMenuItem<GroupModel>(
             value: group,
@@ -630,7 +702,7 @@ class _CommunityScreenState extends State<CommunityScreen>
                 Text(
                   group.name,
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: ParchmentTheme.ancientInk,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -653,10 +725,10 @@ class _CommunityScreenState extends State<CommunityScreen>
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: _accentColor.withValues(alpha: 0.1),
+                color: _accentColor.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.groups_outlined,
                 size: 64,
                 color: _accentColor,
@@ -668,29 +740,37 @@ class _CommunityScreenState extends State<CommunityScreen>
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: ParchmentTheme.ancientInk,
               ),
             ),
             const SizedBox(height: 8),
-            Text(
+            const Text(
               '그룹에 참여하여 함께 성경 암송을 해보세요!',
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.white.withValues(alpha: 0.6),
+                color: ParchmentTheme.fadedScript,
               ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 32),
-            ElevatedButton.icon(
-              onPressed: _showGroupOptions,
-              icon: const Icon(Icons.group_add),
-              label: const Text('그룹 참여하기'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _accentColor,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+            Container(
+              decoration: BoxDecoration(
+                gradient: ParchmentTheme.goldButtonGradient,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: ParchmentTheme.buttonShadow,
+              ),
+              child: ElevatedButton.icon(
+                onPressed: _showGroupOptions,
+                icon: const Icon(Icons.group_add),
+                label: const Text('그룹 참여하기'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  foregroundColor: ParchmentTheme.softPapyrus,
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
               ),
             ),
@@ -738,6 +818,8 @@ class _CommunityScreenState extends State<CommunityScreen>
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.2)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -750,12 +832,12 @@ class _CommunityScreenState extends State<CommunityScreen>
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: ParchmentTheme.ancientInk,
                 ),
               ),
               TextButton(
                 onPressed: () => _tabController.animateTo(2),
-                child: const Text(
+                child: Text(
                   '전체 보기',
                   style: TextStyle(color: _accentColor, fontSize: 12),
                 ),
@@ -777,13 +859,13 @@ class _CommunityScreenState extends State<CommunityScreen>
                   Expanded(
                     child: Text(
                       member.name,
-                      style: const TextStyle(color: Colors.white),
+                      style: const TextStyle(color: ParchmentTheme.ancientInk),
                     ),
                   ),
                   Text(
                     '${member.talants} 탈란트',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.6),
+                    style: const TextStyle(
+                      color: ParchmentTheme.fadedScript,
                       fontSize: 12,
                     ),
                   ),
@@ -861,21 +943,21 @@ class _CommunityScreenState extends State<CommunityScreen>
           Icon(
             Icons.chat_bubble_outline,
             size: 64,
-            color: Colors.white.withValues(alpha: 0.3),
+            color: ParchmentTheme.warmVellum,
           ),
           const SizedBox(height: 16),
-          Text(
+          const Text(
             '아직 메시지가 없습니다',
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.6),
+              color: ParchmentTheme.fadedScript,
               fontSize: 16,
             ),
           ),
           const SizedBox(height: 8),
-          Text(
+          const Text(
             '첫 번째 메시지를 보내보세요!',
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.4),
+              color: ParchmentTheme.weatheredGray,
               fontSize: 14,
             ),
           ),
@@ -906,23 +988,23 @@ class _CommunityScreenState extends State<CommunityScreen>
           Expanded(
             child: Container(
               height: 1,
-              color: Colors.white.withValues(alpha: 0.1),
+              color: ParchmentTheme.warmVellum,
             ),
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
               date,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 12,
-                color: Colors.white.withValues(alpha: 0.5),
+                color: ParchmentTheme.fadedScript,
               ),
             ),
           ),
           Expanded(
             child: Container(
               height: 1,
-              color: Colors.white.withValues(alpha: 0.1),
+              color: ParchmentTheme.warmVellum,
             ),
           ),
         ],
@@ -949,7 +1031,7 @@ class _CommunityScreenState extends State<CommunityScreen>
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: _accentColor.withValues(alpha: 0.2),
+                color: _accentColor.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
               child: Center(
@@ -970,9 +1052,9 @@ class _CommunityScreenState extends State<CommunityScreen>
                   padding: const EdgeInsets.only(left: 4, bottom: 4),
                   child: Text(
                     message.senderName,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 12,
-                      color: Colors.white.withValues(alpha: 0.6),
+                      color: ParchmentTheme.fadedScript,
                     ),
                   ),
                 ),
@@ -993,11 +1075,12 @@ class _CommunityScreenState extends State<CommunityScreen>
                         ? const Radius.circular(4)
                         : const Radius.circular(16),
                   ),
+                  border: isMe ? null : Border.all(color: _accentColor.withValues(alpha: 0.2)),
                 ),
                 child: Text(
                   message.content,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: isMe ? ParchmentTheme.softPapyrus : ParchmentTheme.ancientInk,
                     fontSize: 15,
                     height: 1.4,
                   ),
@@ -1007,9 +1090,9 @@ class _CommunityScreenState extends State<CommunityScreen>
                 padding: const EdgeInsets.only(top: 4, left: 4, right: 4),
                 child: Text(
                   message.formattedTime,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 10,
-                    color: Colors.white.withValues(alpha: 0.4),
+                    color: ParchmentTheme.weatheredGray,
                   ),
                 ),
               ),
@@ -1028,14 +1111,14 @@ class _CommunityScreenState extends State<CommunityScreen>
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.05),
+            color: ParchmentTheme.warmVellum.withValues(alpha: 0.5),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Text(
             message.content,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 12,
-              color: Colors.white.withValues(alpha: 0.6),
+              color: ParchmentTheme.fadedScript,
             ),
           ),
         ),
@@ -1054,7 +1137,7 @@ class _CommunityScreenState extends State<CommunityScreen>
       decoration: BoxDecoration(
         color: _cardColor,
         border: Border(
-          top: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+          top: BorderSide(color: _accentColor.withValues(alpha: 0.2)),
         ),
       ),
       child: Row(
@@ -1062,16 +1145,16 @@ class _CommunityScreenState extends State<CommunityScreen>
           Expanded(
             child: TextField(
               controller: _messageController,
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(color: ParchmentTheme.ancientInk),
               decoration: InputDecoration(
                 hintText: '메시지를 입력하세요...',
-                hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.4)),
+                hintStyle: const TextStyle(color: ParchmentTheme.fadedScript),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),
                   borderSide: BorderSide.none,
                 ),
                 filled: true,
-                fillColor: _bgColor,
+                fillColor: ParchmentTheme.warmVellum.withValues(alpha: 0.5),
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 10,
@@ -1094,7 +1177,7 @@ class _CommunityScreenState extends State<CommunityScreen>
                       color: _accentColor,
                     ),
                   )
-                : const Icon(Icons.send, color: _accentColor),
+                : Icon(Icons.send, color: _accentColor),
           ),
         ],
       ),
@@ -1141,6 +1224,7 @@ class _CommunityScreenState extends State<CommunityScreen>
             decoration: BoxDecoration(
               color: _cardColor,
               borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _accentColor.withValues(alpha: 0.2)),
             ),
             child: TabBar(
               indicatorSize: TabBarIndicatorSize.tab,
@@ -1149,8 +1233,8 @@ class _CommunityScreenState extends State<CommunityScreen>
                 color: _accentColor,
                 borderRadius: BorderRadius.circular(8),
               ),
-              labelColor: Colors.white,
-              unselectedLabelColor: Colors.white54,
+              labelColor: ParchmentTheme.softPapyrus,
+              unselectedLabelColor: ParchmentTheme.fadedScript,
               tabs: const [
                 Tab(text: '친구'),
                 Tab(text: '요청'),
@@ -1182,16 +1266,18 @@ class _CommunityScreenState extends State<CommunityScreen>
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.2)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: _accentColor.withValues(alpha: 0.2),
+              color: _accentColor.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.sports_esports, color: _accentColor),
+            child: Icon(Icons.sports_esports, color: _accentColor),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -1200,16 +1286,16 @@ class _CommunityScreenState extends State<CommunityScreen>
               children: [
                 const Text(
                   '1:1 대전 기록',
-                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                  style: TextStyle(fontWeight: FontWeight.bold, color: ParchmentTheme.ancientInk),
                 ),
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    _buildStatChip('승', _battleStats!.wins, Colors.green),
+                    _buildStatChip('승', _battleStats!.wins, ParchmentTheme.success),
                     const SizedBox(width: 8),
-                    _buildStatChip('패', _battleStats!.losses, Colors.red),
+                    _buildStatChip('패', _battleStats!.losses, ParchmentTheme.error),
                     const SizedBox(width: 8),
-                    _buildStatChip('무', _battleStats!.draws, Colors.grey),
+                    _buildStatChip('무', _battleStats!.draws, ParchmentTheme.weatheredGray),
                   ],
                 ),
               ],
@@ -1217,7 +1303,7 @@ class _CommunityScreenState extends State<CommunityScreen>
           ),
           Text(
             '${_battleStats!.winRatePercent}%',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
               color: _accentColor,
@@ -1275,6 +1361,8 @@ class _CommunityScreenState extends State<CommunityScreen>
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.2)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Row(
         children: [
@@ -1282,10 +1370,10 @@ class _CommunityScreenState extends State<CommunityScreen>
             children: [
               CircleAvatar(
                 radius: 24,
-                backgroundColor: _accentColor.withValues(alpha: 0.2),
+                backgroundColor: _accentColor.withValues(alpha: 0.15),
                 child: Text(
                   friend.name.isNotEmpty ? friend.name[0] : '?',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: _accentColor,
@@ -1300,7 +1388,7 @@ class _CommunityScreenState extends State<CommunityScreen>
                     width: 12,
                     height: 12,
                     decoration: BoxDecoration(
-                      color: Colors.green,
+                      color: ParchmentTheme.success,
                       shape: BoxShape.circle,
                       border: Border.all(color: _cardColor, width: 2),
                     ),
@@ -1315,7 +1403,7 @@ class _CommunityScreenState extends State<CommunityScreen>
               children: [
                 Text(
                   friend.name,
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                  style: const TextStyle(fontWeight: FontWeight.bold, color: ParchmentTheme.ancientInk),
                 ),
                 const SizedBox(height: 4),
                 Row(
@@ -1324,7 +1412,7 @@ class _CommunityScreenState extends State<CommunityScreen>
                     const SizedBox(width: 4),
                     Text(
                       '${friend.talants}',
-                      style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.6)),
+                      style: const TextStyle(fontSize: 12, color: ParchmentTheme.fadedScript),
                     ),
                     if (friend.streak > 0) ...[
                       const SizedBox(width: 12),
@@ -1332,7 +1420,7 @@ class _CommunityScreenState extends State<CommunityScreen>
                       const SizedBox(width: 4),
                       Text(
                         '${friend.streak}일',
-                        style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.6)),
+                        style: const TextStyle(fontSize: 12, color: ParchmentTheme.fadedScript),
                       ),
                     ],
                   ],
@@ -1345,10 +1433,10 @@ class _CommunityScreenState extends State<CommunityScreen>
             icon: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: _accentColor.withValues(alpha: 0.2),
+                color: _accentColor.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.sports_esports, color: _accentColor),
+              child: Icon(Icons.sports_esports, color: _accentColor),
             ),
             tooltip: '대전 신청',
           ),
@@ -1381,11 +1469,11 @@ class _CommunityScreenState extends State<CommunityScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.mail_outline, size: 64, color: Colors.white.withValues(alpha: 0.3)),
+            Icon(Icons.mail_outline, size: 64, color: ParchmentTheme.warmVellum),
             const SizedBox(height: 16),
-            Text(
+            const Text(
               '받은 요청이 없습니다',
-              style: TextStyle(fontSize: 16, color: Colors.white.withValues(alpha: 0.5)),
+              style: TextStyle(fontSize: 16, color: ParchmentTheme.fadedScript),
             ),
           ],
         ),
@@ -1413,15 +1501,17 @@ class _CommunityScreenState extends State<CommunityScreen>
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.2)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Row(
         children: [
           CircleAvatar(
             radius: 24,
-            backgroundColor: _accentColor.withValues(alpha: 0.2),
+            backgroundColor: _accentColor.withValues(alpha: 0.15),
             child: Text(
               request.fromUserName.isNotEmpty ? request.fromUserName[0] : '?',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: _accentColor,
@@ -1435,12 +1525,12 @@ class _CommunityScreenState extends State<CommunityScreen>
               children: [
                 Text(
                   request.fromUserName,
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                  style: const TextStyle(fontWeight: FontWeight.bold, color: ParchmentTheme.ancientInk),
                 ),
                 const SizedBox(height: 4),
-                Text(
+                const Text(
                   '친구 요청을 보냈습니다',
-                  style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.6)),
+                  style: TextStyle(fontSize: 12, color: ParchmentTheme.fadedScript),
                 ),
               ],
             ),
@@ -1450,10 +1540,10 @@ class _CommunityScreenState extends State<CommunityScreen>
             icon: Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: Colors.red.withValues(alpha: 0.2),
+                color: ParchmentTheme.error.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.close, color: Colors.red, size: 20),
+              child: const Icon(Icons.close, color: ParchmentTheme.error, size: 20),
             ),
           ),
           IconButton(
@@ -1461,10 +1551,10 @@ class _CommunityScreenState extends State<CommunityScreen>
             icon: Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: Colors.green.withValues(alpha: 0.2),
+                color: ParchmentTheme.success.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.check, color: Colors.green, size: 20),
+              child: const Icon(Icons.check, color: ParchmentTheme.success, size: 20),
             ),
           ),
         ],
@@ -1479,20 +1569,28 @@ class _CommunityScreenState extends State<CommunityScreen>
           padding: const EdgeInsets.all(16),
           child: TextField(
             controller: _friendSearchController,
-            style: const TextStyle(color: Colors.white),
+            style: const TextStyle(color: ParchmentTheme.ancientInk),
             decoration: InputDecoration(
               hintText: '이름으로 검색 (2자 이상)',
-              hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+              hintStyle: const TextStyle(color: ParchmentTheme.fadedScript),
               filled: true,
               fillColor: _cardColor,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
+                borderSide: BorderSide(color: _accentColor.withValues(alpha: 0.2)),
               ),
-              prefixIcon: Icon(Icons.search, color: Colors.white.withValues(alpha: 0.5)),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: _accentColor.withValues(alpha: 0.2)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: _accentColor),
+              ),
+              prefixIcon: const Icon(Icons.search, color: ParchmentTheme.fadedScript),
               suffixIcon: _isFriendSearching
-                  ? const Padding(
-                      padding: EdgeInsets.all(12),
+                  ? Padding(
+                      padding: const EdgeInsets.all(12),
                       child: SizedBox(
                         width: 20,
                         height: 20,
@@ -1501,7 +1599,7 @@ class _CommunityScreenState extends State<CommunityScreen>
                     )
                   : IconButton(
                       onPressed: _searchFriends,
-                      icon: const Icon(Icons.search, color: _accentColor),
+                      icon: Icon(Icons.search, color: _accentColor),
                     ),
             ),
             onSubmitted: (_) => _searchFriends(),
@@ -1542,15 +1640,17 @@ class _CommunityScreenState extends State<CommunityScreen>
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.2)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Row(
         children: [
           CircleAvatar(
             radius: 24,
-            backgroundColor: _accentColor.withValues(alpha: 0.2),
+            backgroundColor: _accentColor.withValues(alpha: 0.15),
             child: Text(
               user.name.isNotEmpty ? user.name[0] : '?',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: _accentColor,
@@ -1564,13 +1664,13 @@ class _CommunityScreenState extends State<CommunityScreen>
               children: [
                 Text(
                   user.name,
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                  style: const TextStyle(fontWeight: FontWeight.bold, color: ParchmentTheme.ancientInk),
                 ),
                 if (user.groupName != null) ...[
                   const SizedBox(height: 4),
                   Text(
                     user.groupName!,
-                    style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.6)),
+                    style: const TextStyle(fontSize: 12, color: ParchmentTheme.fadedScript),
                   ),
                 ],
               ],
@@ -1580,12 +1680,12 @@ class _CommunityScreenState extends State<CommunityScreen>
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.green.withValues(alpha: 0.2),
+                color: ParchmentTheme.success.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Text(
                 '친구',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.green),
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: ParchmentTheme.success),
               ),
             )
           else
@@ -1593,7 +1693,7 @@ class _CommunityScreenState extends State<CommunityScreen>
               onPressed: () => _sendFriendRequest(user.odId),
               style: ElevatedButton.styleFrom(
                 backgroundColor: _accentColor,
-                foregroundColor: Colors.white,
+                foregroundColor: ParchmentTheme.softPapyrus,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
@@ -1617,8 +1717,7 @@ class _GroupOptionsSheet extends StatelessWidget {
     required this.onBrowseGroups,
   });
 
-  static const _accentColor = Color(0xFF6C63FF);
-  static const _bgColor = Color(0xFF0F0F1A);
+  static const _accentColor = ParchmentTheme.manuscriptGold;
 
   @override
   Widget build(BuildContext context) {
@@ -1631,7 +1730,7 @@ class _GroupOptionsSheet extends StatelessWidget {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.3),
+              color: ParchmentTheme.warmVellum,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -1641,7 +1740,7 @@ class _GroupOptionsSheet extends StatelessWidget {
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: ParchmentTheme.ancientInk,
             ),
           ),
           const SizedBox(height: 20),
@@ -1683,15 +1782,16 @@ class _GroupOptionsSheet extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: _bgColor,
+          color: ParchmentTheme.warmVellum.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: _accentColor.withValues(alpha: 0.2)),
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: _accentColor.withValues(alpha: 0.2),
+                color: _accentColor.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(icon, color: _accentColor),
@@ -1704,23 +1804,23 @@ class _GroupOptionsSheet extends StatelessWidget {
                   Text(
                     title,
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: ParchmentTheme.ancientInk,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   Text(
                     subtitle,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.6),
+                    style: const TextStyle(
+                      color: ParchmentTheme.fadedScript,
                       fontSize: 12,
                     ),
                   ),
                 ],
               ),
             ),
-            Icon(
+            const Icon(
               Icons.chevron_right,
-              color: Colors.white.withValues(alpha: 0.5),
+              color: ParchmentTheme.fadedScript,
             ),
           ],
         ),
@@ -1746,8 +1846,7 @@ class _ChallengeSheet extends StatefulWidget {
 }
 
 class _ChallengeSheetState extends State<_ChallengeSheet> {
-  static const _bgColor = Color(0xFF0F0F1A);
-  static const _accentColor = Color(0xFF6C63FF);
+  static const _accentColor = ParchmentTheme.manuscriptGold;
 
   final _verseController = TextEditingController(text: 'John 3:16');
   int _betAmount = 10;
@@ -1774,21 +1873,21 @@ class _ChallengeSheetState extends State<_ChallengeSheet> {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.3),
+              color: ParchmentTheme.warmVellum,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
           const SizedBox(height: 24),
           Row(
             children: [
-              const Icon(Icons.sports_esports, color: _accentColor),
+              Icon(Icons.sports_esports, color: _accentColor),
               const SizedBox(width: 12),
               Text(
                 '${widget.friend.name}에게 대전 신청',
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: ParchmentTheme.ancientInk,
                 ),
               ),
             ],
@@ -1796,14 +1895,14 @@ class _ChallengeSheetState extends State<_ChallengeSheet> {
           const SizedBox(height: 24),
           TextField(
             controller: _verseController,
-            style: const TextStyle(color: Colors.white),
+            style: const TextStyle(color: ParchmentTheme.ancientInk),
             decoration: InputDecoration(
               labelText: '대전 구절',
-              labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+              labelStyle: const TextStyle(color: ParchmentTheme.fadedScript),
               hintText: 'e.g., John 3:16',
-              hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
+              hintStyle: const TextStyle(color: ParchmentTheme.weatheredGray),
               filled: true,
-              fillColor: _bgColor,
+              fillColor: ParchmentTheme.warmVellum.withValues(alpha: 0.5),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
@@ -1813,9 +1912,9 @@ class _ChallengeSheetState extends State<_ChallengeSheet> {
           const SizedBox(height: 16),
           Row(
             children: [
-              Text(
+              const Text(
                 '베팅 탈란트',
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+                style: TextStyle(color: ParchmentTheme.fadedScript),
               ),
               const Spacer(),
               IconButton(
@@ -1828,7 +1927,7 @@ class _ChallengeSheetState extends State<_ChallengeSheet> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: _bgColor,
+                  color: ParchmentTheme.warmVellum.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -1840,7 +1939,7 @@ class _ChallengeSheetState extends State<_ChallengeSheet> {
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: ParchmentTheme.ancientInk,
                       ),
                     ),
                   ],
@@ -1858,30 +1957,38 @@ class _ChallengeSheetState extends State<_ChallengeSheet> {
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () async {
-                final verse = _verseController.text.trim();
-                if (verse.isNotEmpty) {
-                  Navigator.pop(context);
-                  final result = await widget.battleService.createBattle(
-                    opponentId: widget.friend.odId,
-                    verseReference: verse,
-                    betAmount: _betAmount,
-                  );
-                  widget.onResult(result.message, result.success);
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _accentColor,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: ParchmentTheme.goldButtonGradient,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: ParchmentTheme.buttonShadow,
               ),
-              child: const Text(
-                '대전 신청',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              child: ElevatedButton(
+                onPressed: () async {
+                  final verse = _verseController.text.trim();
+                  if (verse.isNotEmpty) {
+                    Navigator.pop(context);
+                    final result = await widget.battleService.createBattle(
+                      opponentId: widget.friend.odId,
+                      verseReference: verse,
+                      betAmount: _betAmount,
+                    );
+                    widget.onResult(result.message, result.success);
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  foregroundColor: ParchmentTheme.softPapyrus,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  '대전 신청',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
               ),
             ),
           ),
@@ -1906,9 +2013,8 @@ class _BrowseGroupsDialog extends StatefulWidget {
 }
 
 class _BrowseGroupsDialogState extends State<_BrowseGroupsDialog> {
-  static const _cardColor = Color(0xFF1E1E2E);
-  static const _bgColor = Color(0xFF0F0F1A);
-  static const _accentColor = Color(0xFF6C63FF);
+  static const _cardColor = ParchmentTheme.softPapyrus;
+  static const _accentColor = ParchmentTheme.manuscriptGold;
 
   List<GroupModel> _groups = [];
   List<GroupModel> _filteredGroups = [];
@@ -1966,25 +2072,25 @@ class _BrowseGroupsDialogState extends State<_BrowseGroupsDialog> {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: ParchmentTheme.ancientInk,
               ),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: _searchController,
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(color: ParchmentTheme.ancientInk),
               decoration: InputDecoration(
                 hintText: '그룹 검색...',
-                hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+                hintStyle: const TextStyle(color: ParchmentTheme.fadedScript),
                 filled: true,
-                fillColor: _bgColor,
+                fillColor: ParchmentTheme.warmVellum.withValues(alpha: 0.5),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
                 ),
-                prefixIcon: Icon(
+                prefixIcon: const Icon(
                   Icons.search,
-                  color: Colors.white.withValues(alpha: 0.5),
+                  color: ParchmentTheme.fadedScript,
                 ),
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -1995,15 +2101,15 @@ class _BrowseGroupsDialogState extends State<_BrowseGroupsDialog> {
             const SizedBox(height: 16),
             Expanded(
               child: _isLoading
-                  ? const Center(
+                  ? Center(
                       child: CircularProgressIndicator(color: _accentColor),
                     )
                   : _filteredGroups.isEmpty
-                      ? Center(
+                      ? const Center(
                           child: Text(
                             '검색 결과가 없습니다',
                             style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.5),
+                              color: ParchmentTheme.fadedScript,
                             ),
                           ),
                         )
@@ -2018,8 +2124,9 @@ class _BrowseGroupsDialogState extends State<_BrowseGroupsDialog> {
                                 margin: const EdgeInsets.only(bottom: 8),
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: _bgColor,
+                                  color: ParchmentTheme.warmVellum.withValues(alpha: 0.5),
                                   borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: _accentColor.withValues(alpha: 0.2)),
                                 ),
                                 child: Row(
                                   children: [
@@ -2027,7 +2134,7 @@ class _BrowseGroupsDialogState extends State<_BrowseGroupsDialog> {
                                       width: 40,
                                       height: 40,
                                       decoration: BoxDecoration(
-                                        color: _accentColor.withValues(alpha: 0.2),
+                                        color: _accentColor.withValues(alpha: 0.15),
                                         borderRadius: BorderRadius.circular(10),
                                       ),
                                       child: Center(
@@ -2035,7 +2142,7 @@ class _BrowseGroupsDialogState extends State<_BrowseGroupsDialog> {
                                           group.name.isNotEmpty
                                               ? group.name[0]
                                               : '?',
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             fontSize: 18,
                                             fontWeight: FontWeight.bold,
                                             color: _accentColor,
@@ -2053,21 +2160,20 @@ class _BrowseGroupsDialogState extends State<_BrowseGroupsDialog> {
                                             group.name,
                                             style: const TextStyle(
                                               fontWeight: FontWeight.bold,
-                                              color: Colors.white,
+                                              color: ParchmentTheme.ancientInk,
                                             ),
                                           ),
                                           Text(
                                             '${group.memberCount}명',
-                                            style: TextStyle(
+                                            style: const TextStyle(
                                               fontSize: 12,
-                                              color: Colors.white
-                                                  .withValues(alpha: 0.6),
+                                              color: ParchmentTheme.fadedScript,
                                             ),
                                           ),
                                         ],
                                       ),
                                     ),
-                                    const Icon(
+                                    Icon(
                                       Icons.arrow_forward_ios,
                                       size: 16,
                                       color: _accentColor,
@@ -2082,9 +2188,9 @@ class _BrowseGroupsDialogState extends State<_BrowseGroupsDialog> {
             const SizedBox(height: 8),
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text(
+              child: const Text(
                 '닫기',
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+                style: TextStyle(color: ParchmentTheme.fadedScript),
               ),
             ),
           ],

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/shop_item.dart';
 import '../../services/shop_service.dart';
 import '../../services/auth_service.dart';
+import '../../styles/parchment_theme.dart';
 
 /// 탈란트 샵 화면
 class ShopScreen extends StatefulWidget {
@@ -12,10 +13,9 @@ class ShopScreen extends StatefulWidget {
 }
 
 class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateMixin {
-  // 다크 테마 상수
-  static const _bgColor = Color(0xFF0F0F1A);
-  static const _cardColor = Color(0xFF1E1E2E);
-  static const _accentColor = Color(0xFF6C63FF);
+  // Parchment 테마 색상
+  static const _cardColor = ParchmentTheme.softPapyrus;
+  static const _accentColor = ParchmentTheme.manuscriptGold;
 
   final ShopService _shopService = ShopService();
   final AuthService _authService = AuthService();
@@ -91,61 +91,96 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bgColor,
-      appBar: AppBar(
-        backgroundColor: _cardColor,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: const Text(
-          '탈란트 샵',
-          style: TextStyle(fontWeight: FontWeight.bold),
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: ParchmentTheme.backgroundGradient,
         ),
-        actions: [
-          // 탈란트 잔액
-          Container(
-            margin: const EdgeInsets.only(right: 16),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.amber.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.toll, color: Colors.amber, size: 18),
-                const SizedBox(width: 6),
-                Text(
-                  '$_userTalants',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.amber,
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Custom AppBar
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios),
+                      color: ParchmentTheme.ancientInk,
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    const Expanded(
+                      child: Text(
+                        '탈란트 샵',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: ParchmentTheme.ancientInk,
+                        ),
+                      ),
+                    ),
+                    // 탈란트 잔액
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: _accentColor.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.toll, color: _accentColor, size: 18),
+                          const SizedBox(width: 6),
+                          Text(
+                            '$_userTalants',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: _accentColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                ),
+              ),
+              // TabBar
+              Container(
+                decoration: BoxDecoration(
+                  color: _cardColor,
+                  border: Border(
+                    bottom: BorderSide(color: _accentColor.withValues(alpha: 0.3)),
                   ),
                 ),
-              ],
-            ),
+                child: TabBar(
+                  controller: _tabController,
+                  isScrollable: true,
+                  indicatorColor: _accentColor,
+                  labelColor: ParchmentTheme.ancientInk,
+                  unselectedLabelColor: ParchmentTheme.fadedScript,
+                  tabs: [
+                    const Tab(text: '전체'),
+                    ...ShopCategory.values.map((c) => Tab(text: c.label)),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator(color: _accentColor))
+                    : TabBarView(
+                        controller: _tabController,
+                        children: [
+                          _buildItemGrid(null),
+                          ...ShopCategory.values.map((c) => _buildItemGrid(c)),
+                        ],
+                      ),
+              ),
+            ],
           ),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          indicatorColor: _accentColor,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white54,
-          tabs: [
-            const Tab(text: '전체'),
-            ...ShopCategory.values.map((c) => Tab(text: c.label)),
-          ],
         ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: _accentColor))
-          : TabBarView(
-              controller: _tabController,
-              children: [
-                _buildItemGrid(null),
-                ...ShopCategory.values.map((c) => _buildItemGrid(c)),
-              ],
-            ),
     );
   }
 
@@ -159,11 +194,11 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.shopping_bag, size: 64, color: Colors.white.withValues(alpha: 0.3)),
+            Icon(Icons.shopping_bag, size: 64, color: ParchmentTheme.warmVellum),
             const SizedBox(height: 16),
-            Text(
+            const Text(
               '아이템이 없습니다',
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+              style: TextStyle(color: ParchmentTheme.fadedScript),
             ),
           ],
         ),
@@ -212,8 +247,8 @@ class _ShopItemCard extends StatelessWidget {
     this.onTap,
   });
 
-  static const _cardColor = Color(0xFF1E1E2E);
-  static const _accentColor = Color(0xFF6C63FF);
+  static const _cardColor = ParchmentTheme.softPapyrus;
+  static const _accentColor = ParchmentTheme.manuscriptGold;
 
   @override
   Widget build(BuildContext context) {
@@ -229,9 +264,10 @@ class _ShopItemCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: owned
-                  ? Colors.green.withValues(alpha: 0.3)
-                  : _accentColor.withValues(alpha: 0.2),
+                  ? ParchmentTheme.success.withValues(alpha: 0.5)
+                  : _accentColor.withValues(alpha: 0.3),
             ),
+            boxShadow: ParchmentTheme.cardShadow,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -248,7 +284,7 @@ class _ShopItemCard extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.green.withValues(alpha: 0.2),
+                        color: ParchmentTheme.success.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Text(
@@ -256,7 +292,7 @@ class _ShopItemCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          color: Colors.green,
+                          color: ParchmentTheme.success,
                         ),
                       ),
                     )
@@ -264,7 +300,7 @@ class _ShopItemCard extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.red.withValues(alpha: 0.2),
+                        color: ParchmentTheme.error.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
@@ -272,7 +308,7 @@ class _ShopItemCard extends StatelessWidget {
                         style: const TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          color: Colors.red,
+                          color: ParchmentTheme.error,
                         ),
                       ),
                     ),
@@ -286,7 +322,7 @@ class _ShopItemCard extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: ParchmentTheme.ancientInk,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -297,9 +333,9 @@ class _ShopItemCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   item.description,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 11,
-                    color: Colors.white.withValues(alpha: 0.6),
+                    color: ParchmentTheme.fadedScript,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -314,7 +350,7 @@ class _ShopItemCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: canAfford
                         ? _accentColor.withValues(alpha: 0.2)
-                        : Colors.white.withValues(alpha: 0.1),
+                        : ParchmentTheme.warmVellum.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
@@ -323,14 +359,14 @@ class _ShopItemCard extends StatelessWidget {
                       Icon(
                         Icons.toll,
                         size: 16,
-                        color: canAfford ? Colors.amber : Colors.white38,
+                        color: canAfford ? _accentColor : ParchmentTheme.weatheredGray,
                       ),
                       const SizedBox(width: 4),
                       Text(
                         '${item.price}',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: canAfford ? Colors.white : Colors.white38,
+                          color: canAfford ? ParchmentTheme.ancientInk : ParchmentTheme.weatheredGray,
                         ),
                       ),
                     ],
@@ -354,8 +390,8 @@ class _PurchaseConfirmDialog extends StatelessWidget {
     required this.userTalants,
   });
 
-  static const _cardColor = Color(0xFF1E1E2E);
-  static const _accentColor = Color(0xFF6C63FF);
+  static const _cardColor = ParchmentTheme.softPapyrus;
+  static const _accentColor = ParchmentTheme.manuscriptGold;
 
   @override
   Widget build(BuildContext context) {
@@ -379,7 +415,7 @@ class _PurchaseConfirmDialog extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: ParchmentTheme.ancientInk,
               ),
             ),
             const SizedBox(height: 8),
@@ -387,9 +423,9 @@ class _PurchaseConfirmDialog extends StatelessWidget {
             // 설명
             Text(
               item.description,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 14,
-                color: Colors.white.withValues(alpha: 0.7),
+                color: ParchmentTheme.fadedScript,
               ),
               textAlign: TextAlign.center,
             ),
@@ -399,7 +435,7 @@ class _PurchaseConfirmDialog extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.05),
+                color: ParchmentTheme.warmVellum.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
@@ -407,19 +443,19 @@ class _PurchaseConfirmDialog extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
+                      const Text(
                         '가격',
-                        style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+                        style: TextStyle(color: ParchmentTheme.fadedScript),
                       ),
                       Row(
                         children: [
-                          const Icon(Icons.toll, color: Colors.amber, size: 18),
+                          Icon(Icons.toll, color: _accentColor, size: 18),
                           const SizedBox(width: 4),
                           Text(
                             '${item.price}',
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                              color: ParchmentTheme.ancientInk,
                             ),
                           ),
                         ],
@@ -430,33 +466,33 @@ class _PurchaseConfirmDialog extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
+                      const Text(
                         '보유 탈란트',
-                        style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+                        style: TextStyle(color: ParchmentTheme.fadedScript),
                       ),
                       Text(
                         '$userTalants',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: canAfford ? Colors.green : Colors.red,
+                          color: canAfford ? ParchmentTheme.success : ParchmentTheme.error,
                         ),
                       ),
                     ],
                   ),
                   if (canAfford) ...[
-                    const Divider(color: Colors.white12, height: 24),
+                    Divider(color: ParchmentTheme.warmVellum, height: 24),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
+                        const Text(
                           '구매 후 잔액',
-                          style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+                          style: TextStyle(color: ParchmentTheme.fadedScript),
                         ),
                         Text(
                           '${userTalants - item.price}',
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: ParchmentTheme.ancientInk,
                           ),
                         ),
                       ],
@@ -474,8 +510,8 @@ class _PurchaseConfirmDialog extends StatelessWidget {
                   child: OutlinedButton(
                     onPressed: () => Navigator.pop(context, false),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.white70,
-                      side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
+                      foregroundColor: ParchmentTheme.fadedScript,
+                      side: BorderSide(color: _accentColor.withValues(alpha: 0.5)),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -486,22 +522,46 @@ class _PurchaseConfirmDialog extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: ElevatedButton(
-                    onPressed: canAfford ? () => Navigator.pop(context, true) : null,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: canAfford ? _accentColor : Colors.grey,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: Text(
-                      canAfford ? '구매하기' : '탈란트 부족',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
+                  child: canAfford
+                      ? Container(
+                          decoration: BoxDecoration(
+                            gradient: ParchmentTheme.goldButtonGradient,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: ParchmentTheme.buttonShadow,
+                          ),
+                          child: ElevatedButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
+                              foregroundColor: ParchmentTheme.softPapyrus,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text(
+                              '구매하기',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        )
+                      : ElevatedButton(
+                          onPressed: null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: ParchmentTheme.warmVellum,
+                            foregroundColor: ParchmentTheme.weatheredGray,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: const Text(
+                            '탈란트 부족',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
                 ),
               ],
             ),

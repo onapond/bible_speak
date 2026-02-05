@@ -53,6 +53,9 @@ dependencies:
   # 이미지 캐싱
   cached_network_image: ^3.4.1
 
+  # Google Fonts (온보딩 타이포그래피)
+  google_fonts: ^6.2.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -4,6 +4,7 @@ import '../../models/quiz_type.dart';
 import '../../services/word_progress_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/daily_goal_service.dart';
+import '../../styles/parchment_theme.dart';
 import 'quiz_result_screen.dart';
 
 /// 빈칸 채우기 퀴즈 화면
@@ -24,11 +25,9 @@ class FillBlankQuizScreen extends StatefulWidget {
 }
 
 class _FillBlankQuizScreenState extends State<FillBlankQuizScreen> {
-  // 다크 테마 상수
-  static const _bgColor = Color(0xFF0F0F1A);
-  static const _cardColor = Color(0xFF1E1E2E);
-  static const _accentColor = Color(0xFF6C63FF);
-  static const _successColor = Color(0xFF4CAF50);
+  // Parchment 테마 색상
+  static const _cardColor = ParchmentTheme.softPapyrus;
+  static const _accentColor = ParchmentTheme.manuscriptGold;
 
   final WordProgressService _progressService = WordProgressService();
   final TextEditingController _answerController = TextEditingController();
@@ -174,16 +173,49 @@ class _FillBlankQuizScreenState extends State<FillBlankQuizScreen> {
   Widget build(BuildContext context) {
     if (_quizWords.isEmpty) {
       return Scaffold(
-        backgroundColor: _bgColor,
-        appBar: AppBar(
-          title: const Text('빈칸 채우기'),
-          backgroundColor: _cardColor,
-          foregroundColor: Colors.white,
-        ),
-        body: const Center(
-          child: Text(
-            '퀴즈에 사용할 단어가 없습니다.',
-            style: TextStyle(color: Colors.white),
+        backgroundColor: Colors.transparent,
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: ParchmentTheme.backgroundGradient,
+          ),
+          child: SafeArea(
+            child: Column(
+              children: [
+                // Custom AppBar
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back_ios),
+                        color: ParchmentTheme.ancientInk,
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                      const Expanded(
+                        child: Text(
+                          '빈칸 채우기',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: ParchmentTheme.ancientInk,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 48),
+                    ],
+                  ),
+                ),
+                const Expanded(
+                  child: Center(
+                    child: Text(
+                      '퀴즈에 사용할 단어가 없습니다.',
+                      style: TextStyle(color: ParchmentTheme.ancientInk),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
@@ -195,35 +227,59 @@ class _FillBlankQuizScreenState extends State<FillBlankQuizScreen> {
         : widget.bookName;
 
     return Scaffold(
-      backgroundColor: _bgColor,
-      appBar: AppBar(
-        title: Text('$quizTitle 빈칸 채우기'),
-        backgroundColor: _cardColor,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildProgress(),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: Column(
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: ParchmentTheme.backgroundGradient,
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Custom AppBar
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                child: Row(
                   children: [
-                    _buildQuestionCard(word),
-                    const SizedBox(height: 24),
-                    _buildAnswerInput(word),
-                    if (_hasAnswered) ...[
-                      const SizedBox(height: 16),
-                      _buildResultFeedback(word),
-                    ],
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios),
+                      color: ParchmentTheme.ancientInk,
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    Expanded(
+                      child: Text(
+                        '$quizTitle 빈칸 채우기',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: ParchmentTheme.ancientInk,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 48),
                   ],
                 ),
               ),
-            ),
-            _buildBottomButtons(word),
-          ],
+              _buildProgress(),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      _buildQuestionCard(word),
+                      const SizedBox(height: 24),
+                      _buildAnswerInput(word),
+                      if (_hasAnswered) ...[
+                        const SizedBox(height: 16),
+                        _buildResultFeedback(word),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              _buildBottomButtons(word),
+            ],
+          ),
         ),
       ),
     );
@@ -235,8 +291,9 @@ class _FillBlankQuizScreenState extends State<FillBlankQuizScreen> {
       decoration: BoxDecoration(
         color: _cardColor,
         border: Border(
-          bottom: BorderSide(color: _accentColor.withValues(alpha: 0.2)),
+          bottom: BorderSide(color: _accentColor.withValues(alpha: 0.3)),
         ),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Column(
         children: [
@@ -246,28 +303,28 @@ class _FillBlankQuizScreenState extends State<FillBlankQuizScreen> {
               Text(
                 '문제 ${_currentIndex + 1} / ${_quizWords.length}',
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: ParchmentTheme.ancientInk,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               Row(
                 children: [
-                  Icon(Icons.check_circle, size: 16, color: _successColor),
+                  const Icon(Icons.check_circle, size: 16, color: ParchmentTheme.success),
                   const SizedBox(width: 4),
                   Text(
                     '$_correctCount',
-                    style: TextStyle(
-                      color: _successColor,
+                    style: const TextStyle(
+                      color: ParchmentTheme.success,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Icon(Icons.cancel, size: 16, color: Colors.red),
+                  const Icon(Icons.cancel, size: 16, color: ParchmentTheme.error),
                   const SizedBox(width: 4),
                   Text(
                     '${_wrongWords.length}',
                     style: const TextStyle(
-                      color: Colors.red,
+                      color: ParchmentTheme.error,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -280,8 +337,8 @@ class _FillBlankQuizScreenState extends State<FillBlankQuizScreen> {
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: (_currentIndex + 1) / _quizWords.length,
-              backgroundColor: Colors.white.withValues(alpha: 0.1),
-              valueColor: AlwaysStoppedAnimation<Color>(_accentColor),
+              backgroundColor: ParchmentTheme.warmVellum,
+              valueColor: const AlwaysStoppedAnimation<Color>(_accentColor),
               minHeight: 6,
             ),
           ),
@@ -301,6 +358,7 @@ class _FillBlankQuizScreenState extends State<FillBlankQuizScreen> {
         color: _cardColor,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: _accentColor.withValues(alpha: 0.3)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Column(
         children: [
@@ -313,7 +371,7 @@ class _FillBlankQuizScreenState extends State<FillBlankQuizScreen> {
             child: const Text(
               '빈칸에 들어갈 단어는?',
               style: TextStyle(
-                color: Color(0xFF6C63FF),
+                color: ParchmentTheme.manuscriptGold,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -324,14 +382,14 @@ class _FillBlankQuizScreenState extends State<FillBlankQuizScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.05),
+              color: ParchmentTheme.warmVellum.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
               blankSentence,
               style: const TextStyle(
                 fontSize: 18,
-                color: Colors.white,
+                color: ParchmentTheme.ancientInk,
                 height: 1.5,
               ),
               textAlign: TextAlign.center,
@@ -346,13 +404,13 @@ class _FillBlankQuizScreenState extends State<FillBlankQuizScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.amber.withValues(alpha: 0.2),
+                  color: _accentColor.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   '뜻: ${word.primaryMeaning}',
                   style: const TextStyle(
-                    color: Colors.amber,
+                    color: ParchmentTheme.manuscriptGold,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -361,14 +419,14 @@ class _FillBlankQuizScreenState extends State<FillBlankQuizScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.1),
+                  color: ParchmentTheme.warmVellum,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   word.partOfSpeechKo,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 12,
-                    color: Colors.white.withValues(alpha: 0.7),
+                    color: ParchmentTheme.fadedScript,
                   ),
                 ),
               ),
@@ -381,7 +439,7 @@ class _FillBlankQuizScreenState extends State<FillBlankQuizScreen> {
             Text(
               '힌트: $hint',
               style: TextStyle(
-                color: Colors.orange.withValues(alpha: 0.8),
+                color: ParchmentTheme.warning.withValues(alpha: 0.9),
                 fontStyle: FontStyle.italic,
               ),
             ),
@@ -392,9 +450,9 @@ class _FillBlankQuizScreenState extends State<FillBlankQuizScreen> {
             const SizedBox(height: 12),
             Text(
               '- ${word.verses.first.reference}',
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 12,
-                color: Colors.white.withValues(alpha: 0.5),
+                color: ParchmentTheme.fadedScript,
               ),
             ),
           ],
@@ -409,6 +467,8 @@ class _FillBlankQuizScreenState extends State<FillBlankQuizScreen> {
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.2)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Column(
         children: [
@@ -421,20 +481,20 @@ class _FillBlankQuizScreenState extends State<FillBlankQuizScreen> {
             style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: ParchmentTheme.ancientInk,
             ),
             decoration: InputDecoration(
               hintText: '영단어 입력',
-              hintStyle: TextStyle(
-                color: Colors.white.withValues(alpha: 0.3),
+              hintStyle: const TextStyle(
+                color: ParchmentTheme.weatheredGray,
                 fontWeight: FontWeight.normal,
               ),
               filled: true,
               fillColor: _hasAnswered
                   ? (_isCorrect
-                      ? _successColor.withValues(alpha: 0.2)
-                      : Colors.red.withValues(alpha: 0.2))
-                  : Colors.white.withValues(alpha: 0.05),
+                      ? ParchmentTheme.success.withValues(alpha: 0.2)
+                      : ParchmentTheme.error.withValues(alpha: 0.2))
+                  : ParchmentTheme.warmVellum.withValues(alpha: 0.5),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
@@ -447,13 +507,13 @@ class _FillBlankQuizScreenState extends State<FillBlankQuizScreen> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: _accentColor, width: 2),
+                borderSide: const BorderSide(color: _accentColor, width: 2),
               ),
               disabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(
                   color: _hasAnswered
-                      ? (_isCorrect ? _successColor : Colors.red)
+                      ? (_isCorrect ? ParchmentTheme.success : ParchmentTheme.error)
                       : Colors.transparent,
                   width: 2,
                 ),
@@ -464,8 +524,8 @@ class _FillBlankQuizScreenState extends State<FillBlankQuizScreen> {
           const SizedBox(height: 12),
           Text(
             '${word.word.length}글자',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.5),
+            style: const TextStyle(
+              color: ParchmentTheme.fadedScript,
               fontSize: 12,
             ),
           ),
@@ -475,15 +535,14 @@ class _FillBlankQuizScreenState extends State<FillBlankQuizScreen> {
   }
 
   Widget _buildResultFeedback(BibleWord word) {
+    final resultColor = _isCorrect ? ParchmentTheme.success : ParchmentTheme.error;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _isCorrect
-            ? _successColor.withValues(alpha: 0.2)
-            : Colors.red.withValues(alpha: 0.2),
+        color: resultColor.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: _isCorrect ? _successColor : Colors.red,
+          color: resultColor,
           width: 2,
         ),
       ),
@@ -491,7 +550,7 @@ class _FillBlankQuizScreenState extends State<FillBlankQuizScreen> {
         children: [
           Icon(
             _isCorrect ? Icons.check_circle : Icons.cancel,
-            color: _isCorrect ? _successColor : Colors.red,
+            color: resultColor,
             size: 32,
           ),
           const SizedBox(width: 12),
@@ -504,7 +563,7 @@ class _FillBlankQuizScreenState extends State<FillBlankQuizScreen> {
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: _isCorrect ? _successColor : Colors.red,
+                    color: resultColor,
                   ),
                 ),
                 if (!_isCorrect) ...[
@@ -512,7 +571,7 @@ class _FillBlankQuizScreenState extends State<FillBlankQuizScreen> {
                   Text(
                     '정답: ${word.word}',
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: ParchmentTheme.ancientInk,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -531,8 +590,15 @@ class _FillBlankQuizScreenState extends State<FillBlankQuizScreen> {
       decoration: BoxDecoration(
         color: _cardColor,
         border: Border(
-          top: BorderSide(color: _accentColor.withValues(alpha: 0.2)),
+          top: BorderSide(color: _accentColor.withValues(alpha: 0.3)),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: ParchmentTheme.warmVellum.withValues(alpha: 0.5),
+            blurRadius: 8,
+            offset: const Offset(0, -4),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -544,8 +610,8 @@ class _FillBlankQuizScreenState extends State<FillBlankQuizScreen> {
                 icon: const Icon(Icons.lightbulb_outline),
                 label: Text(_hintLevel == 0 ? '힌트' : '힌트 +'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.orange,
-                  side: BorderSide(color: Colors.orange.withValues(alpha: 0.5)),
+                  foregroundColor: ParchmentTheme.warning,
+                  side: BorderSide(color: ParchmentTheme.warning.withValues(alpha: 0.5)),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -558,24 +624,32 @@ class _FillBlankQuizScreenState extends State<FillBlankQuizScreen> {
           // 확인/다음 버튼
           Expanded(
             flex: 2,
-            child: ElevatedButton(
-              onPressed: _hasAnswered ? _nextQuestion : () => _checkAnswer(word),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _hasAnswered ? _accentColor : _successColor,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 0,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: ParchmentTheme.goldButtonGradient,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: ParchmentTheme.buttonShadow,
               ),
-              child: Text(
-                _hasAnswered
-                    ? (_currentIndex >= _quizWords.length - 1 ? '결과 보기' : '다음 문제')
-                    : '정답 확인',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+              child: ElevatedButton(
+                onPressed: _hasAnswered ? _nextQuestion : () => _checkAnswer(word),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  foregroundColor: ParchmentTheme.softPapyrus,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 0,
+                ),
+                child: Text(
+                  _hasAnswered
+                      ? (_currentIndex >= _quizWords.length - 1 ? '결과 보기' : '다음 문제')
+                      : '정답 확인',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),

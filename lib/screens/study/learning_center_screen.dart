@@ -8,7 +8,8 @@ import '../../services/progress_service.dart';
 import '../../services/review_service.dart';
 import '../../services/daily_quiz_service.dart';
 import '../../models/verse_progress.dart';
-import '../practice/verse_practice_screen.dart';
+import '../../styles/parchment_theme.dart';
+import '../practice/verse_practice_redesigned.dart';
 import '../../widgets/common/animated_counter.dart';
 
 /// 학습센터 통합 화면
@@ -29,9 +30,10 @@ class LearningCenterScreen extends StatefulWidget {
 
 class _LearningCenterScreenState extends State<LearningCenterScreen>
     with SingleTickerProviderStateMixin {
-  static const _bgColor = Color(0xFF0F0F1A);
-  static const _cardColor = Color(0xFF1E1E2E);
-  static const _accentColor = Color(0xFF6C63FF);
+  // Parchment Theme 색상
+  static const _bgColor = ParchmentTheme.agedParchment;
+  static const _cardColor = ParchmentTheme.softPapyrus;
+  static const _accentColor = ParchmentTheme.manuscriptGold;
 
   late TabController _tabController;
 
@@ -75,52 +77,96 @@ class _LearningCenterScreenState extends State<LearningCenterScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bgColor,
-      appBar: AppBar(
-        backgroundColor: _cardColor,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: const Text(
-          '학습센터',
-          style: TextStyle(fontWeight: FontWeight.bold),
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: ParchmentTheme.backgroundGradient,
         ),
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: _accentColor,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white54,
-          tabs: [
-            const Tab(
-              icon: Icon(Icons.menu_book, size: 20),
-              text: '암송',
-            ),
-            Tab(
-              icon: Badge(
-                isLabelVisible: _dueReviewCount > 0,
-                label: Text('$_dueReviewCount'),
-                child: const Icon(Icons.replay, size: 20),
+        child: Column(
+          children: [
+            // 커스텀 AppBar
+            SafeArea(
+              bottom: false,
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(8, 8, 16, 0),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back_ios),
+                          color: ParchmentTheme.ancientInk,
+                          onPressed: () => Navigator.of(context).pop(),
+                        ),
+                        const Expanded(
+                          child: Text(
+                            '학습센터',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: ParchmentTheme.ancientInk,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    // TabBar
+                    Container(
+                      decoration: BoxDecoration(
+                        color: ParchmentTheme.warmVellum.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: TabBar(
+                        controller: _tabController,
+                        indicatorColor: _accentColor,
+                        indicatorSize: TabBarIndicatorSize.label,
+                        labelColor: ParchmentTheme.ancientInk,
+                        unselectedLabelColor: ParchmentTheme.weatheredGray,
+                        dividerColor: Colors.transparent,
+                        tabs: [
+                          const Tab(
+                            icon: Icon(Icons.menu_book, size: 20),
+                            text: '암송',
+                          ),
+                          Tab(
+                            icon: Badge(
+                              isLabelVisible: _dueReviewCount > 0,
+                              label: Text('$_dueReviewCount'),
+                              backgroundColor: ParchmentTheme.warning,
+                              child: const Icon(Icons.replay, size: 20),
+                            ),
+                            text: '복습',
+                          ),
+                          Tab(
+                            icon: Badge(
+                              isLabelVisible: _hasQuizToday,
+                              backgroundColor: ParchmentTheme.warning,
+                              smallSize: 8,
+                              child: const Icon(Icons.quiz, size: 20),
+                            ),
+                            text: '퀴즈',
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              text: '복습',
             ),
-            Tab(
-              icon: Badge(
-                isLabelVisible: _hasQuizToday,
-                backgroundColor: Colors.orange,
-                smallSize: 8,
-                child: const Icon(Icons.quiz, size: 20),
+            // TabBarView
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _PracticeTab(authService: widget.authService),
+                  _ReviewTab(onComplete: _loadSummaryStats),
+                  _QuizTab(onComplete: _loadSummaryStats),
+                ],
               ),
-              text: '퀴즈',
             ),
           ],
         ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _PracticeTab(authService: widget.authService),
-          _ReviewTab(onComplete: _loadSummaryStats),
-          _QuizTab(onComplete: _loadSummaryStats),
-        ],
       ),
     );
   }
@@ -138,8 +184,8 @@ class _PracticeTab extends StatefulWidget {
 
 class _PracticeTabState extends State<_PracticeTab>
     with AutomaticKeepAliveClientMixin {
-  static const _cardColor = Color(0xFF1E1E2E);
-  static const _accentColor = Color(0xFF6C63FF);
+  static const _cardColor = ParchmentTheme.softPapyrus;
+  static const _accentColor = ParchmentTheme.manuscriptGold;
 
   final ProgressService _progress = ProgressService();
   final BibleDataService _bibleData = BibleDataService.instance;
@@ -281,15 +327,16 @@ class _PracticeTabState extends State<_PracticeTab>
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<Book>(
           value: _selectedBook,
           isExpanded: true,
           dropdownColor: _cardColor,
-          icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white70),
-          style: const TextStyle(color: Colors.white, fontSize: 16),
+          icon: const Icon(Icons.keyboard_arrow_down, color: ParchmentTheme.fadedScript),
+          style: const TextStyle(color: ParchmentTheme.ancientInk, fontSize: 16),
           items: _books.map((book) {
             return DropdownMenuItem<Book>(
               value: book,
@@ -300,15 +347,15 @@ class _PracticeTabState extends State<_PracticeTab>
                     height: 36,
                     decoration: BoxDecoration(
                       color: book.testament == 'OT'
-                          ? Colors.amber.withValues(alpha: 0.2)
-                          : _accentColor.withValues(alpha: 0.2),
+                          ? ParchmentTheme.manuscriptGold.withValues(alpha: 0.2)
+                          : ParchmentTheme.info.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Center(
                       child: Text(
                         book.nameKo[0],
                         style: TextStyle(
-                          color: book.testament == 'OT' ? Colors.amber : _accentColor,
+                          color: book.testament == 'OT' ? ParchmentTheme.manuscriptGold : ParchmentTheme.info,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -319,7 +366,7 @@ class _PracticeTabState extends State<_PracticeTab>
                     child: Text(
                       book.nameKo,
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: ParchmentTheme.ancientInk,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -328,14 +375,14 @@ class _PracticeTabState extends State<_PracticeTab>
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: Colors.green.withValues(alpha: 0.2),
+                        color: ParchmentTheme.success.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: const Text(
                         '무료',
                         style: TextStyle(
                           fontSize: 10,
-                          color: Colors.green,
+                          color: ParchmentTheme.success,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -369,20 +416,20 @@ class _PracticeTabState extends State<_PracticeTab>
       children: [
         Row(
           children: [
-            const Icon(Icons.layers, color: Colors.white70, size: 18),
+            const Icon(Icons.layers, color: ParchmentTheme.fadedScript, size: 18),
             const SizedBox(width: 8),
             const Text(
               '장 선택',
               style: TextStyle(
-                color: Colors.white70,
+                color: ParchmentTheme.fadedScript,
                 fontWeight: FontWeight.w500,
               ),
             ),
             const Spacer(),
             Text(
               '${_selectedBook!.chapterCount}장',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.5),
+              style: const TextStyle(
+                color: ParchmentTheme.weatheredGray,
                 fontSize: 12,
               ),
             ),
@@ -401,11 +448,11 @@ class _PracticeTabState extends State<_PracticeTab>
 
               Color chipColor;
               if (progress?.status == ChapterStatus.completed) {
-                chipColor = Colors.green;
+                chipColor = ParchmentTheme.success;
               } else if (progress?.status == ChapterStatus.inProgress) {
-                chipColor = Colors.blue;
+                chipColor = ParchmentTheme.info;
               } else {
-                chipColor = Colors.grey;
+                chipColor = ParchmentTheme.weatheredGray;
               }
 
               return GestureDetector(
@@ -419,13 +466,14 @@ class _PracticeTabState extends State<_PracticeTab>
                   margin: const EdgeInsets.only(right: 8),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? chipColor.withValues(alpha: 0.2)
+                        ? chipColor.withValues(alpha: 0.15)
                         : _cardColor,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: isSelected ? chipColor : Colors.white10,
+                      color: isSelected ? chipColor : ParchmentTheme.warmVellum,
                       width: isSelected ? 2 : 1,
                     ),
+                    boxShadow: isSelected ? ParchmentTheme.cardShadow : null,
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -435,7 +483,7 @@ class _PracticeTabState extends State<_PracticeTab>
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: isSelected ? chipColor : Colors.white70,
+                          color: isSelected ? chipColor : ParchmentTheme.fadedScript,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -449,11 +497,11 @@ class _PracticeTabState extends State<_PracticeTab>
                           ),
                         )
                       else
-                        Text(
+                        const Text(
                           '미시작',
                           style: TextStyle(
                             fontSize: 10,
-                            color: Colors.white.withValues(alpha: 0.4),
+                            color: ParchmentTheme.weatheredGray,
                           ),
                         ),
                     ],
@@ -475,15 +523,11 @@ class _PracticeTabState extends State<_PracticeTab>
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [_accentColor, Colors.purple.shade700],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        gradient: ParchmentTheme.goldButtonGradient,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: _accentColor.withValues(alpha: 0.3),
+            color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -500,7 +544,7 @@ class _PracticeTabState extends State<_PracticeTab>
                   Text(
                     '${_selectedBook?.nameKo ?? ""} $_selectedChapter장',
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: ParchmentTheme.softPapyrus,
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
@@ -509,7 +553,7 @@ class _PracticeTabState extends State<_PracticeTab>
                   Text(
                     '$completedVerses / $_verseCount절 완료',
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.8),
+                      color: ParchmentTheme.softPapyrus.withValues(alpha: 0.9),
                       fontSize: 14,
                     ),
                   ),
@@ -523,8 +567,8 @@ class _PracticeTabState extends State<_PracticeTab>
             borderRadius: BorderRadius.circular(8),
             child: LinearProgressIndicator(
               value: progressRate,
-              backgroundColor: Colors.white24,
-              valueColor: const AlwaysStoppedAnimation<Color>(Colors.greenAccent),
+              backgroundColor: ParchmentTheme.softPapyrus.withValues(alpha: 0.3),
+              valueColor: const AlwaysStoppedAnimation<Color>(ParchmentTheme.softPapyrus),
               minHeight: 8,
             ),
           ),
@@ -545,15 +589,15 @@ class _PracticeTabState extends State<_PracticeTab>
             child: CircularProgressIndicator(
               value: progress,
               strokeWidth: 5,
-              backgroundColor: Colors.white24,
-              valueColor: const AlwaysStoppedAnimation<Color>(Colors.greenAccent),
+              backgroundColor: ParchmentTheme.softPapyrus.withValues(alpha: 0.3),
+              valueColor: const AlwaysStoppedAnimation<Color>(ParchmentTheme.softPapyrus),
             ),
           ),
           Center(
             child: Text(
               '${(progress * 100).toInt()}%',
               style: const TextStyle(
-                color: Colors.white,
+                color: ParchmentTheme.softPapyrus,
                 fontWeight: FontWeight.bold,
                 fontSize: 14,
               ),
@@ -575,27 +619,28 @@ class _PracticeTabState extends State<_PracticeTab>
             decoration: BoxDecoration(
               color: _cardColor,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white10),
+              border: Border.all(color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3)),
+              boxShadow: ParchmentTheme.cardShadow,
             ),
             child: Row(
               children: [
                 Icon(
                   _showVerseList ? Icons.expand_less : Icons.expand_more,
-                  color: Colors.white70,
+                  color: ParchmentTheme.fadedScript,
                 ),
                 const SizedBox(width: 8),
                 const Text(
                   '구절 목록',
                   style: TextStyle(
-                    color: Colors.white70,
+                    color: ParchmentTheme.fadedScript,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
                 const Spacer(),
                 Text(
                   '$_verseCount절',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.5),
+                  style: const TextStyle(
+                    color: ParchmentTheme.weatheredGray,
                     fontSize: 12,
                   ),
                 ),
@@ -630,20 +675,20 @@ class _PracticeTabState extends State<_PracticeTab>
         IconData? icon;
 
         if (isCompleted) {
-          bgColor = Colors.green.withValues(alpha: 0.2);
-          borderColor = Colors.green;
+          bgColor = ParchmentTheme.success.withValues(alpha: 0.15);
+          borderColor = ParchmentTheme.success;
           icon = Icons.check;
         } else if (isInProgress) {
-          bgColor = Colors.blue.withValues(alpha: 0.2);
-          borderColor = Colors.blue;
+          bgColor = ParchmentTheme.info.withValues(alpha: 0.15);
+          borderColor = ParchmentTheme.info;
           icon = Icons.play_arrow;
         } else if (isNext) {
-          bgColor = Colors.amber.withValues(alpha: 0.2);
-          borderColor = Colors.amber;
+          bgColor = ParchmentTheme.manuscriptGold.withValues(alpha: 0.15);
+          borderColor = ParchmentTheme.manuscriptGold;
           icon = Icons.arrow_forward;
         } else {
           bgColor = _cardColor;
-          borderColor = Colors.white10;
+          borderColor = ParchmentTheme.warmVellum;
           icon = null;
         }
 
@@ -667,7 +712,7 @@ class _PracticeTabState extends State<_PracticeTab>
                     fontWeight: FontWeight.bold,
                     color: isCompleted || isInProgress || isNext
                         ? borderColor
-                        : Colors.white54,
+                        : ParchmentTheme.weatheredGray,
                   ),
                 ),
                 if (icon != null)
@@ -699,9 +744,12 @@ class _PracticeTabState extends State<_PracticeTab>
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        border: Border(
+          top: BorderSide(color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3)),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
+            color: ParchmentTheme.warmVellum.withValues(alpha: 0.5),
             blurRadius: 10,
             offset: const Offset(0, -3),
           ),
@@ -709,14 +757,20 @@ class _PracticeTabState extends State<_PracticeTab>
       ),
       child: SafeArea(
         top: false,
-        child: SizedBox(
+        child: Container(
           width: double.infinity,
           height: 56,
+          decoration: BoxDecoration(
+            gradient: ParchmentTheme.goldButtonGradient,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: ParchmentTheme.buttonShadow,
+          ),
           child: ElevatedButton(
             onPressed: () => _startPractice(nextVerse),
             style: ElevatedButton.styleFrom(
-              backgroundColor: _accentColor,
-              foregroundColor: Colors.white,
+              backgroundColor: Colors.transparent,
+              shadowColor: Colors.transparent,
+              foregroundColor: ParchmentTheme.softPapyrus,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
@@ -750,7 +804,7 @@ class _PracticeTabState extends State<_PracticeTab>
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => VersePracticeScreen(
+        builder: (_) => VersePracticeRedesigned(
           authService: widget.authService,
           book: _selectedBook!.id,
           chapter: _selectedChapter,
@@ -776,8 +830,8 @@ class _ReviewTab extends StatefulWidget {
 
 class _ReviewTabState extends State<_ReviewTab>
     with AutomaticKeepAliveClientMixin {
-  static const _cardColor = Color(0xFF1E1E2E);
-  static const _accentColor = Color(0xFF6C63FF);
+  static const _cardColor = ParchmentTheme.softPapyrus;
+  static const _accentColor = ParchmentTheme.manuscriptGold;
 
   final ReviewService _reviewService = ReviewService();
 
@@ -874,19 +928,21 @@ class _ReviewTabState extends State<_ReviewTab>
             decoration: BoxDecoration(
               color: _cardColor,
               borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3)),
+              boxShadow: ParchmentTheme.cardShadow,
             ),
             child: Column(
               children: [
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Colors.green.withValues(alpha: 0.2),
+                    color: ParchmentTheme.success.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
                     Icons.check_circle,
                     size: 64,
-                    color: Colors.green,
+                    color: ParchmentTheme.success,
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -895,16 +951,16 @@ class _ReviewTabState extends State<_ReviewTab>
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: ParchmentTheme.ancientInk,
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text(
+                const Text(
                   '새로운 구절을 학습하면\n복습 일정이 자동으로 생성됩니다.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.white.withValues(alpha: 0.7),
+                    color: ParchmentTheme.fadedScript,
                   ),
                 ),
               ],
@@ -923,6 +979,8 @@ class _ReviewTabState extends State<_ReviewTab>
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Column(
         children: [
@@ -930,7 +988,7 @@ class _ReviewTabState extends State<_ReviewTab>
             '복습 현황',
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: ParchmentTheme.ancientInk,
             ),
           ),
           const SizedBox(height: 16),
@@ -955,14 +1013,14 @@ class _ReviewTabState extends State<_ReviewTab>
           style: const TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            color: _accentColor,
+            color: ParchmentTheme.manuscriptGold,
           ),
         ),
         Text(
           label,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 12,
-            color: Colors.white.withValues(alpha: 0.6),
+            color: ParchmentTheme.weatheredGray,
           ),
         ),
       ],
@@ -982,6 +1040,8 @@ class _ReviewTabState extends State<_ReviewTab>
             decoration: BoxDecoration(
               color: _cardColor,
               borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3)),
+              boxShadow: ParchmentTheme.cardShadow,
             ),
             child: Column(
               children: [
@@ -992,7 +1052,7 @@ class _ReviewTabState extends State<_ReviewTab>
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: ParchmentTheme.ancientInk,
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -1010,13 +1070,19 @@ class _ReviewTabState extends State<_ReviewTab>
             ),
           ),
           const SizedBox(height: 24),
-          SizedBox(
+          Container(
             width: double.infinity,
+            decoration: BoxDecoration(
+              gradient: ParchmentTheme.goldButtonGradient,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: ParchmentTheme.buttonShadow,
+            ),
             child: ElevatedButton(
               onPressed: _loadData,
               style: ElevatedButton.styleFrom(
-                backgroundColor: _accentColor,
-                foregroundColor: Colors.white,
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                foregroundColor: ParchmentTheme.softPapyrus,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -1038,13 +1104,13 @@ class _ReviewTabState extends State<_ReviewTab>
         children: [
           Text(
             label,
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+            style: const TextStyle(color: ParchmentTheme.fadedScript),
           ),
           Text(
             value,
             style: const TextStyle(
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: ParchmentTheme.ancientInk,
             ),
           ),
         ],
@@ -1062,13 +1128,13 @@ class _ReviewTabState extends State<_ReviewTab>
           // 진행 바
           LinearProgressIndicator(
             value: (_currentIndex + 1) / _dueItems.length,
-            backgroundColor: Colors.white.withValues(alpha: 0.1),
+            backgroundColor: ParchmentTheme.warmVellum,
             valueColor: const AlwaysStoppedAnimation(_accentColor),
           ),
           const SizedBox(height: 8),
           Text(
             '${_currentIndex + 1}/${_dueItems.length}',
-            style: const TextStyle(color: Colors.white70),
+            style: const TextStyle(color: ParchmentTheme.fadedScript),
           ),
           const SizedBox(height: 16),
 
@@ -1096,7 +1162,7 @@ class _ReviewTabState extends State<_ReviewTab>
             style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: ParchmentTheme.ancientInk,
             ),
           ),
           const SizedBox(height: 24),
@@ -1130,9 +1196,10 @@ class _ReviewTabState extends State<_ReviewTab>
         color: _cardColor,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: _accentColor.withValues(alpha: 0.3),
+          color: _accentColor.withValues(alpha: 0.4),
           width: 2,
         ),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -1147,14 +1214,14 @@ class _ReviewTabState extends State<_ReviewTab>
             '이 구절을 기억하시나요?',
             style: TextStyle(
               fontSize: 18,
-              color: Colors.white,
+              color: ParchmentTheme.ancientInk,
             ),
           ),
           const SizedBox(height: 32),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             decoration: BoxDecoration(
-              color: _accentColor.withValues(alpha: 0.2),
+              color: _accentColor.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Text(
@@ -1178,6 +1245,8 @@ class _ReviewTabState extends State<_ReviewTab>
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: SingleChildScrollView(
         child: Column(
@@ -1189,7 +1258,7 @@ class _ReviewTabState extends State<_ReviewTab>
               style: const TextStyle(
                 fontSize: 20,
                 height: 1.6,
-                color: Colors.white,
+                color: ParchmentTheme.ancientInk,
               ),
             ),
           ],
@@ -1206,7 +1275,7 @@ class _ReviewTabState extends State<_ReviewTab>
           const Text(
             '얼마나 잘 기억했나요?',
             style: TextStyle(
-              color: Colors.white70,
+              color: ParchmentTheme.fadedScript,
               fontSize: 14,
             ),
           ),
@@ -1217,7 +1286,7 @@ class _ReviewTabState extends State<_ReviewTab>
                 child: _buildQualityButton(
                   ReviewQuality.forgot,
                   '다시',
-                  Colors.red,
+                  ParchmentTheme.error,
                 ),
               ),
               const SizedBox(width: 8),
@@ -1225,7 +1294,7 @@ class _ReviewTabState extends State<_ReviewTab>
                 child: _buildQualityButton(
                   ReviewQuality.hard,
                   '어려움',
-                  Colors.orange,
+                  ParchmentTheme.warning,
                 ),
               ),
               const SizedBox(width: 8),
@@ -1233,7 +1302,7 @@ class _ReviewTabState extends State<_ReviewTab>
                 child: _buildQualityButton(
                   ReviewQuality.normal,
                   '보통',
-                  Colors.blue,
+                  ParchmentTheme.info,
                 ),
               ),
               const SizedBox(width: 8),
@@ -1241,7 +1310,7 @@ class _ReviewTabState extends State<_ReviewTab>
                 child: _buildQualityButton(
                   ReviewQuality.easy,
                   '쉬움',
-                  Colors.green,
+                  ParchmentTheme.success,
                 ),
               ),
             ],
@@ -1259,11 +1328,12 @@ class _ReviewTabState extends State<_ReviewTab>
     return ElevatedButton(
       onPressed: () => _submitReview(quality),
       style: ElevatedButton.styleFrom(
-        backgroundColor: color.withValues(alpha: 0.2),
+        backgroundColor: color.withValues(alpha: 0.15),
         foregroundColor: color,
         padding: const EdgeInsets.symmetric(vertical: 12),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: color.withValues(alpha: 0.4)),
         ),
         elevation: 0,
       ),
@@ -1287,9 +1357,9 @@ class _QuizTab extends StatefulWidget {
 
 class _QuizTabState extends State<_QuizTab>
     with AutomaticKeepAliveClientMixin {
-  static const _bgColor = Color(0xFF0F0F1A);
-  static const _cardColor = Color(0xFF1E1E2E);
-  static const _accentColor = Color(0xFF6C63FF);
+  static const _bgColor = ParchmentTheme.agedParchment;
+  static const _cardColor = ParchmentTheme.softPapyrus;
+  static const _accentColor = ParchmentTheme.manuscriptGold;
 
   final DailyQuizService _quizService = DailyQuizService();
 
@@ -1442,13 +1512,19 @@ class _QuizTabState extends State<_QuizTab>
           const SizedBox(height: 20),
           if (_quiz != null) _buildQuizInfoCard(),
           const SizedBox(height: 24),
-          SizedBox(
+          Container(
             width: double.infinity,
+            decoration: BoxDecoration(
+              gradient: ParchmentTheme.goldButtonGradient,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: ParchmentTheme.buttonShadow,
+            ),
             child: ElevatedButton(
               onPressed: _startQuiz,
               style: ElevatedButton.styleFrom(
-                backgroundColor: _accentColor,
-                foregroundColor: Colors.white,
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                foregroundColor: ParchmentTheme.softPapyrus,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
@@ -1478,18 +1554,20 @@ class _QuizTabState extends State<_QuizTab>
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.orange.withValues(alpha: 0.2),
+              color: ParchmentTheme.warning.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(16),
             ),
             child: const Icon(
               Icons.local_fire_department,
-              color: Colors.orange,
+              color: ParchmentTheme.warning,
               size: 32,
             ),
           ),
@@ -1502,7 +1580,7 @@ class _QuizTabState extends State<_QuizTab>
                   '연속 참여',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.white70,
+                    color: ParchmentTheme.fadedScript,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -1513,15 +1591,22 @@ class _QuizTabState extends State<_QuizTab>
                       style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
-                        color: Colors.orange,
+                        color: ParchmentTheme.warning,
                       ),
                     ),
                     const SizedBox(width: 12),
-                    Text(
-                      '최고: ${_streak!.longestStreak}일',
+                    const Text(
+                      '최고: ',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.white.withValues(alpha: 0.5),
+                        color: ParchmentTheme.weatheredGray,
+                      ),
+                    ),
+                    Text(
+                      '${_streak!.longestStreak}일',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: ParchmentTheme.weatheredGray,
                       ),
                     ),
                   ],
@@ -1540,6 +1625,8 @@ class _QuizTabState extends State<_QuizTab>
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Column(
         children: [
@@ -1548,7 +1635,7 @@ class _QuizTabState extends State<_QuizTab>
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: _accentColor.withValues(alpha: 0.2),
+                  color: _accentColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(Icons.quiz, color: _accentColor, size: 28),
@@ -1563,15 +1650,15 @@ class _QuizTabState extends State<_QuizTab>
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: ParchmentTheme.ancientInk,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       '${_quiz!.questionCount}문제',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 14,
-                        color: Colors.white.withValues(alpha: 0.6),
+                        color: ParchmentTheme.fadedScript,
                       ),
                     ),
                   ],
@@ -1580,20 +1667,20 @@ class _QuizTabState extends State<_QuizTab>
             ],
           ),
           const SizedBox(height: 20),
-          const Divider(color: Colors.white12),
+          Divider(color: ParchmentTheme.warmVellum),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _buildInfoItem(
                 icon: Icons.toll,
-                iconColor: Colors.amber,
+                iconColor: ParchmentTheme.manuscriptGold,
                 label: '기본 보상',
                 value: '${_quiz!.totalPoints}',
               ),
               _buildInfoItem(
                 icon: Icons.star,
-                iconColor: Colors.purple,
+                iconColor: ParchmentTheme.info,
                 label: '만점 보너스',
                 value: '+${_quiz!.bonusPoints}',
               ),
@@ -1616,9 +1703,9 @@ class _QuizTabState extends State<_QuizTab>
         const SizedBox(height: 8),
         Text(
           label,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 12,
-            color: Colors.white.withValues(alpha: 0.6),
+            color: ParchmentTheme.weatheredGray,
           ),
         ),
         const SizedBox(height: 4),
@@ -1652,7 +1739,7 @@ class _QuizTabState extends State<_QuizTab>
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: _accentColor.withValues(alpha: 0.2),
+                    color: _accentColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -1670,7 +1757,7 @@ class _QuizTabState extends State<_QuizTab>
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: ParchmentTheme.ancientInk,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -1678,18 +1765,19 @@ class _QuizTabState extends State<_QuizTab>
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: _cardColor,
+                      color: ParchmentTheme.warmVellum.withValues(alpha: 0.5),
                       borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           question.verseText!,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 16,
                             fontStyle: FontStyle.italic,
-                            color: Colors.white.withValues(alpha: 0.9),
+                            color: ParchmentTheme.ancientInk,
                             height: 1.5,
                           ),
                         ),
@@ -1697,9 +1785,9 @@ class _QuizTabState extends State<_QuizTab>
                           const SizedBox(height: 8),
                           Text(
                             '- ${question.verseReference}',
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 14,
-                              color: Colors.white.withValues(alpha: 0.6),
+                              color: ParchmentTheme.weatheredGray,
                             ),
                           ),
                         ],
@@ -1716,13 +1804,14 @@ class _QuizTabState extends State<_QuizTab>
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? _accentColor.withValues(alpha: 0.2)
+                            ? _accentColor.withValues(alpha: 0.15)
                             : _cardColor,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: isSelected ? _accentColor : Colors.transparent,
-                          width: 2,
+                          color: isSelected ? _accentColor : ParchmentTheme.warmVellum,
+                          width: isSelected ? 2 : 1,
                         ),
+                        boxShadow: isSelected ? ParchmentTheme.cardShadow : null,
                       ),
                       child: Row(
                         children: [
@@ -1731,16 +1820,16 @@ class _QuizTabState extends State<_QuizTab>
                             height: 24,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: isSelected ? _accentColor : _bgColor,
+                              color: isSelected ? _accentColor : ParchmentTheme.warmVellum,
                               border: Border.all(
                                 color: isSelected
                                     ? _accentColor
-                                    : Colors.white.withValues(alpha: 0.3),
+                                    : ParchmentTheme.weatheredGray,
                               ),
                             ),
                             child: isSelected
                                 ? const Icon(Icons.check,
-                                    color: Colors.white, size: 16)
+                                    color: ParchmentTheme.softPapyrus, size: 16)
                                 : null,
                           ),
                           const SizedBox(width: 16),
@@ -1750,8 +1839,8 @@ class _QuizTabState extends State<_QuizTab>
                               style: TextStyle(
                                 fontSize: 16,
                                 color: isSelected
-                                    ? Colors.white
-                                    : Colors.white.withValues(alpha: 0.8),
+                                    ? ParchmentTheme.ancientInk
+                                    : ParchmentTheme.fadedScript,
                               ),
                             ),
                           ),
@@ -1774,7 +1863,10 @@ class _QuizTabState extends State<_QuizTab>
 
     return Container(
       padding: const EdgeInsets.all(16),
-      color: _cardColor,
+      decoration: BoxDecoration(
+        color: _cardColor,
+        border: Border(bottom: BorderSide(color: ParchmentTheme.warmVellum)),
+      ),
       child: Column(
         children: [
           Row(
@@ -1784,13 +1876,13 @@ class _QuizTabState extends State<_QuizTab>
                 '문제 ${_currentIndex + 1}/${_quiz!.questionCount}',
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: ParchmentTheme.ancientInk,
                 ),
               ),
               Text(
                 '${_answers.length}개 완료',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.6),
+                style: const TextStyle(
+                  color: ParchmentTheme.fadedScript,
                 ),
               ),
             ],
@@ -1799,7 +1891,7 @@ class _QuizTabState extends State<_QuizTab>
           AnimatedProgressBar(
             progress: progress,
             height: 6,
-            backgroundColor: _bgColor,
+            backgroundColor: ParchmentTheme.warmVellum,
             valueColor: _accentColor,
           ),
         ],
@@ -1815,9 +1907,10 @@ class _QuizTabState extends State<_QuizTab>
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: _cardColor,
+        border: Border(top: BorderSide(color: ParchmentTheme.warmVellum)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
+            color: ParchmentTheme.warmVellum.withValues(alpha: 0.5),
             blurRadius: 10,
             offset: const Offset(0, -4),
           ),
@@ -1830,8 +1923,8 @@ class _QuizTabState extends State<_QuizTab>
               child: OutlinedButton(
                 onPressed: _previousQuestion,
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  side: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
+                  foregroundColor: ParchmentTheme.ancientInk,
+                  side: const BorderSide(color: ParchmentTheme.manuscriptGold),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -1843,19 +1936,29 @@ class _QuizTabState extends State<_QuizTab>
           if (_currentIndex > 0) const SizedBox(width: 12),
           Expanded(
             flex: 2,
-            child: ElevatedButton(
-              onPressed: hasAnswer ? _nextQuestion : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: hasAnswer ? _accentColor : Colors.grey.shade700,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+            child: Container(
+              decoration: hasAnswer
+                  ? BoxDecoration(
+                      gradient: ParchmentTheme.goldButtonGradient,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: ParchmentTheme.buttonShadow,
+                    )
+                  : null,
+              child: ElevatedButton(
+                onPressed: hasAnswer ? _nextQuestion : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: hasAnswer ? Colors.transparent : ParchmentTheme.warmVellum,
+                  shadowColor: Colors.transparent,
+                  foregroundColor: hasAnswer ? ParchmentTheme.softPapyrus : ParchmentTheme.weatheredGray,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
-              ),
-              child: Text(
-                isLast ? '제출' : '다음',
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                child: Text(
+                  isLast ? '제출' : '다음',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
             ),
           ),
@@ -1878,6 +1981,8 @@ class _QuizTabState extends State<_QuizTab>
             decoration: BoxDecoration(
               color: _cardColor,
               borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3)),
+              boxShadow: ParchmentTheme.cardShadow,
             ),
             child: Column(
               children: [
@@ -1895,29 +2000,29 @@ class _QuizTabState extends State<_QuizTab>
                   style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: ParchmentTheme.ancientInk,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   '${result.correctCount}/${result.totalQuestions} 정답',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 16,
-                    color: Colors.white.withValues(alpha: 0.7),
+                    color: ParchmentTheme.fadedScript,
                   ),
                 ),
                 const SizedBox(height: 24),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.toll, color: Colors.amber, size: 28),
+                    const Icon(Icons.toll, color: ParchmentTheme.manuscriptGold, size: 28),
                     const SizedBox(width: 8),
                     AnimatedCounter(
                       value: result.totalEarned,
                       style: const TextStyle(
                         fontSize: 36,
                         fontWeight: FontWeight.bold,
-                        color: Colors.amber,
+                        color: ParchmentTheme.manuscriptGold,
                       ),
                     ),
                   ],
@@ -1927,7 +2032,7 @@ class _QuizTabState extends State<_QuizTab>
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.purple.withValues(alpha: 0.2),
+                      color: ParchmentTheme.info.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -1935,7 +2040,7 @@ class _QuizTabState extends State<_QuizTab>
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: Colors.purple,
+                        color: ParchmentTheme.info,
                       ),
                     ),
                   ),
@@ -1951,15 +2056,15 @@ class _QuizTabState extends State<_QuizTab>
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: _accentColor.withValues(alpha: 0.3)),
             ),
-            child: Row(
+            child: const Row(
               children: [
-                const Icon(Icons.schedule, color: _accentColor),
-                const SizedBox(width: 12),
+                Icon(Icons.schedule, color: _accentColor),
+                SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     '내일 새로운 퀴즈가 준비됩니다!',
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.8),
+                      color: ParchmentTheme.fadedScript,
                     ),
                   ),
                 ),

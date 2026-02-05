@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/friend.dart';
 import '../../services/social/friend_service.dart';
 import '../../services/social/battle_service.dart';
+import '../../styles/parchment_theme.dart';
 import '../../widgets/ux_widgets.dart';
 
 /// 친구 화면
@@ -14,10 +15,9 @@ class FriendScreen extends StatefulWidget {
 
 class _FriendScreenState extends State<FriendScreen>
     with SingleTickerProviderStateMixin {
-  // 다크 테마 상수
-  static const _bgColor = Color(0xFF0F0F1A);
-  static const _cardColor = Color(0xFF1E1E2E);
-  static const _accentColor = Color(0xFF6C63FF);
+  // Parchment 테마 색상
+  static const _cardColor = ParchmentTheme.softPapyrus;
+  static const _accentColor = ParchmentTheme.manuscriptGold;
 
   final FriendService _friendService = FriendService();
   final BattleService _battleService = BattleService();
@@ -161,47 +161,84 @@ class _FriendScreenState extends State<FriendScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _bgColor,
-      appBar: AppBar(
-        backgroundColor: _cardColor,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: const Text(
-          '친구',
-          style: TextStyle(fontWeight: FontWeight.bold),
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: ParchmentTheme.backgroundGradient,
         ),
-        actions: [
-          if (_requests.isNotEmpty)
-            Badge(
-              label: Text('${_requests.length}'),
-              child: IconButton(
-                onPressed: () => _tabController.animateTo(1),
-                icon: const Icon(Icons.notifications),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Custom AppBar
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios),
+                      color: ParchmentTheme.ancientInk,
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    const Expanded(
+                      child: Text(
+                        '친구',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: ParchmentTheme.ancientInk,
+                        ),
+                      ),
+                    ),
+                    if (_requests.isNotEmpty)
+                      Badge(
+                        label: Text('${_requests.length}'),
+                        child: IconButton(
+                          onPressed: () => _tabController.animateTo(1),
+                          icon: const Icon(Icons.notifications, color: ParchmentTheme.ancientInk),
+                        ),
+                      )
+                    else
+                      const SizedBox(width: 48),
+                  ],
+                ),
               ),
-            ),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: _accentColor,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white54,
-          tabs: const [
-            Tab(text: '친구 목록'),
-            Tab(text: '요청'),
-            Tab(text: '찾기'),
-          ],
+              // TabBar
+              Container(
+                decoration: BoxDecoration(
+                  color: _cardColor,
+                  border: Border(
+                    bottom: BorderSide(color: _accentColor.withValues(alpha: 0.3)),
+                  ),
+                ),
+                child: TabBar(
+                  controller: _tabController,
+                  indicatorColor: _accentColor,
+                  labelColor: ParchmentTheme.ancientInk,
+                  unselectedLabelColor: ParchmentTheme.fadedScript,
+                  tabs: const [
+                    Tab(text: '친구 목록'),
+                    Tab(text: '요청'),
+                    Tab(text: '찾기'),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator(color: _accentColor))
+                    : TabBarView(
+                        controller: _tabController,
+                        children: [
+                          _buildFriendsTab(),
+                          _buildRequestsTab(),
+                          _buildSearchTab(),
+                        ],
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: _accentColor))
-          : TabBarView(
-              controller: _tabController,
-              children: [
-                _buildFriendsTab(),
-                _buildRequestsTab(),
-                _buildSearchTab(),
-              ],
-            ),
     );
   }
 
@@ -244,6 +281,8 @@ class _FriendScreenState extends State<FriendScreen>
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.3)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Row(
         children: [
@@ -253,7 +292,7 @@ class _FriendScreenState extends State<FriendScreen>
               color: _accentColor.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.sports_esports, color: _accentColor),
+            child: Icon(Icons.sports_esports, color: _accentColor),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -264,17 +303,17 @@ class _FriendScreenState extends State<FriendScreen>
                   '1:1 대전 기록',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: ParchmentTheme.ancientInk,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    _buildStatChip('승', _battleStats!.wins, Colors.green),
+                    _buildStatChip('승', _battleStats!.wins, ParchmentTheme.success),
                     const SizedBox(width: 8),
-                    _buildStatChip('패', _battleStats!.losses, Colors.red),
+                    _buildStatChip('패', _battleStats!.losses, ParchmentTheme.error),
                     const SizedBox(width: 8),
-                    _buildStatChip('무', _battleStats!.draws, Colors.grey),
+                    _buildStatChip('무', _battleStats!.draws, ParchmentTheme.weatheredGray),
                   ],
                 ),
               ],
@@ -282,7 +321,7 @@ class _FriendScreenState extends State<FriendScreen>
           ),
           Text(
             '${_battleStats!.winRatePercent}%',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
               color: _accentColor,
@@ -342,21 +381,28 @@ class _FriendScreenState extends State<FriendScreen>
           padding: const EdgeInsets.all(16),
           child: TextField(
             controller: _searchController,
-            style: const TextStyle(color: Colors.white),
+            style: const TextStyle(color: ParchmentTheme.ancientInk),
             decoration: InputDecoration(
               hintText: '이름으로 검색 (2자 이상)',
-              hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+              hintStyle: const TextStyle(color: ParchmentTheme.weatheredGray),
               filled: true,
               fillColor: _cardColor,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
+                borderSide: BorderSide(color: _accentColor.withValues(alpha: 0.3)),
               ),
-              prefixIcon: Icon(Icons.search,
-                  color: Colors.white.withValues(alpha: 0.5)),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: _accentColor.withValues(alpha: 0.3)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: _accentColor),
+              ),
+              prefixIcon: const Icon(Icons.search, color: ParchmentTheme.fadedScript),
               suffixIcon: _isSearching
-                  ? const Padding(
-                      padding: EdgeInsets.all(12),
+                  ? Padding(
+                      padding: const EdgeInsets.all(12),
                       child: SizedBox(
                         width: 20,
                         height: 20,
@@ -368,7 +414,7 @@ class _FriendScreenState extends State<FriendScreen>
                     )
                   : IconButton(
                       onPressed: _searchUsers,
-                      icon: const Icon(Icons.search, color: _accentColor),
+                      icon: Icon(Icons.search, color: _accentColor),
                     ),
             ),
             onSubmitted: (_) => _searchUsers(),
@@ -412,21 +458,21 @@ class _FriendScreenState extends State<FriendScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 64, color: Colors.white.withValues(alpha: 0.3)),
+          Icon(icon, size: 64, color: ParchmentTheme.warmVellum),
           const SizedBox(height: 16),
           Text(
             title,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 16,
-              color: Colors.white.withValues(alpha: 0.5),
+              color: ParchmentTheme.fadedScript,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             subtitle,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 14,
-              color: Colors.white.withValues(alpha: 0.3),
+              color: ParchmentTheme.weatheredGray,
             ),
           ),
         ],
@@ -445,8 +491,8 @@ class _FriendCard extends StatelessWidget {
     required this.onChallenge,
   });
 
-  static const _cardColor = Color(0xFF1E1E2E);
-  static const _accentColor = Color(0xFF6C63FF);
+  static const _cardColor = ParchmentTheme.softPapyrus;
+  static const _accentColor = ParchmentTheme.manuscriptGold;
 
   @override
   Widget build(BuildContext context) {
@@ -456,6 +502,8 @@ class _FriendCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.2)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Row(
         children: [
@@ -467,7 +515,7 @@ class _FriendCard extends StatelessWidget {
                 backgroundColor: _accentColor.withValues(alpha: 0.2),
                 child: Text(
                   friend.name.isNotEmpty ? friend.name[0] : '?',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: _accentColor,
@@ -482,7 +530,7 @@ class _FriendCard extends StatelessWidget {
                     width: 12,
                     height: 12,
                     decoration: BoxDecoration(
-                      color: Colors.green,
+                      color: ParchmentTheme.success,
                       shape: BoxShape.circle,
                       border: Border.all(color: _cardColor, width: 2),
                     ),
@@ -501,31 +549,31 @@ class _FriendCard extends StatelessWidget {
                   friend.name,
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: ParchmentTheme.ancientInk,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    const Icon(Icons.toll, size: 14, color: Colors.amber),
+                    Icon(Icons.toll, size: 14, color: _accentColor),
                     const SizedBox(width: 4),
                     Text(
                       '${friend.talants}',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 12,
-                        color: Colors.white.withValues(alpha: 0.6),
+                        color: ParchmentTheme.fadedScript,
                       ),
                     ),
                     if (friend.streak > 0) ...[
                       const SizedBox(width: 12),
                       const Icon(Icons.local_fire_department,
-                          size: 14, color: Colors.orange),
+                          size: 14, color: ParchmentTheme.warning),
                       const SizedBox(width: 4),
                       Text(
                         '${friend.streak}일',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 12,
-                          color: Colors.white.withValues(alpha: 0.6),
+                          color: ParchmentTheme.fadedScript,
                         ),
                       ),
                     ],
@@ -544,7 +592,7 @@ class _FriendCard extends StatelessWidget {
                 color: _accentColor.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.sports_esports, color: _accentColor),
+              child: Icon(Icons.sports_esports, color: _accentColor),
             ),
             tooltip: '대전 신청',
           ),
@@ -566,8 +614,8 @@ class _RequestCard extends StatelessWidget {
     required this.onReject,
   });
 
-  static const _cardColor = Color(0xFF1E1E2E);
-  static const _accentColor = Color(0xFF6C63FF);
+  static const _cardColor = ParchmentTheme.softPapyrus;
+  static const _accentColor = ParchmentTheme.manuscriptGold;
 
   @override
   Widget build(BuildContext context) {
@@ -577,6 +625,8 @@ class _RequestCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.2)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Row(
         children: [
@@ -585,7 +635,7 @@ class _RequestCard extends StatelessWidget {
             backgroundColor: _accentColor.withValues(alpha: 0.2),
             child: Text(
               request.fromUserName.isNotEmpty ? request.fromUserName[0] : '?',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: _accentColor,
@@ -601,15 +651,15 @@ class _RequestCard extends StatelessWidget {
                   request.fromUserName,
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: ParchmentTheme.ancientInk,
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
+                const Text(
                   '친구 요청을 보냈습니다',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.white.withValues(alpha: 0.6),
+                    color: ParchmentTheme.fadedScript,
                   ),
                 ),
               ],
@@ -620,10 +670,10 @@ class _RequestCard extends StatelessWidget {
             icon: Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: Colors.red.withValues(alpha: 0.2),
+                color: ParchmentTheme.error.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.close, color: Colors.red, size: 20),
+              child: const Icon(Icons.close, color: ParchmentTheme.error, size: 20),
             ),
           ),
           IconButton(
@@ -631,10 +681,10 @@ class _RequestCard extends StatelessWidget {
             icon: Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: Colors.green.withValues(alpha: 0.2),
+                color: ParchmentTheme.success.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.check, color: Colors.green, size: 20),
+              child: const Icon(Icons.check, color: ParchmentTheme.success, size: 20),
             ),
           ),
         ],
@@ -653,8 +703,8 @@ class _SearchResultCard extends StatelessWidget {
     required this.onAddFriend,
   });
 
-  static const _cardColor = Color(0xFF1E1E2E);
-  static const _accentColor = Color(0xFF6C63FF);
+  static const _cardColor = ParchmentTheme.softPapyrus;
+  static const _accentColor = ParchmentTheme.manuscriptGold;
 
   @override
   Widget build(BuildContext context) {
@@ -664,6 +714,8 @@ class _SearchResultCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.2)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Row(
         children: [
@@ -672,7 +724,7 @@ class _SearchResultCard extends StatelessWidget {
             backgroundColor: _accentColor.withValues(alpha: 0.2),
             child: Text(
               user.name.isNotEmpty ? user.name[0] : '?',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: _accentColor,
@@ -688,16 +740,16 @@ class _SearchResultCard extends StatelessWidget {
                   user.name,
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: ParchmentTheme.ancientInk,
                   ),
                 ),
                 if (user.groupName != null) ...[
                   const SizedBox(height: 4),
                   Text(
                     user.groupName!,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 12,
-                      color: Colors.white.withValues(alpha: 0.6),
+                      color: ParchmentTheme.fadedScript,
                     ),
                   ),
                 ],
@@ -708,7 +760,7 @@ class _SearchResultCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.green.withValues(alpha: 0.2),
+                color: ParchmentTheme.success.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Text(
@@ -716,7 +768,7 @@ class _SearchResultCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
-                  color: Colors.green,
+                  color: ParchmentTheme.success,
                 ),
               ),
             )
@@ -725,7 +777,7 @@ class _SearchResultCard extends StatelessWidget {
               onPressed: onAddFriend,
               style: ElevatedButton.styleFrom(
                 backgroundColor: _accentColor,
-                foregroundColor: Colors.white,
+                foregroundColor: ParchmentTheme.softPapyrus,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
@@ -754,8 +806,8 @@ class _ChallengeSheet extends StatefulWidget {
 }
 
 class _ChallengeSheetState extends State<_ChallengeSheet> {
-  static const _bgColor = Color(0xFF0F0F1A);
-  static const _accentColor = Color(0xFF6C63FF);
+  static const _cardColor = ParchmentTheme.softPapyrus;
+  static const _accentColor = ParchmentTheme.manuscriptGold;
 
   final _verseController = TextEditingController(text: 'John 3:16');
   int _betAmount = 10;
@@ -783,7 +835,7 @@ class _ChallengeSheetState extends State<_ChallengeSheet> {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.3),
+              color: ParchmentTheme.warmVellum,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -792,14 +844,14 @@ class _ChallengeSheetState extends State<_ChallengeSheet> {
           // 상대방
           Row(
             children: [
-              const Icon(Icons.sports_esports, color: _accentColor),
+              Icon(Icons.sports_esports, color: _accentColor),
               const SizedBox(width: 12),
               Text(
                 '${widget.friend.name}에게 대전 신청',
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: ParchmentTheme.ancientInk,
                 ),
               ),
             ],
@@ -809,17 +861,25 @@ class _ChallengeSheetState extends State<_ChallengeSheet> {
           // 구절 선택
           TextField(
             controller: _verseController,
-            style: const TextStyle(color: Colors.white),
+            style: const TextStyle(color: ParchmentTheme.ancientInk),
             decoration: InputDecoration(
               labelText: '대전 구절',
-              labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+              labelStyle: const TextStyle(color: ParchmentTheme.fadedScript),
               hintText: 'e.g., John 3:16',
-              hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
+              hintStyle: const TextStyle(color: ParchmentTheme.weatheredGray),
               filled: true,
-              fillColor: _bgColor,
+              fillColor: ParchmentTheme.warmVellum.withValues(alpha: 0.5),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
+                borderSide: BorderSide(color: _accentColor.withValues(alpha: 0.3)),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: _accentColor.withValues(alpha: 0.3)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: _accentColor),
               ),
             ),
           ),
@@ -828,9 +888,9 @@ class _ChallengeSheetState extends State<_ChallengeSheet> {
           // 베팅 금액
           Row(
             children: [
-              Text(
+              const Text(
                 '베팅 탈란트',
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+                style: TextStyle(color: ParchmentTheme.fadedScript),
               ),
               const Spacer(),
               IconButton(
@@ -843,19 +903,19 @@ class _ChallengeSheetState extends State<_ChallengeSheet> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: _bgColor,
+                  color: ParchmentTheme.warmVellum.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.toll, color: Colors.amber, size: 20),
+                    Icon(Icons.toll, color: _accentColor, size: 20),
                     const SizedBox(width: 8),
                     Text(
                       '$_betAmount',
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: ParchmentTheme.ancientInk,
                       ),
                     ),
                   ],
@@ -876,19 +936,19 @@ class _ChallengeSheetState extends State<_ChallengeSheet> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: _bgColor,
+              color: _accentColor.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
               children: [
-                const Icon(Icons.info_outline, color: Colors.amber, size: 20),
+                Icon(Icons.info_outline, color: _accentColor, size: 20),
                 const SizedBox(width: 12),
-                Expanded(
+                const Expanded(
                   child: Text(
                     '승자가 베팅금의 2배를 가져갑니다. 무승부시 반환됩니다.',
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.white.withValues(alpha: 0.7),
+                      color: ParchmentTheme.fadedScript,
                     ),
                   ),
                 ),
@@ -900,26 +960,34 @@ class _ChallengeSheetState extends State<_ChallengeSheet> {
           // 신청 버튼
           SizedBox(
             width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {
-                final verse = _verseController.text.trim();
-                if (verse.isNotEmpty) {
-                  widget.onChallenge(verse, _betAmount);
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _accentColor,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: ParchmentTheme.goldButtonGradient,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: ParchmentTheme.buttonShadow,
               ),
-              child: const Text(
-                '대전 신청',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+              child: ElevatedButton(
+                onPressed: () {
+                  final verse = _verseController.text.trim();
+                  if (verse.isNotEmpty) {
+                    widget.onChallenge(verse, _betAmount);
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  foregroundColor: ParchmentTheme.softPapyrus,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  '대전 신청',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),

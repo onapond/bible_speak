@@ -3,6 +3,7 @@ import '../../models/bible_word.dart';
 import '../../models/word_progress.dart';
 import '../../services/tts_service.dart';
 import '../../services/word_progress_service.dart';
+import '../../styles/parchment_theme.dart';
 
 /// 단어 상세 화면
 class WordDetailScreen extends StatefulWidget {
@@ -20,11 +21,9 @@ class WordDetailScreen extends StatefulWidget {
 }
 
 class _WordDetailScreenState extends State<WordDetailScreen> {
-  // 다크 테마 상수
-  static const _bgColor = Color(0xFF0F0F1A);
-  static const _cardColor = Color(0xFF1E1E2E);
-  static const _accentColor = Color(0xFF6C63FF);
-  static const _successColor = Color(0xFF4CAF50);
+  // Parchment 테마 색상
+  static const _cardColor = ParchmentTheme.softPapyrus;
+  static const _accentColor = ParchmentTheme.manuscriptGold;
 
   final TTSService _tts = TTSService();
   final WordProgressService _progressService = WordProgressService();
@@ -73,7 +72,7 @@ class _WordDetailScreenState extends State<WordDetailScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: isError ? Colors.red : _successColor,
+        backgroundColor: isError ? ParchmentTheme.error : ParchmentTheme.success,
       ),
     );
   }
@@ -89,45 +88,77 @@ class _WordDetailScreenState extends State<WordDetailScreen> {
     final word = widget.word;
 
     return Scaffold(
-      backgroundColor: _bgColor,
-      appBar: AppBar(
-        title: Text(word.word),
-        backgroundColor: _cardColor,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 메인 단어 카드
-            _buildMainCard(word),
-            const SizedBox(height: 20),
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: ParchmentTheme.backgroundGradient,
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Custom AppBar
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios),
+                      color: ParchmentTheme.ancientInk,
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    Expanded(
+                      child: Text(
+                        word.word,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: ParchmentTheme.ancientInk,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 48),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 메인 단어 카드
+                      _buildMainCard(word),
+                      const SizedBox(height: 20),
 
-            // 등장 구절
-            if (word.verses.isNotEmpty) ...[
-              _buildSectionTitle('등장 구절'),
-              const SizedBox(height: 12),
-              ...word.verses.map((v) => _buildVerseCard(v)),
-              const SizedBox(height: 20),
+                      // 등장 구절
+                      if (word.verses.isNotEmpty) ...[
+                        _buildSectionTitle('등장 구절'),
+                        const SizedBox(height: 12),
+                        ...word.verses.map((v) => _buildVerseCard(v)),
+                        const SizedBox(height: 20),
+                      ],
+
+                      // 암기 팁
+                      if (word.memoryTip != null) ...[
+                        _buildSectionTitle('암기 팁'),
+                        const SizedBox(height: 12),
+                        _buildTipCard(word.memoryTip!),
+                        const SizedBox(height: 20),
+                      ],
+
+                      // 학습 상태
+                      _buildProgressCard(),
+                      const SizedBox(height: 20),
+
+                      // 액션 버튼
+                      _buildActionButtons(),
+                    ],
+                  ),
+                ),
+              ),
             ],
-
-            // 암기 팁
-            if (word.memoryTip != null) ...[
-              _buildSectionTitle('암기 팁'),
-              const SizedBox(height: 12),
-              _buildTipCard(word.memoryTip!),
-              const SizedBox(height: 20),
-            ],
-
-            // 학습 상태
-            _buildProgressCard(),
-            const SizedBox(height: 20),
-
-            // 액션 버튼
-            _buildActionButtons(),
-          ],
+          ),
         ),
       ),
     );
@@ -140,6 +171,7 @@ class _WordDetailScreenState extends State<WordDetailScreen> {
         color: _cardColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: _accentColor.withValues(alpha: 0.3)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Column(
         children: [
@@ -152,25 +184,25 @@ class _WordDetailScreenState extends State<WordDetailScreen> {
                 style: const TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: ParchmentTheme.ancientInk,
                 ),
               ),
               const SizedBox(width: 12),
               IconButton(
                 onPressed: _playPronunciation,
                 icon: _isPlaying
-                    ? SizedBox(
+                    ? const SizedBox(
                         width: 28,
                         height: 28,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: _accentColor,
+                          color: ParchmentTheme.manuscriptGold,
                         ),
                       )
-                    : Icon(
+                    : const Icon(
                         Icons.volume_up,
                         size: 28,
-                        color: _accentColor,
+                        color: ParchmentTheme.manuscriptGold,
                       ),
                 tooltip: '발음 듣기',
               ),
@@ -181,9 +213,9 @@ class _WordDetailScreenState extends State<WordDetailScreen> {
           // 발음 기호
           Text(
             word.pronunciation,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 16,
-              color: Colors.white.withValues(alpha: 0.6),
+              color: ParchmentTheme.fadedScript,
               fontStyle: FontStyle.italic,
             ),
           ),
@@ -196,32 +228,38 @@ class _WordDetailScreenState extends State<WordDetailScreen> {
               color: _accentColor.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(20),
             ),
-            child: Text(
-              word.partOfSpeechKo,
+            child: const Text(
+              '품사',
               style: TextStyle(
-                color: _accentColor,
+                color: ParchmentTheme.manuscriptGold,
                 fontWeight: FontWeight.bold,
               ),
+            ),
+          ),
+          Text(
+            word.partOfSpeechKo,
+            style: const TextStyle(
+              color: ParchmentTheme.fadedScript,
             ),
           ),
           const SizedBox(height: 20),
 
           // 뜻
-          Divider(color: Colors.white.withValues(alpha: 0.1)),
+          Divider(color: ParchmentTheme.warmVellum.withValues(alpha: 0.5)),
           const SizedBox(height: 12),
           ...word.meanings.map(
             (meaning) => Padding(
               padding: const EdgeInsets.symmetric(vertical: 4),
               child: Row(
                 children: [
-                  Icon(Icons.circle, size: 8, color: _accentColor),
+                  const Icon(Icons.circle, size: 8, color: ParchmentTheme.manuscriptGold),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       meaning,
                       style: const TextStyle(
                         fontSize: 18,
-                        color: Colors.white,
+                        color: ParchmentTheme.ancientInk,
                       ),
                     ),
                   ),
@@ -235,10 +273,10 @@ class _WordDetailScreenState extends State<WordDetailScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(
+              const Text(
                 '난이도: ',
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.5),
+                  color: ParchmentTheme.fadedScript,
                   fontSize: 12,
                 ),
               ),
@@ -247,7 +285,7 @@ class _WordDetailScreenState extends State<WordDetailScreen> {
                 return Icon(
                   isActive ? Icons.star : Icons.star_border,
                   size: 16,
-                  color: isActive ? Colors.amber : Colors.white.withValues(alpha: 0.2),
+                  color: isActive ? ParchmentTheme.manuscriptGold : ParchmentTheme.warmVellum,
                 );
               }),
             ],
@@ -274,7 +312,7 @@ class _WordDetailScreenState extends State<WordDetailScreen> {
           style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: ParchmentTheme.ancientInk,
           ),
         ),
       ],
@@ -288,6 +326,8 @@ class _WordDetailScreenState extends State<WordDetailScreen> {
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.2)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -301,9 +341,9 @@ class _WordDetailScreenState extends State<WordDetailScreen> {
             ),
             child: Text(
               verse.reference,
-              style: TextStyle(
+              style: const TextStyle(
                 fontWeight: FontWeight.bold,
-                color: _accentColor,
+                color: ParchmentTheme.manuscriptGold,
                 fontSize: 12,
               ),
             ),
@@ -313,11 +353,11 @@ class _WordDetailScreenState extends State<WordDetailScreen> {
           // 영어 발췌
           Text(
             '"${verse.excerpt}"',
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 15,
               fontStyle: FontStyle.italic,
               height: 1.5,
-              color: Colors.white.withValues(alpha: 0.9),
+              color: ParchmentTheme.ancientInk,
             ),
           ),
           const SizedBox(height: 8),
@@ -325,9 +365,9 @@ class _WordDetailScreenState extends State<WordDetailScreen> {
           // 한글 번역
           Text(
             verse.korean,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 14,
-              color: Colors.white.withValues(alpha: 0.6),
+              color: ParchmentTheme.fadedScript,
               height: 1.5,
             ),
           ),
@@ -340,14 +380,14 @@ class _WordDetailScreenState extends State<WordDetailScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.amber.withValues(alpha: 0.15),
+        color: _accentColor.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.3)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.lightbulb, color: Colors.amber),
+          const Icon(Icons.lightbulb, color: ParchmentTheme.manuscriptGold),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -355,7 +395,7 @@ class _WordDetailScreenState extends State<WordDetailScreen> {
               style: const TextStyle(
                 fontSize: 15,
                 height: 1.5,
-                color: Colors.amber,
+                color: ParchmentTheme.manuscriptGold,
               ),
             ),
           ),
@@ -373,22 +413,22 @@ class _WordDetailScreenState extends State<WordDetailScreen> {
 
     switch (status) {
       case WordStatus.mastered:
-        statusColor = _successColor;
+        statusColor = ParchmentTheme.success;
         statusText = '암기 완료!';
         statusIcon = Icons.check_circle;
         break;
       case WordStatus.reviewing:
-        statusColor = Colors.blue;
+        statusColor = ParchmentTheme.info;
         statusText = '복습 중';
         statusIcon = Icons.replay;
         break;
       case WordStatus.learning:
-        statusColor = Colors.orange;
+        statusColor = ParchmentTheme.warning;
         statusText = '학습 중';
         statusIcon = Icons.pending;
         break;
       case WordStatus.notStarted:
-        statusColor = Colors.grey;
+        statusColor = ParchmentTheme.weatheredGray;
         statusText = '아직 학습 전';
         statusIcon = Icons.circle_outlined;
     }
@@ -398,6 +438,8 @@ class _WordDetailScreenState extends State<WordDetailScreen> {
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _accentColor.withValues(alpha: 0.2)),
+        boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Row(
         children: [
@@ -426,17 +468,17 @@ class _WordDetailScreenState extends State<WordDetailScreen> {
                 if (_progress.totalAttempts > 0)
                   Text(
                     '정답: ${_progress.correctCount}회 / 시도: ${_progress.totalAttempts}회',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 12,
-                      color: Colors.white.withValues(alpha: 0.6),
+                      color: ParchmentTheme.fadedScript,
                     ),
                   ),
                 if (_progress.lastStudied != null)
                   Text(
                     '마지막 학습: ${_formatDate(_progress.lastStudied!)}',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 12,
-                      color: Colors.white.withValues(alpha: 0.6),
+                      color: ParchmentTheme.fadedScript,
                     ),
                   ),
               ],
@@ -446,19 +488,19 @@ class _WordDetailScreenState extends State<WordDetailScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.2),
+                color: ParchmentTheme.warning.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: const Row(
                 children: [
-                  Icon(Icons.local_fire_department, size: 16, color: Colors.orange),
+                  Icon(Icons.local_fire_department, size: 16, color: ParchmentTheme.warning),
                   SizedBox(width: 4),
                   Text(
                     '연속',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
-                      color: Colors.orange,
+                      color: ParchmentTheme.warning,
                     ),
                   ),
                 ],
@@ -493,8 +535,8 @@ class _WordDetailScreenState extends State<WordDetailScreen> {
             icon: const Icon(Icons.volume_up),
             label: const Text('발음 듣기'),
             style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.white,
-              side: BorderSide(color: Colors.white.withValues(alpha: 0.3)),
+              foregroundColor: ParchmentTheme.ancientInk,
+              side: BorderSide(color: _accentColor.withValues(alpha: 0.5)),
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -504,18 +546,26 @@ class _WordDetailScreenState extends State<WordDetailScreen> {
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: ElevatedButton.icon(
-            onPressed: _markAsLearned,
-            icon: const Icon(Icons.check),
-            label: const Text('학습 완료'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _accentColor,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: ParchmentTheme.goldButtonGradient,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: ParchmentTheme.buttonShadow,
+            ),
+            child: ElevatedButton.icon(
+              onPressed: _markAsLearned,
+              icon: const Icon(Icons.check),
+              label: const Text('학습 완료'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                foregroundColor: ParchmentTheme.softPapyrus,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 0,
               ),
-              elevation: 0,
             ),
           ),
         ),

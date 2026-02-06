@@ -288,7 +288,7 @@ class BibleOfflineService extends ChangeNotifier {
   /// 저장 공간 사용량 (대략적)
   Future<StorageInfo> getStorageInfo() async {
     if (_textBox == null || _metaBox == null) {
-      return StorageInfo(usedBytes: 0, bookCount: 0);
+      return const StorageInfo(usedBytes: 0, bookCount: 0);
     }
 
     try {
@@ -309,7 +309,7 @@ class BibleOfflineService extends ChangeNotifier {
 
       return StorageInfo(usedBytes: estimatedBytes, bookCount: bookCount);
     } catch (e) {
-      return StorageInfo(usedBytes: 0, bookCount: 0);
+      return const StorageInfo(usedBytes: 0, bookCount: 0);
     }
   }
 

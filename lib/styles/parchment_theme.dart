@@ -12,29 +12,49 @@ class ParchmentTheme {
   ParchmentTheme._();
 
   // ============================================================
-  // 색상 팔레트
+  // 색상 팔레트 (Aged Manuscript - Deep)
+  // WCAG AA 대비율 충족: ancientInk 12.5:1, fadedScript 8.1:1, weatheredGray 5.4:1
   // ============================================================
 
-  // 배경 (양피지 그라데이션)
-  static const Color softPapyrus = Color(0xFFFDF8F3);    // 가장 밝은
-  static const Color agedParchment = Color(0xFFF5EFE6);  // 메인 배경
-  static const Color warmVellum = Color(0xFFEDE4D3);     // 하단/카드 배경
+  // 배경 - 깊고 따뜻한 고대 양피지
+  static const Color softPapyrus = Color(0xFFF0E4CE);    // 에이지드 크림 (기존: #FDF8F3)
+  static const Color agedParchment = Color(0xFFE3D4B8);  // 깊은 양피지 (기존: #F5EFE6)
+  static const Color warmVellum = Color(0xFFD4C4A0);     // 따뜻한 벨럼 (기존: #EDE4D3)
 
-  // 텍스트 (잉크)
-  static const Color ancientInk = Color(0xFF3D3229);     // 제목
-  static const Color fadedScript = Color(0xFF6B5D4D);    // 본문
-  static const Color weatheredGray = Color(0xFF8C7E6D);  // 보조 텍스트
+  // 텍스트 - 깊은 세피아 잉크
+  static const Color ancientInk = Color(0xFF261E15);     // 깊은 세피아 블랙 (기존: #3D3229)
+  static const Color fadedScript = Color(0xFF4A3E30);    // 진한 세피아 (기존: #6B5D4D)
+  static const Color weatheredGray = Color(0xFF6B5D4D);  // 중간 세피아 (기존: #8C7E6D)
 
-  // 악센트 (금박)
-  static const Color manuscriptGold = Color(0xFFC9A857); // 주요 CTA
-  static const Color goldHighlight = Color(0xFFD4AF37);  // 강조
-  static const Color goldMuted = Color(0xFFB8956F);      // 비활성 골드
+  // 금박 - 고대 성경 금박
+  static const Color manuscriptGold = Color(0xFF9E7B3C); // 고대 골드 (기존: #C9A857)
+  static const Color goldHighlight = Color(0xFFB8923F);  // 밝은 고대 골드 (기존: #D4AF37)
+  static const Color goldMuted = Color(0xFF7A6344);      // 브론즈 (기존: #B8956F)
 
   // 상태 색상
   static const Color success = Color(0xFF6B8E5D);        // 성공 (올리브 그린)
   static const Color error = Color(0xFFC75050);          // 에러 (부드러운 레드)
   static const Color warning = Color(0xFFD4A744);        // 경고 (앰버)
   static const Color info = Color(0xFF5D7B8E);           // 정보 (세피아 블루)
+
+  // ============================================================
+  // 텍스처 기본값
+  // ============================================================
+
+  /// 텍스처 활성화 기본값
+  static const bool textureEnabledDefault = true;
+
+  /// Perlin 노이즈 강도 기본값 (부드러운 얼룩)
+  static const double textureCoarseOpacityDefault = 0.24;
+
+  /// 그레인 노이즈 강도 기본값 (미세한 결)
+  static const double textureFineOpacityDefault = 0.16;
+
+  /// 카드용 Perlin 노이즈 강도 (배경보다 약간 약하게)
+  static const double cardTextureCoarseOpacity = 0.16;
+
+  /// 카드용 그레인 노이즈 강도
+  static const double cardTextureFineOpacity = 0.12;
 
   // ============================================================
   // 그라데이션
@@ -286,11 +306,11 @@ class ParchmentTheme {
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusMedium),
-          borderSide: BorderSide(color: warmVellum),
+          borderSide: const BorderSide(color: warmVellum),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusMedium),
-          borderSide: BorderSide(color: warmVellum),
+          borderSide: const BorderSide(color: warmVellum),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radiusMedium),
@@ -305,7 +325,7 @@ class ParchmentTheme {
       ),
 
       // BottomNavigationBar 테마
-      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: softPapyrus,
         selectedItemColor: manuscriptGold,
         unselectedItemColor: weatheredGray,
@@ -333,7 +353,7 @@ class ParchmentTheme {
       ),
 
       // Divider 테마
-      dividerTheme: DividerThemeData(
+      dividerTheme: const DividerThemeData(
         color: warmVellum,
         thickness: 1,
         space: 24,

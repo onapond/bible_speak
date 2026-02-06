@@ -88,25 +88,25 @@ class ShopService {
   Future<PurchaseResult> purchaseItem(String itemId) async {
     final userId = currentUserId;
     if (userId == null) {
-      return PurchaseResult(success: false, message: '로그인이 필요합니다');
+      return const PurchaseResult(success: false, message: '로그인이 필요합니다');
     }
 
     try {
       // 아이템 정보 가져오기
       final item = await getItem(itemId);
       if (item == null) {
-        return PurchaseResult(success: false, message: '아이템을 찾을 수 없습니다');
+        return const PurchaseResult(success: false, message: '아이템을 찾을 수 없습니다');
       }
 
       if (!item.canPurchase) {
-        return PurchaseResult(success: false, message: '구매할 수 없는 아이템입니다');
+        return const PurchaseResult(success: false, message: '구매할 수 없는 아이템입니다');
       }
 
       // 이미 보유 중인지 확인 (테마, 뱃지)
       if (item.category == ShopCategory.theme || item.category == ShopCategory.badge) {
         final hasItem = await hasInventoryItem(itemId);
         if (hasItem) {
-          return PurchaseResult(success: false, message: '이미 보유한 아이템입니다');
+          return const PurchaseResult(success: false, message: '이미 보유한 아이템입니다');
         }
       }
 
@@ -117,7 +117,7 @@ class ShopService {
         final userDoc = await transaction.get(userRef);
 
         if (!userDoc.exists) {
-          return PurchaseResult(success: false, message: '사용자 정보를 찾을 수 없습니다');
+          return const PurchaseResult(success: false, message: '사용자 정보를 찾을 수 없습니다');
         }
 
         final currentTalants = userDoc.data()?['talants'] ?? 0;
@@ -191,7 +191,7 @@ class ShopService {
       });
     } catch (e) {
       print('Purchase error: $e');
-      return PurchaseResult(success: false, message: '구매 중 오류가 발생했습니다');
+      return const PurchaseResult(success: false, message: '구매 중 오류가 발생했습니다');
     }
   }
 

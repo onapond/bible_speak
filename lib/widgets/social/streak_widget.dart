@@ -127,10 +127,10 @@ class StreakWidget extends StatelessWidget {
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: const Color(0xFFFF6B35).withOpacity(0.5)),
             ),
-            child: Row(
+            child: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('🛡️', style: TextStyle(fontSize: 14), semanticsLabel: '방패'),
+                Text('🛡️', style: TextStyle(fontSize: 14), semanticsLabel: '방패'),
                 const SizedBox(width: 4),
                 const Text(
                   '보호',

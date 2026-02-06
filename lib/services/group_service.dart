@@ -137,16 +137,16 @@ class GroupService {
   }) async {
     final userId = _auth.currentUser?.uid;
     if (userId == null) {
-      return GroupCreateResult(success: false, message: '로그인이 필요합니다');
+      return const GroupCreateResult(success: false, message: '로그인이 필요합니다');
     }
 
     // 이름 검증
     if (name.trim().isEmpty) {
-      return GroupCreateResult(success: false, message: '그룹 이름을 입력해주세요');
+      return const GroupCreateResult(success: false, message: '그룹 이름을 입력해주세요');
     }
 
     if (name.length > 20) {
-      return GroupCreateResult(success: false, message: '그룹 이름은 20자 이내로 입력해주세요');
+      return const GroupCreateResult(success: false, message: '그룹 이름은 20자 이내로 입력해주세요');
     }
 
     try {
@@ -177,7 +177,7 @@ class GroupService {
       );
     } catch (e) {
       print('❌ 그룹 생성 오류: $e');
-      return GroupCreateResult(success: false, message: '그룹 생성 중 오류가 발생했습니다');
+      return const GroupCreateResult(success: false, message: '그룹 생성 중 오류가 발생했습니다');
     }
   }
 
@@ -280,14 +280,14 @@ class GroupService {
   Future<GroupJoinResult> joinGroup(String groupId) async {
     final userId = _auth.currentUser?.uid;
     if (userId == null) {
-      return GroupJoinResult(success: false, message: '로그인이 필요합니다');
+      return const GroupJoinResult(success: false, message: '로그인이 필요합니다');
     }
 
     try {
       // 그룹 존재 확인
       final groupDoc = await _firestore.collection('groups').doc(groupId).get();
       if (!groupDoc.exists) {
-        return GroupJoinResult(success: false, message: '그룹을 찾을 수 없습니다');
+        return const GroupJoinResult(success: false, message: '그룹을 찾을 수 없습니다');
       }
 
       // 사용자 문서 업데이트 (set + merge로 안전하게)
@@ -298,10 +298,10 @@ class GroupService {
       // 그룹 멤버 수 증가
       await incrementMemberCount(groupId);
 
-      return GroupJoinResult(success: true, message: '그룹에 참여했습니다');
+      return const GroupJoinResult(success: true, message: '그룹에 참여했습니다');
     } catch (e) {
       print('❌ 그룹 참여 오류: $e');
-      return GroupJoinResult(success: false, message: '그룹 참여 중 오류가 발생했습니다');
+      return const GroupJoinResult(success: false, message: '그룹 참여 중 오류가 발생했습니다');
     }
   }
 }

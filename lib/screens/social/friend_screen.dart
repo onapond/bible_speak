@@ -263,6 +263,7 @@ class _FriendScreenState extends State<FriendScreen>
                     itemBuilder: (context, index) {
                       final friend = _friends[index];
                       return _FriendCard(
+                        key: ValueKey(friend.odId),
                         friend: friend,
                         onChallenge: () => _showChallengeDialog(friend),
                       );
@@ -292,7 +293,7 @@ class _FriendScreenState extends State<FriendScreen>
               color: _accentColor.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(Icons.sports_esports, color: _accentColor),
+            child: const Icon(Icons.sports_esports, color: _accentColor),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -365,6 +366,7 @@ class _FriendScreenState extends State<FriendScreen>
       itemBuilder: (context, index) {
         final request = _requests[index];
         return _RequestCard(
+          key: ValueKey(request.id),
           request: request,
           onAccept: () => _acceptRequest(request.id),
           onReject: () => _rejectRequest(request.id),
@@ -397,12 +399,12 @@ class _FriendScreenState extends State<FriendScreen>
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: _accentColor),
+                borderSide: const BorderSide(color: _accentColor),
               ),
               prefixIcon: const Icon(Icons.search, color: ParchmentTheme.fadedScript),
               suffixIcon: _isSearching
-                  ? Padding(
-                      padding: const EdgeInsets.all(12),
+                  ? const Padding(
+                      padding: EdgeInsets.all(12),
                       child: SizedBox(
                         width: 20,
                         height: 20,
@@ -414,7 +416,7 @@ class _FriendScreenState extends State<FriendScreen>
                     )
                   : IconButton(
                       onPressed: _searchUsers,
-                      icon: Icon(Icons.search, color: _accentColor),
+                      icon: const Icon(Icons.search, color: _accentColor),
                     ),
             ),
             onSubmitted: (_) => _searchUsers(),
@@ -439,6 +441,7 @@ class _FriendScreenState extends State<FriendScreen>
                   itemBuilder: (context, index) {
                     final user = _searchResults[index];
                     return _SearchResultCard(
+                      key: ValueKey(user.odId),
                       user: user,
                       onAddFriend: () => _sendFriendRequest(user.odId),
                     );
@@ -487,6 +490,7 @@ class _FriendCard extends StatelessWidget {
   final VoidCallback onChallenge;
 
   const _FriendCard({
+    super.key,
     required this.friend,
     required this.onChallenge,
   });
@@ -555,7 +559,7 @@ class _FriendCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    Icon(Icons.toll, size: 14, color: _accentColor),
+                    const Icon(Icons.toll, size: 14, color: _accentColor),
                     const SizedBox(width: 4),
                     Text(
                       '${friend.talants}',
@@ -592,7 +596,7 @@ class _FriendCard extends StatelessWidget {
                 color: _accentColor.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(Icons.sports_esports, color: _accentColor),
+              child: const Icon(Icons.sports_esports, color: _accentColor),
             ),
             tooltip: '대전 신청',
           ),
@@ -609,6 +613,7 @@ class _RequestCard extends StatelessWidget {
   final VoidCallback onReject;
 
   const _RequestCard({
+    super.key,
     required this.request,
     required this.onAccept,
     required this.onReject,
@@ -635,7 +640,7 @@ class _RequestCard extends StatelessWidget {
             backgroundColor: _accentColor.withValues(alpha: 0.2),
             child: Text(
               request.fromUserName.isNotEmpty ? request.fromUserName[0] : '?',
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: _accentColor,
@@ -699,6 +704,7 @@ class _SearchResultCard extends StatelessWidget {
   final VoidCallback onAddFriend;
 
   const _SearchResultCard({
+    super.key,
     required this.user,
     required this.onAddFriend,
   });
@@ -724,7 +730,7 @@ class _SearchResultCard extends StatelessWidget {
             backgroundColor: _accentColor.withValues(alpha: 0.2),
             child: Text(
               user.name.isNotEmpty ? user.name[0] : '?',
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: _accentColor,
@@ -806,7 +812,6 @@ class _ChallengeSheet extends StatefulWidget {
 }
 
 class _ChallengeSheetState extends State<_ChallengeSheet> {
-  static const _cardColor = ParchmentTheme.softPapyrus;
   static const _accentColor = ParchmentTheme.manuscriptGold;
 
   final _verseController = TextEditingController(text: 'John 3:16');
@@ -844,7 +849,7 @@ class _ChallengeSheetState extends State<_ChallengeSheet> {
           // 상대방
           Row(
             children: [
-              Icon(Icons.sports_esports, color: _accentColor),
+              const Icon(Icons.sports_esports, color: _accentColor),
               const SizedBox(width: 12),
               Text(
                 '${widget.friend.name}에게 대전 신청',
@@ -879,7 +884,7 @@ class _ChallengeSheetState extends State<_ChallengeSheet> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: _accentColor),
+                borderSide: const BorderSide(color: _accentColor),
               ),
             ),
           ),
@@ -908,7 +913,7 @@ class _ChallengeSheetState extends State<_ChallengeSheet> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.toll, color: _accentColor, size: 20),
+                    const Icon(Icons.toll, color: _accentColor, size: 20),
                     const SizedBox(width: 8),
                     Text(
                       '$_betAmount',
@@ -939,11 +944,11 @@ class _ChallengeSheetState extends State<_ChallengeSheet> {
               color: _accentColor.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Row(
+            child: const Row(
               children: [
                 Icon(Icons.info_outline, color: _accentColor, size: 20),
-                const SizedBox(width: 12),
-                const Expanded(
+                SizedBox(width: 12),
+                Expanded(
                   child: Text(
                     '승자가 베팅금의 2배를 가져갑니다. 무승부시 반환됩니다.',
                     style: TextStyle(

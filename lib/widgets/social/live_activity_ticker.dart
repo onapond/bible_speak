@@ -175,7 +175,7 @@ class _LiveActivityTickerState extends State<LiveActivityTicker>
         mainAxisSize: MainAxisSize.min,
         children: [
           // 펄스 애니메이션 점
-          _PulsingDot(color: Colors.red),
+          const _PulsingDot(color: Colors.red),
           const SizedBox(width: 6),
           const Text(
             'LIVE',

@@ -728,7 +728,7 @@ class _CommunityScreenState extends State<CommunityScreen>
                 color: _accentColor.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
-              child: Icon(
+              child: const Icon(
                 Icons.groups_outlined,
                 size: 64,
                 color: _accentColor,
@@ -837,7 +837,7 @@ class _CommunityScreenState extends State<CommunityScreen>
               ),
               TextButton(
                 onPressed: () => _tabController.animateTo(2),
-                child: Text(
+                child: const Text(
                   '전체 보기',
                   style: TextStyle(color: _accentColor, fontSize: 12),
                 ),
@@ -915,6 +915,7 @@ class _CommunityScreenState extends State<CommunityScreen>
                       _shouldShowDateDivider(message, previousMessage);
 
                   return RepaintBoundary(
+                    key: ValueKey(message.id),
                     child: Column(
                       children: [
                         if (showDateDivider)
@@ -936,7 +937,7 @@ class _CommunityScreenState extends State<CommunityScreen>
   }
 
   Widget _buildEmptyChatState() {
-    return Center(
+    return const Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -945,7 +946,7 @@ class _CommunityScreenState extends State<CommunityScreen>
             size: 64,
             color: ParchmentTheme.warmVellum,
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           const Text(
             '아직 메시지가 없습니다',
             style: TextStyle(
@@ -1177,7 +1178,7 @@ class _CommunityScreenState extends State<CommunityScreen>
                       color: _accentColor,
                     ),
                   )
-                : Icon(Icons.send, color: _accentColor),
+                : const Icon(Icons.send, color: _accentColor),
           ),
         ],
       ),
@@ -1277,7 +1278,7 @@ class _CommunityScreenState extends State<CommunityScreen>
               color: _accentColor.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(Icons.sports_esports, color: _accentColor),
+            child: const Icon(Icons.sports_esports, color: _accentColor),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -1303,7 +1304,7 @@ class _CommunityScreenState extends State<CommunityScreen>
           ),
           Text(
             '${_battleStats!.winRatePercent}%',
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
               color: _accentColor,
@@ -1347,6 +1348,7 @@ class _CommunityScreenState extends State<CommunityScreen>
         itemBuilder: (context, index) {
           final friend = _friends[index];
           return RepaintBoundary(
+            key: ValueKey(friend.odId),
             child: _buildFriendCard(friend),
           );
         },
@@ -1373,7 +1375,7 @@ class _CommunityScreenState extends State<CommunityScreen>
                 backgroundColor: _accentColor.withValues(alpha: 0.15),
                 child: Text(
                   friend.name.isNotEmpty ? friend.name[0] : '?',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: _accentColor,
@@ -1436,7 +1438,7 @@ class _CommunityScreenState extends State<CommunityScreen>
                 color: _accentColor.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(Icons.sports_esports, color: _accentColor),
+              child: const Icon(Icons.sports_esports, color: _accentColor),
             ),
             tooltip: '대전 신청',
           ),
@@ -1465,12 +1467,12 @@ class _CommunityScreenState extends State<CommunityScreen>
 
   Widget _buildFriendRequestsTab() {
     if (_friendRequests.isEmpty) {
-      return Center(
+      return const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.mail_outline, size: 64, color: ParchmentTheme.warmVellum),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             const Text(
               '받은 요청이 없습니다',
               style: TextStyle(fontSize: 16, color: ParchmentTheme.fadedScript),
@@ -1488,6 +1490,7 @@ class _CommunityScreenState extends State<CommunityScreen>
       itemBuilder: (context, index) {
         final request = _friendRequests[index];
         return RepaintBoundary(
+          key: ValueKey(request.id),
           child: _buildFriendRequestCard(request),
         );
       },
@@ -1511,7 +1514,7 @@ class _CommunityScreenState extends State<CommunityScreen>
             backgroundColor: _accentColor.withValues(alpha: 0.15),
             child: Text(
               request.fromUserName.isNotEmpty ? request.fromUserName[0] : '?',
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: _accentColor,
@@ -1585,12 +1588,12 @@ class _CommunityScreenState extends State<CommunityScreen>
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: _accentColor),
+                borderSide: const BorderSide(color: _accentColor),
               ),
               prefixIcon: const Icon(Icons.search, color: ParchmentTheme.fadedScript),
               suffixIcon: _isFriendSearching
-                  ? Padding(
-                      padding: const EdgeInsets.all(12),
+                  ? const Padding(
+                      padding: EdgeInsets.all(12),
                       child: SizedBox(
                         width: 20,
                         height: 20,
@@ -1599,7 +1602,7 @@ class _CommunityScreenState extends State<CommunityScreen>
                     )
                   : IconButton(
                       onPressed: _searchFriends,
-                      icon: Icon(Icons.search, color: _accentColor),
+                      icon: const Icon(Icons.search, color: _accentColor),
                     ),
             ),
             onSubmitted: (_) => _searchFriends(),
@@ -1624,6 +1627,7 @@ class _CommunityScreenState extends State<CommunityScreen>
                   itemBuilder: (context, index) {
                     final user = _friendSearchResults[index];
                     return RepaintBoundary(
+                      key: ValueKey(user.odId),
                       child: _buildSearchResultCard(user),
                     );
                   },
@@ -1650,7 +1654,7 @@ class _CommunityScreenState extends State<CommunityScreen>
             backgroundColor: _accentColor.withValues(alpha: 0.15),
             child: Text(
               user.name.isNotEmpty ? user.name[0] : '?',
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: _accentColor,
@@ -1880,7 +1884,7 @@ class _ChallengeSheetState extends State<_ChallengeSheet> {
           const SizedBox(height: 24),
           Row(
             children: [
-              Icon(Icons.sports_esports, color: _accentColor),
+              const Icon(Icons.sports_esports, color: _accentColor),
               const SizedBox(width: 12),
               Text(
                 '${widget.friend.name}에게 대전 신청',
@@ -2101,7 +2105,7 @@ class _BrowseGroupsDialogState extends State<_BrowseGroupsDialog> {
             const SizedBox(height: 16),
             Expanded(
               child: _isLoading
-                  ? Center(
+                  ? const Center(
                       child: CircularProgressIndicator(color: _accentColor),
                     )
                   : _filteredGroups.isEmpty
@@ -2117,7 +2121,9 @@ class _BrowseGroupsDialogState extends State<_BrowseGroupsDialog> {
                           itemCount: _filteredGroups.length,
                           itemBuilder: (context, index) {
                             final group = _filteredGroups[index];
-                            return InkWell(
+                            return KeyedSubtree(
+                              key: ValueKey(group.id),
+                              child: InkWell(
                               onTap: () => widget.onGroupSelected(group),
                               borderRadius: BorderRadius.circular(12),
                               child: Container(
@@ -2142,7 +2148,7 @@ class _BrowseGroupsDialogState extends State<_BrowseGroupsDialog> {
                                           group.name.isNotEmpty
                                               ? group.name[0]
                                               : '?',
-                                          style: TextStyle(
+                                          style: const TextStyle(
                                             fontSize: 18,
                                             fontWeight: FontWeight.bold,
                                             color: _accentColor,
@@ -2173,7 +2179,7 @@ class _BrowseGroupsDialogState extends State<_BrowseGroupsDialog> {
                                         ],
                                       ),
                                     ),
-                                    Icon(
+                                    const Icon(
                                       Icons.arrow_forward_ios,
                                       size: 16,
                                       color: _accentColor,
@@ -2181,6 +2187,7 @@ class _BrowseGroupsDialogState extends State<_BrowseGroupsDialog> {
                                   ],
                                 ),
                               ),
+                            ),
                             );
                           },
                         ),

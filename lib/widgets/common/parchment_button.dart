@@ -144,7 +144,7 @@ class ParchmentOutlineButton extends StatelessWidget {
           ),
         ),
         child: isLoading
-            ? SizedBox(
+            ? const SizedBox(
                 width: 22,
                 height: 22,
                 child: CircularProgressIndicator(

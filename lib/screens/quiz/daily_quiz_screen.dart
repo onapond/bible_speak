@@ -385,7 +385,7 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
             ],
           ),
           const SizedBox(height: 20),
-          Divider(color: ParchmentTheme.warmVellum),
+          const Divider(color: ParchmentTheme.warmVellum),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,

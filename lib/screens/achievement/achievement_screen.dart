@@ -242,12 +242,12 @@ class _AchievementScreenState extends State<AchievementScreen>
                 if (_stats!.unclaimedRewards > 0)
                   Row(
                     children: [
-                      Icon(Icons.card_giftcard,
+                      const Icon(Icons.card_giftcard,
                           color: _accentColor, size: 16),
                       const SizedBox(width: 4),
                       Text(
                         '${_stats!.unclaimedRewards}개 보상 수령 가능',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 12,
                           color: _accentColor,
                         ),
@@ -302,6 +302,7 @@ class _AchievementScreenState extends State<AchievementScreen>
         itemBuilder: (context, index) {
           final userAch = filtered[index];
           return _AchievementCard(
+            key: ValueKey(userAch.achievementId),
             userAchievement: userAch,
             onTap: () => _showAchievementDetail(userAch),
             onClaimReward: () => _claimReward(userAch),
@@ -319,6 +320,7 @@ class _AchievementCard extends StatelessWidget {
   final VoidCallback onClaimReward;
 
   const _AchievementCard({
+    super.key,
     required this.userAchievement,
     required this.onTap,
     required this.onClaimReward,
@@ -435,11 +437,11 @@ class _AchievementCard extends StatelessWidget {
                   else
                     Row(
                       children: [
-                        Icon(Icons.toll, color: _accentColor, size: 16),
+                        const Icon(Icons.toll, color: _accentColor, size: 16),
                         const SizedBox(width: 4),
                         Text(
                           '+${achievement.talantReward}',
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             color: _accentColor,
                           ),
@@ -513,7 +515,6 @@ class _AchievementDetailSheet extends StatelessWidget {
     required this.onClaimReward,
   });
 
-  static const _cardColor = ParchmentTheme.softPapyrus;
   static const _accentColor = ParchmentTheme.manuscriptGold;
 
   @override
@@ -641,11 +642,11 @@ class _AchievementDetailSheet extends StatelessWidget {
                     ),
                     Row(
                       children: [
-                        Icon(Icons.toll, color: _accentColor, size: 20),
+                        const Icon(Icons.toll, color: _accentColor, size: 20),
                         const SizedBox(width: 4),
                         Text(
                           '+${achievement.talantReward}',
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             color: _accentColor,
                             fontSize: 16,

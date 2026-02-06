@@ -21,7 +21,7 @@ class BattleService {
   }) async {
     final userId = currentUserId;
     if (userId == null) {
-      return BattleCreateResult(success: false, message: '로그인이 필요합니다');
+      return const BattleCreateResult(success: false, message: '로그인이 필요합니다');
     }
 
     try {
@@ -30,7 +30,7 @@ class BattleService {
       final opponentDoc = await _firestore.collection('users').doc(opponentId).get();
 
       if (!opponentDoc.exists) {
-        return BattleCreateResult(success: false, message: '상대를 찾을 수 없습니다');
+        return const BattleCreateResult(success: false, message: '상대를 찾을 수 없습니다');
       }
 
       final challengerTalants = challengerDoc.data()?['talants'] ?? 0;
@@ -66,7 +66,7 @@ class BattleService {
       );
     } catch (e) {
       print('Create battle error: $e');
-      return BattleCreateResult(success: false, message: '대전 생성 중 오류가 발생했습니다');
+      return const BattleCreateResult(success: false, message: '대전 생성 중 오류가 발생했습니다');
     }
   }
 

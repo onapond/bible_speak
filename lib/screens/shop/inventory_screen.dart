@@ -166,7 +166,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
+          const Icon(
             Icons.inventory_2_outlined,
             size: 64,
             color: ParchmentTheme.warmVellum,
@@ -242,7 +242,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 ),
                 child: Text(
                   '${categoryItems.length}',
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
                     color: _accentColor,

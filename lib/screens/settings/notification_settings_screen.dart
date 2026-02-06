@@ -278,7 +278,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
       ),
       child: Row(
         children: [
-          Icon(Icons.info_outline, color: _accentColor, size: 24),
+          const Icon(Icons.info_outline, color: _accentColor, size: 24),
           const SizedBox(width: 12),
           const Expanded(
             child: Text(
@@ -318,7 +318,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
             color: _accentColor.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Icon(Icons.notifications, color: _accentColor, size: 24),
+          child: const Icon(Icons.notifications, color: _accentColor, size: 24),
         ),
       ),
     );
@@ -526,9 +526,9 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                   children: [
                     Text(
                       timeLabel ?? '알림 시간: ${_settings.morningMannaTime}',
-                      style: TextStyle(color: _accentColor, fontSize: 13),
+                      style: const TextStyle(color: _accentColor, fontSize: 13),
                     ),
-                    Icon(Icons.edit, color: _accentColor, size: 16),
+                    const Icon(Icons.edit, color: _accentColor, size: 16),
                   ],
                 ),
               ),

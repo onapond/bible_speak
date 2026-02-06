@@ -133,7 +133,7 @@ class ReminderScheduler {
 
     final scheduledTime = _nextInstanceOfTime(hour, minute);
 
-    final androidDetails = AndroidNotificationDetails(
+    const androidDetails = AndroidNotificationDetails(
       _highChannelId,
       '중요 알림',
       channelDescription: '아침 만나, 학습 리마인드 등 중요 알림',
@@ -175,7 +175,7 @@ class ReminderScheduler {
 
     final scheduledTime = _nextInstanceOfTime(hour, minute);
 
-    final androidDetails = AndroidNotificationDetails(
+    const androidDetails = AndroidNotificationDetails(
       _highChannelId,
       '중요 알림',
       channelDescription: '아침 만나, 학습 리마인드 등 중요 알림',
@@ -217,7 +217,7 @@ class ReminderScheduler {
 
     final scheduledTime = _nextInstanceOfTime(21, 0);
 
-    final androidDetails = AndroidNotificationDetails(
+    const androidDetails = AndroidNotificationDetails(
       _highChannelId,
       '중요 알림',
       channelDescription: '아침 만나, 학습 리마인드 등 중요 알림',
@@ -308,7 +308,7 @@ class ReminderScheduler {
   }) async {
     if (!_isInitialized || kIsWeb) return;
 
-    final androidDetails = AndroidNotificationDetails(
+    const androidDetails = AndroidNotificationDetails(
       _defaultChannelId,
       '기본 알림',
       channelDescription: '찌르기, 일반 알림',

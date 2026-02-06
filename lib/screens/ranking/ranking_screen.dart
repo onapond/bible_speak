@@ -83,7 +83,9 @@ class _RankingScreenState extends State<RankingScreen>
             final isMyGroup = group.id == widget.authService.currentUser?.groupId;
             final rank = index + 1;
 
-            return RepaintBoundary(child: Card(
+            return RepaintBoundary(
+              key: ValueKey(group.id),
+              child: Card(
               color: isMyGroup ? Colors.indigo.shade50 : null,
               child: ListTile(
                 leading: _buildRankBadge(rank),
@@ -164,7 +166,9 @@ class _RankingScreenState extends State<RankingScreen>
             final member = members[index];
             final rank = index + 1;
 
-            return RepaintBoundary(child: Card(
+            return RepaintBoundary(
+              key: ValueKey(member.id),
+              child: Card(
               color: member.isMe ? Colors.indigo.shade50 : null,
               child: ListTile(
                 leading: _buildRankBadge(rank),

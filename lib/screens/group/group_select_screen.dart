@@ -129,7 +129,7 @@ class _GroupSelectScreenState extends State<GroupSelectScreen>
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
                 ),
-                prefixIcon: Icon(Icons.group, color: _accentColor),
+                prefixIcon: const Icon(Icons.group, color: _accentColor),
               ),
               maxLength: 20,
             ),
@@ -195,11 +195,11 @@ class _GroupSelectScreenState extends State<GroupSelectScreen>
       builder: (context) => AlertDialog(
         backgroundColor: _cardColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
+        title: const Row(
           children: [
-            const Icon(Icons.celebration, color: Colors.amber),
-            const SizedBox(width: 8),
-            const Text(
+            Icon(Icons.celebration, color: Colors.amber),
+            SizedBox(width: 8),
+            Text(
               '그룹 생성 완료!',
               style: TextStyle(color: Colors.white),
             ),
@@ -442,7 +442,9 @@ class _GroupSelectScreenState extends State<GroupSelectScreen>
                         final group = _filteredGroups[index];
                         final isSelected = _selectedGroupId == group.id;
 
-                        return GestureDetector(
+                        return KeyedSubtree(
+                          key: ValueKey(group.id),
+                          child: GestureDetector(
                           onTap: () => _selectGroup(group.id, group.name),
                           child: Container(
                             margin: const EdgeInsets.only(bottom: 8),
@@ -511,6 +513,7 @@ class _GroupSelectScreenState extends State<GroupSelectScreen>
                               ],
                             ),
                           ),
+                        ),
                         );
                       },
                     ),

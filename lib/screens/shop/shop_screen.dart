@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/shop_item.dart';
 import '../../services/shop_service.dart';
-import '../../services/auth_service.dart';
 import '../../styles/parchment_theme.dart';
 
 /// 탈란트 샵 화면
@@ -18,7 +17,6 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
   static const _accentColor = ParchmentTheme.manuscriptGold;
 
   final ShopService _shopService = ShopService();
-  final AuthService _authService = AuthService();
 
   late TabController _tabController;
   List<ShopItem> _items = [];
@@ -130,11 +128,11 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.toll, color: _accentColor, size: 18),
+                          const Icon(Icons.toll, color: _accentColor, size: 18),
                           const SizedBox(width: 6),
                           Text(
                             '$_userTalants',
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               color: _accentColor,
                             ),
@@ -190,12 +188,12 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
         : _items.where((item) => item.category == category).toList();
 
     if (filteredItems.isEmpty) {
-      return Center(
+      return const Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.shopping_bag, size: 64, color: ParchmentTheme.warmVellum),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             const Text(
               '아이템이 없습니다',
               style: TextStyle(color: ParchmentTheme.fadedScript),
@@ -222,6 +220,7 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
           final owned = _hasItem(item.id);
 
           return _ShopItemCard(
+            key: ValueKey(item.id),
             item: item,
             owned: owned,
             canAfford: _userTalants >= item.price,
@@ -241,6 +240,7 @@ class _ShopItemCard extends StatelessWidget {
   final VoidCallback? onTap;
 
   const _ShopItemCard({
+    super.key,
     required this.item,
     required this.owned,
     required this.canAfford,
@@ -449,7 +449,7 @@ class _PurchaseConfirmDialog extends StatelessWidget {
                       ),
                       Row(
                         children: [
-                          Icon(Icons.toll, color: _accentColor, size: 18),
+                          const Icon(Icons.toll, color: _accentColor, size: 18),
                           const SizedBox(width: 4),
                           Text(
                             '${item.price}',
@@ -480,7 +480,7 @@ class _PurchaseConfirmDialog extends StatelessWidget {
                     ],
                   ),
                   if (canAfford) ...[
-                    Divider(color: ParchmentTheme.warmVellum, height: 24),
+                    const Divider(color: ParchmentTheme.warmVellum, height: 24),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [

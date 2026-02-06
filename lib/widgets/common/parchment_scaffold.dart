@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
-import '../../styles/parchment_theme.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Parchment 배경 그라데이션이 적용된 Scaffold
+import '../../providers/texture_provider.dart';
+import '../../styles/parchment_theme.dart';
+import 'parchment_texture_overlay.dart';
+
+/// Parchment 배경 그라데이션과 텍스처가 적용된 Scaffold
 ///
 /// 사용 예시:
 /// ```dart
@@ -10,7 +14,7 @@ import '../../styles/parchment_theme.dart';
 ///   body: YourContent(),
 /// )
 /// ```
-class ParchmentScaffold extends StatelessWidget {
+class ParchmentScaffold extends ConsumerWidget {
   const ParchmentScaffold({
     super.key,
     required this.body,
@@ -24,6 +28,7 @@ class ParchmentScaffold extends StatelessWidget {
     this.extendBodyBehindAppBar = false,
     this.resizeToAvoidBottomInset = true,
     this.useGradient = true,
+    this.showTexture = true,
   });
 
   final Widget body;
@@ -37,9 +42,13 @@ class ParchmentScaffold extends StatelessWidget {
   final bool extendBodyBehindAppBar;
   final bool resizeToAvoidBottomInset;
   final bool useGradient;
+  final bool showTexture;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final textureSettings = ref.watch(textureSettingsNotifierProvider);
+    final shouldShowTexture = showTexture && textureSettings.enabled;
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: appBar,
@@ -56,7 +65,14 @@ class ParchmentScaffold extends StatelessWidget {
           gradient: useGradient ? ParchmentTheme.backgroundGradient : null,
           color: useGradient ? null : ParchmentTheme.agedParchment,
         ),
-        child: body,
+        child: Stack(
+          children: [
+            // 텍스처 오버레이 (배경 위, 콘텐츠 아래)
+            if (shouldShowTexture) const ParchmentTextureOverlay(),
+            // 메인 콘텐츠
+            body,
+          ],
+        ),
       ),
     );
   }

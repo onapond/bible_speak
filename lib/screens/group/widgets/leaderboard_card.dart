@@ -57,11 +57,11 @@ class LeaderboardCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                const Row(
                   children: [
-                    const Icon(Icons.leaderboard, color: _accentColor, size: 20),
-                    const SizedBox(width: 8),
-                    const Text(
+                    Icon(Icons.leaderboard, color: _accentColor, size: 20),
+                    SizedBox(width: 8),
+                    Text(
                       '전체 순위',
                       style: TextStyle(
                         fontSize: 16,

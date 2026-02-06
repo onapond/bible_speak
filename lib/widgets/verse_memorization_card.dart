@@ -176,7 +176,7 @@ class _VerseMemorizationCardState extends State<VerseMemorizationCard>
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
+            gradient: const LinearGradient(
               colors: [
                 _VerseCardColors.primary,
                 _VerseCardColors.primaryLight,
@@ -418,7 +418,7 @@ class _VerseMemorizationCardState extends State<VerseMemorizationCard>
                 ),
               ),
               const SizedBox(width: 8),
-              Text(
+              const Text(
                 '한국어',
                 style: TextStyle(
                   fontSize: 12,

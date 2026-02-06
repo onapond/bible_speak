@@ -62,12 +62,12 @@ class GroupGoalWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            const Color(0xFF2D1B4E),
-            const Color(0xFF1A1A2E),
+            Color(0xFF2D1B4E),
+            Color(0xFF1A1A2E),
           ],
         ),
         borderRadius: BorderRadius.circular(16),

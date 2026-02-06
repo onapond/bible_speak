@@ -356,7 +356,10 @@ class _WordListScreenState extends State<WordListScreen> {
                             itemBuilder: (context, index) {
                               final word = _words[index];
                               final progress = _progressMap[word.id];
-                              return _buildWordCard(word, progress);
+                              return KeyedSubtree(
+                                key: ValueKey(word.id),
+                                child: _buildWordCard(word, progress),
+                              );
                             },
                           ),
               ),

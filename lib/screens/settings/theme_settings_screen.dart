@@ -367,7 +367,7 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
             if (isActive)
               Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: _accentColor,
                   shape: BoxShape.circle,
                 ),
@@ -413,7 +413,7 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
       ),
       child: Column(
         children: [
-          Icon(
+          const Icon(
             Icons.palette_outlined,
             size: 48,
             color: ParchmentTheme.warmVellum,

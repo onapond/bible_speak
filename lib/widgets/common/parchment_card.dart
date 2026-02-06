@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../styles/parchment_theme.dart';
+import 'parchment_texture_overlay.dart';
 
 /// Parchment 스타일의 카드 컴포넌트
 ///
@@ -20,6 +21,7 @@ class ParchmentCard extends StatelessWidget {
     this.borderRadius,
     this.showBorder = true,
     this.showShadow = true,
+    this.showTexture = false,
     this.backgroundColor,
     this.borderColor,
     this.elevation = 0,
@@ -34,6 +36,7 @@ class ParchmentCard extends StatelessWidget {
   final BorderRadius? borderRadius;
   final bool showBorder;
   final bool showShadow;
+  final bool showTexture;
   final Color? backgroundColor;
   final Color? borderColor;
   final double elevation;
@@ -59,18 +62,35 @@ class ParchmentCard extends StatelessWidget {
             : null,
         boxShadow: showShadow ? ParchmentTheme.cardShadow : null,
       ),
-      child: Material(
-        color: Colors.transparent,
+      child: ClipRRect(
         borderRadius: radius,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: radius,
-          splashColor: ParchmentTheme.manuscriptGold.withValues(alpha: 0.1),
-          highlightColor: ParchmentTheme.manuscriptGold.withValues(alpha: 0.05),
-          child: Padding(
-            padding: padding ?? const EdgeInsets.all(16),
-            child: child,
-          ),
+        child: Stack(
+          children: [
+            // 텍스처 오버레이 (선택적)
+            if (showTexture)
+              Positioned.fill(
+                child: ParchmentCardTexture(
+                  borderRadius: radius,
+                  coarseOpacity: ParchmentTheme.cardTextureCoarseOpacity,
+                  fineOpacity: ParchmentTheme.cardTextureFineOpacity,
+                ),
+              ),
+            // 인터랙티브 콘텐츠
+            Material(
+              color: Colors.transparent,
+              borderRadius: radius,
+              child: InkWell(
+                onTap: onTap,
+                borderRadius: radius,
+                splashColor: ParchmentTheme.manuscriptGold.withValues(alpha: 0.1),
+                highlightColor: ParchmentTheme.manuscriptGold.withValues(alpha: 0.05),
+                child: Padding(
+                  padding: padding ?? const EdgeInsets.all(16),
+                  child: child,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -89,6 +109,7 @@ class ParchmentIconCard extends StatelessWidget {
     this.iconColor,
     this.iconBackgroundColor,
     this.showArrow = true,
+    this.showTexture = false,
   });
 
   final IconData icon;
@@ -99,12 +120,14 @@ class ParchmentIconCard extends StatelessWidget {
   final Color? iconColor;
   final Color? iconBackgroundColor;
   final bool showArrow;
+  final bool showTexture;
 
   @override
   Widget build(BuildContext context) {
     return ParchmentCard(
       onTap: onTap,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      showTexture: showTexture,
       child: Row(
         children: [
           // 아이콘
@@ -176,6 +199,7 @@ class ParchmentStatCard extends StatelessWidget {
     this.valueColor,
     this.onTap,
     this.width,
+    this.showTexture = false,
   });
 
   final String value;
@@ -184,6 +208,7 @@ class ParchmentStatCard extends StatelessWidget {
   final Color? valueColor;
   final VoidCallback? onTap;
   final double? width;
+  final bool showTexture;
 
   @override
   Widget build(BuildContext context) {
@@ -191,6 +216,7 @@ class ParchmentStatCard extends StatelessWidget {
       onTap: onTap,
       width: width,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      showTexture: showTexture,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -292,12 +318,14 @@ class ParchmentHighlightCard extends StatelessWidget {
     this.onTap,
     this.padding,
     this.showGlow = false,
+    this.showTexture = false,
   });
 
   final Widget child;
   final VoidCallback? onTap;
   final EdgeInsetsGeometry? padding;
   final bool showGlow;
+  final bool showTexture;
 
   @override
   Widget build(BuildContext context) {
@@ -310,6 +338,7 @@ class ParchmentHighlightCard extends StatelessWidget {
         onTap: onTap,
         padding: padding,
         borderColor: ParchmentTheme.manuscriptGold.withValues(alpha: 0.6),
+        showTexture: showTexture,
         child: child,
       ),
     );

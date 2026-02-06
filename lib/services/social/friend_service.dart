@@ -17,11 +17,11 @@ class FriendService {
   Future<FriendRequestResult> sendFriendRequest(String toUserId) async {
     final userId = currentUserId;
     if (userId == null) {
-      return FriendRequestResult(success: false, message: '로그인이 필요합니다');
+      return const FriendRequestResult(success: false, message: '로그인이 필요합니다');
     }
 
     if (userId == toUserId) {
-      return FriendRequestResult(success: false, message: '자신에게 요청할 수 없습니다');
+      return const FriendRequestResult(success: false, message: '자신에게 요청할 수 없습니다');
     }
 
     try {
@@ -34,7 +34,7 @@ class FriendService {
           .get();
 
       if (existingFriend.exists) {
-        return FriendRequestResult(success: false, message: '이미 친구입니다');
+        return const FriendRequestResult(success: false, message: '이미 친구입니다');
       }
 
       // 이미 요청을 보냈는지 확인
@@ -47,7 +47,7 @@ class FriendService {
           .get();
 
       if (existingRequest.docs.isNotEmpty) {
-        return FriendRequestResult(success: false, message: '이미 요청을 보냈습니다');
+        return const FriendRequestResult(success: false, message: '이미 요청을 보냈습니다');
       }
 
       // 상대방이 나에게 요청을 보냈는지 확인 (자동 수락)
@@ -62,7 +62,7 @@ class FriendService {
       if (reverseRequest.docs.isNotEmpty) {
         // 상대방 요청 수락
         await acceptFriendRequest(reverseRequest.docs.first.id);
-        return FriendRequestResult(success: true, message: '친구가 되었습니다!');
+        return const FriendRequestResult(success: true, message: '친구가 되었습니다!');
       }
 
       // 사용자 이름 가져오기
@@ -70,7 +70,7 @@ class FriendService {
       final toUser = await _firestore.collection('users').doc(toUserId).get();
 
       if (!toUser.exists) {
-        return FriendRequestResult(success: false, message: '사용자를 찾을 수 없습니다');
+        return const FriendRequestResult(success: false, message: '사용자를 찾을 수 없습니다');
       }
 
       final fromUserName = fromUser.data()?['name'] ?? '익명';
@@ -86,10 +86,10 @@ class FriendService {
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      return FriendRequestResult(success: true, message: '친구 요청을 보냈습니다');
+      return const FriendRequestResult(success: true, message: '친구 요청을 보냈습니다');
     } catch (e) {
       print('Send friend request error: $e');
-      return FriendRequestResult(success: false, message: '요청 중 오류가 발생했습니다');
+      return const FriendRequestResult(success: false, message: '요청 중 오류가 발생했습니다');
     }
   }
 

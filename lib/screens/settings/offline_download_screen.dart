@@ -112,7 +112,11 @@ class _OfflineDownloadScreenState extends State<OfflineDownloadScreen> {
                               padding: const EdgeInsets.all(16),
                               itemCount: _books.length,
                               itemBuilder: (context, index) {
-                                return _buildBookTile(_books[index]);
+                                final book = _books[index];
+                                return KeyedSubtree(
+                                  key: ValueKey(book.id),
+                                  child: _buildBookTile(book),
+                                );
                               },
                             ),
                           ),
@@ -281,7 +285,7 @@ class _OfflineDownloadScreenState extends State<OfflineDownloadScreen> {
                   if (isCached && meta != null)
                     Text(
                       '다운로드: ${_formatDate(meta['downloadedAt'])}',
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: _accentColor,
                         fontSize: 11,
                       ),

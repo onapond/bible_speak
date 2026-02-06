@@ -253,3 +253,4 @@ navigator.serviceWorker.addEventListener('controllerchange', function() {
 
 ## 변경 이력
 - 2026-02-06: 최초 작성
+- 2026-02-06: Parchment 텍스처 시스템 규칙 추가 (providers/texture_provider.dart)

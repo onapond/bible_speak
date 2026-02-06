@@ -1,7 +1,7 @@
 # Bible Speak Development Progress
 
-**Last Updated**: 2026-01-27
-**Last Commit**: Web audio format fix + loading performance optimization
+**Last Updated**: 2026-02-06
+**Last Commit**: PWA infinite refresh fix + Parchment texture system
 
 ---
 
@@ -54,15 +54,35 @@ Task 5: Audio Fix & Optimization ✅ (2026-01-27)
     ├── 통과 기준 조정 (70/75/80%)
     └── 병렬 로딩 최적화
 
-Task 6: Word Study (예정)
+Task 6-10: 게이미피케이션 & 소셜 ✅ (2026-01-28~30)
     │
-    └── Gemini API 핵심 단어 추출
+    ├── 연속 학습 (Streak) 시스템
+    ├── 업적 및 레벨 시스템
+    ├── 달란트 샵
+    ├── 그룹 챌린지/채팅
+    └── 찌르기 시스템
 
-Task 7: Gamification (예정)
+Task 11: Firestore 안전 패턴 ✅ (2026-01-31)
     │
-    └── 스트릭, 달란트 시스템
+    └── update() → set(merge:true) 전환 (13개 서비스)
 
-Task 8: iOS Deployment (예정)
+Task 12: Riverpod 도입 ✅ (2026-02-05)
+    │
+    ├── lib/providers/ 폴더 생성
+    ├── core_providers, auth_provider, progress_provider
+    └── Tier 1 화면 마이그레이션 (7개)
+
+Task 13: Parchment 테마 강화 ✅ (2026-02-06)
+    │
+    ├── texture_provider.dart
+    ├── parchment_texture_overlay.dart
+    └── Perlin 노이즈 + 그레인 노이즈
+
+Task 14: PWA 버그 수정 ✅ (2026-02-06)
+    │
+    └── 무한 새로고침 → sessionStorage 플래그
+
+Task 15: iOS Deployment (예정)
     │
     └── App Store 배포 (macOS 필요)
 ```

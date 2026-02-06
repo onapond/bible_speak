@@ -1,6 +1,6 @@
 # 바이블스픽 - 프로젝트 현재 상태
 
-> 최종 업데이트: 2026년 2월 2일
+> 최종 업데이트: 2026년 2월 6일
 
 ---
 
@@ -23,6 +23,7 @@
 | 분류 | 기술 |
 |------|------|
 | 프레임워크 | Flutter 3.x / Dart |
+| 상태 관리 | Riverpod (주력) + Provider (레거시) |
 | 백엔드 | Firebase (Auth, Firestore, Storage, FCM) |
 | 음성 인식 | Azure Speech Services (Korea Central) |
 | TTS | ESV API (성경), ElevenLabs (일반) |
@@ -81,6 +82,11 @@
 - [x] 월간 프리미엄: ₩4,900
 - [x] 연간 프리미엄: ₩39,000 (33% 할인)
 
+### 아키텍처 개선 (2026-02-05~06)
+- [x] Riverpod 상태 관리 (Phase 1-2 + Tier 1)
+- [x] Parchment 테마 시스템 (코드 기반 텍스처)
+- [x] PWA 무한 새로고침 버그 수정 (sessionStorage 플래그)
+
 ---
 
 ## 미구현/계획 중인 기능
@@ -100,6 +106,7 @@
 - [ ] ReviewService getStats()에서 totalReviews/totalCorrect는 0 반환 (집계 쿼리 한계)
 
 ### 해결됨 (최근)
+- [x] PWA 무한 새로고침 루프 → sessionStorage 플래그 (2026-02-06)
 - [x] iOS PWA 업데이트 문제 → 서비스 워커 + SKIP_WAITING 구현
 - [x] 메모리 누수 → 서비스 싱글톤화, dispose 보완
 - [x] Firestore update 실패 → set(merge: true) 패턴 적용
@@ -145,6 +152,10 @@ flutter analyze
 ```
 bible_speak/
 ├── lib/
+│   ├── providers/                        # Riverpod providers (NEW)
+│   │   ├── core_providers.dart
+│   │   ├── auth_provider.dart
+│   │   └── texture_provider.dart
 │   ├── screens/
 │   │   ├── home/main_menu_screen.dart      # 메인 메뉴
 │   │   ├── practice/verse_practice_screen.dart  # 암송 연습 (핵심)

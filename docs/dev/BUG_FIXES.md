@@ -1,5 +1,58 @@
 # 버그 수정 이력
 
+## 2026-02-06
+
+### 12. PWA 무한 새로고침 루프
+**증상**: 서비스 워커 업데이트 시 페이지가 무한 새로고침됨
+
+**원인**:
+- `controllerchange` 이벤트 발생 시 무조건 `window.location.reload()` 호출
+- 새로고침 후 다시 `controllerchange` 발생 → 무한 루프
+
+**해결**:
+- `sessionStorage` 플래그로 세션당 1회만 reload
+- Firebase 초기화는 `main.dart`에서 유지 (다른 서비스 의존성)
+- `splash_screen.dart`는 auth check만 담당하도록 단순화
+
+**수정 파일**:
+- `lib/main.dart`
+- `lib/screens/splash_screen.dart`
+- `web/index.html`
+
+```javascript
+// web/index.html - 안전한 패턴
+var hasReloaded = sessionStorage.getItem('sw-reloaded');
+navigator.serviceWorker.addEventListener('controllerchange', function() {
+  if (!hasReloaded) {
+    sessionStorage.setItem('sw-reloaded', 'true');
+    window.location.reload();
+  }
+});
+```
+
+---
+
+## 2026-02-05
+
+### 13. 추가 Firestore update() 사용 제거
+**증상**: 일부 서비스에서 문서 없을 때 NOT_FOUND 에러 발생 가능성
+
+**원인**:
+- 2026-01-31 수정 후에도 일부 서비스에서 `.update()` 사용 중
+
+**해결**:
+- 13개 인스턴스를 `.set(..., SetOptions(merge: true))`로 변환
+
+**수정 파일**:
+- `lib/services/auth_service.dart`
+- `lib/services/group_service.dart`
+- `lib/services/progress_service.dart`
+- `lib/services/shop_service.dart`
+- `lib/services/review_service.dart`
+- `lib/services/theme_service.dart`
+
+---
+
 ## 2026-01-31 (3차 수정)
 
 ### 10. 로그인 시 프로필 설정 반복 + 회원가입 실패

@@ -2,10 +2,12 @@
 
 ## 세션 시작 시 필수 읽기
 새 세션을 시작할 때 다음 파일들을 먼저 읽어주세요:
-1. `ARCHITECTURE.md` (아키텍처 규칙 - 가장 중요!)
-2. `docs/SESSION_SUMMARY_*.md` (가장 최신 파일)
-3. `docs/BUG_FIXES.md` (버그 이력)
-4. `DEPLOYMENT_CHECKLIST.md` (배포 체크리스트)
+1. `docs/dev/ARCHITECTURE.md` (아키텍처 규칙 - 가장 중요!)
+2. `docs/status/sessions/` (가장 최신 파일)
+3. `docs/dev/BUG_FIXES.md` (버그 이력)
+4. `docs/status/PROJECT_STATUS.md` (현재 상태)
+
+문서 전체 구조는 `docs/INDEX.md` 참조
 
 ## 컨텍스트 관리 규칙
 
@@ -13,13 +15,13 @@
 컨텍스트가 80% 이하로 떨어지면 **즉시**:
 1. 현재 진행 중인 작업 상태 요약
 2. 다음 작업 목표 명확히 작성
-3. `docs/SESSION_SUMMARY_YYYYMMDD.md` 파일 업데이트
+3. `docs/status/sessions/YYYYMMDD.md` 파일 업데이트
 4. 사용자에게 "컨텍스트 80% 도달, 새 세션 시작 권장" 알림
 
 ### 90% 이하 컨텍스트 시
 컨텍스트가 90% 이하로 떨어지면:
 1. 현재 작업 상태 요약
-2. `docs/SESSION_SUMMARY_YYYYMMDD.md` 파일 생성/업데이트
+2. `docs/status/sessions/YYYYMMDD.md` 파일 생성/업데이트
 3. 다음 세션에서 이어갈 수 있도록 상세 기록
 
 ### 세션 요약 파일 형식
@@ -81,7 +83,7 @@ await docRef.update({...});
 ```
 
 ## 버그 기록
-모든 버그 수정은 `docs/BUG_FIXES.md`에 기록
+모든 버그 수정은 `docs/dev/BUG_FIXES.md`에 기록
 
 ## 프로젝트 URL
 - 웹앱: https://bible-speak.web.app

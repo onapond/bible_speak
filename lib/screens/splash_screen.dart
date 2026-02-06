@@ -3,25 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/auth_provider.dart';
 import '../services/data_preloader_service.dart';
+import '../styles/parchment_theme.dart';
 import 'auth/login_screen.dart';
 import 'home/main_menu_screen.dart';
 import 'onboarding/onboarding_screen.dart';
 import 'onboarding/goal_setup_screen.dart';
-
-/// 스플래시 색상 팔레트 (Warm Parchment Light Theme)
-class _SplashColors {
-  // 배경 (양피지 그라데이션)
-  static const softPapyrus = Color(0xFFFDF8F3);    // 가장 밝은
-  static const agedParchment = Color(0xFFF5EFE6);  // 메인 배경
-  static const warmVellum = Color(0xFFEDE4D3);     // 하단
-
-  // 텍스트 (잉크)
-  static const ancientInk = Color(0xFF3D3229);     // 제목
-  static const weatheredGray = Color(0xFF8C7E6D);  // 보조
-
-  // 악센트 (금박)
-  static const manuscriptGold = Color(0xFFC9A857); // 주요 CTA
-}
 
 /// 스플래시 화면
 /// - 인증 상태 확인
@@ -124,9 +110,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              _SplashColors.softPapyrus,
-              _SplashColors.agedParchment,
-              _SplashColors.warmVellum,
+              ParchmentTheme.softPapyrus,
+              ParchmentTheme.agedParchment,
+              ParchmentTheme.warmVellum,
             ],
             stops: [0.0, 0.5, 1.0],
           ),
@@ -145,7 +131,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: _SplashColors.ancientInk,
+                  color: ParchmentTheme.ancientInk,
                 ),
               ),
               const SizedBox(height: 8),
@@ -155,12 +141,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                 '영어 성경 암송 튜터',
                 style: TextStyle(
                   fontSize: 14,
-                  color: _SplashColors.weatheredGray,
+                  color: ParchmentTheme.weatheredGray,
                 ),
               ),
               const SizedBox(height: 48),
 
-              // 정적 로딩 점
+              // 로딩 점
               _buildLoadingDots(),
             ],
           ),
@@ -177,7 +163,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: _SplashColors.manuscriptGold.withValues(alpha: 0.4),
+            color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.4),
             blurRadius: 28,
             spreadRadius: 6,
           ),
@@ -186,9 +172,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       child: Container(
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: _SplashColors.softPapyrus,
+          color: ParchmentTheme.softPapyrus,
           border: Border.all(
-            color: _SplashColors.manuscriptGold.withValues(alpha: 0.6),
+            color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.6),
             width: 2,
           ),
         ),
@@ -196,7 +182,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
           child: Icon(
             Icons.menu_book,
             size: 48,
-            color: _SplashColors.manuscriptGold,
+            color: ParchmentTheme.manuscriptGold,
           ),
         ),
       ),
@@ -212,11 +198,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
           width: 8,
           height: 8,
           decoration: BoxDecoration(
-            color: _SplashColors.manuscriptGold.withValues(alpha: 0.6),
+            color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.6),
             shape: BoxShape.circle,
           ),
         );
       }),
     );
   }
+
 }

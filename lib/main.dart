@@ -19,12 +19,13 @@ import 'services/app_update_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 1단계: 필수 초기화 (Firebase) - 앱 실행에 필수
+  // Firebase 초기화 (필수 - 다른 서비스들이 의존)
+  // index.html의 로딩 화면이 표시되므로 빈 화면 아님
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // FCM 백그라운드 핸들러 등록 (동기, 빠름)
+  // FCM 백그라운드 핸들러 등록
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
   // 앱 즉시 실행 - ProviderScope로 Riverpod 활성화

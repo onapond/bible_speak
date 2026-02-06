@@ -192,8 +192,13 @@
           });
           setInterval(function() { reg.update(); }, 60000);
         });
+      // 1회 실행 제한 플래그 (무한 루프 방지)
+      var hasReloaded = sessionStorage.getItem('sw-reloaded');
       navigator.serviceWorker.addEventListener('controllerchange', function() {
-        window.location.reload();
+        if (!hasReloaded) {
+          sessionStorage.setItem('sw-reloaded', 'true');
+          window.location.reload();
+        }
       });
     }
   </script>

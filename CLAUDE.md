@@ -3,9 +3,11 @@
 ## 세션 시작 시 필수 읽기
 새 세션을 시작할 때 다음 파일들을 먼저 읽어주세요:
 1. `docs/dev/ARCHITECTURE.md` (아키텍처 규칙 - 가장 중요!)
-2. `docs/status/sessions/` (가장 최신 파일)
-3. `docs/dev/BUG_FIXES.md` (버그 이력)
-4. `docs/status/PROJECT_STATUS.md` (현재 상태)
+2. `docs/dev/DEVELOPMENT_RULES.md` (통합 개발 규칙 - 필수!)
+3. `docs/status/sessions/` (가장 최신 파일)
+4. `docs/dev/BUG_FIXES.md` (버그 이력)
+5. `docs/status/PROJECT_STATUS.md` (현재 상태)
+6. `docs/status/PROGRESS.md` (개발 로드맵)
 
 문서 전체 구조는 `docs/INDEX.md` 참조
 

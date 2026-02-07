@@ -62,7 +62,8 @@ ios/*.p12
 # GoogleService-Info.plist
 
 # Local configuration
-.claude/
+.claude/*
+!.claude/hooks/
 
 # Firebase
 .firebase/

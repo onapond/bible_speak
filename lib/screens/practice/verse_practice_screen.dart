@@ -18,6 +18,7 @@ import '../../services/review_service.dart';
 import '../../services/achievement_service.dart';
 import '../../widgets/social/streak_widget.dart';
 import '../../widgets/pronunciation/pronunciation_widgets.dart';
+import '../../widgets/pronunciation/recording_waveform.dart';
 import '../../widgets/ux_widgets.dart';
 import '../../models/learning_stage.dart';
 import '../../models/verse_progress.dart';
@@ -1402,6 +1403,22 @@ class _VersePracticeScreenState extends ConsumerState<VersePracticeScreen> {
               ],
             ),
           ),
+        // 녹음 중 음파 애니메이션
+        AnimatedSize(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOutCubic,
+          child: _isRecording
+              ? Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: RecordingWaveform(
+                    barCount: 24,
+                    height: 60,
+                    color: Colors.red.shade400,
+                    animate: _isRecording,
+                  ),
+                )
+              : const SizedBox.shrink(),
+        ),
         Row(
           children: [
             Expanded(

@@ -1,7 +1,7 @@
 # Bible Speak Development Progress
 
-**Last Updated**: 2026-02-06
-**Last Commit**: PWA infinite refresh fix + Parchment texture system
+**Last Updated**: 2026-02-07
+**Last Commit**: Claude Code hooks/skills setup + CLAUDE.md rules update
 
 ---
 
@@ -82,9 +82,23 @@ Task 14: PWA 버그 수정 ✅ (2026-02-06)
     │
     └── 무한 새로고침 → sessionStorage 플래그
 
-Task 15: iOS Deployment (예정)
+Task 15: Claude Code 툴링 ✅ (2026-02-07)
+    │
+    ├── Hook 수정 (python3 → node)
+    ├── 커스텀 스킬 5개 (deploy, commit, diagnose, session-start, perf-optimize)
+    └── CLAUDE.md 규칙 강화 (report 추천)
+
+Task 16: iOS Deployment (예정)
     │
     └── App Store 배포 (macOS 필요)
+
+Task 17: 텍스처 설정 UI (예정)
+    │
+    └── 설정 화면에서 텍스처 강도 조절 / 토글
+
+Task 18: 발음 피드백 UI 강화 (예정)
+    │
+    └── 음파 시각화, 단어별 피드백 표시
 ```
 
 ---
@@ -163,21 +177,17 @@ Task 15: iOS Deployment (예정)
 
 ## Pending Tasks
 
-### Task 6: Word Study Integration
-**Status**: Not started
-**Description**: Integrate Gemini API for keyword extraction from verses
-
-### Task 7: Advanced Feedback UI
-**Status**: Not started
-**Description**: Enhanced pronunciation feedback display
-
-### Task 8: Daily Streak Gamification
-**Status**: Not started
-**Description**: Implement streak tracking and rewards
-
-### Task 9: iOS App Store Deployment
+### Task 16: iOS App Store Deployment
 **Status**: Not started
 **Description**: macOS 환경에서 iOS 빌드 및 앱스토어 배포
+
+### Task 17: 텍스처 설정 UI
+**Status**: Not started
+**Description**: 설정 화면에서 텍스처 강도 조절 슬라이더 및 토글 기능 추가
+
+### Task 18: 발음 피드백 UI 강화
+**Status**: Not started
+**Description**: 음파 시각화, 단어별 발음 점수 표시 등 피드백 UI 개선
 
 ---
 
@@ -284,45 +294,27 @@ AZURE_SPEECH_REGION=koreacentral
 
 ## Session Continuity (다음 세션용 요약)
 
-### 마지막 세션 작업 (2026-01-27)
+### 마지막 세션 작업 (2026-02-07)
 
-**목표**: 웹에서 발음 평가가 제대로 작동하고, 로딩 속도 개선
+**목표**: Claude Code 개발 도구 강화
 
-**해결한 문제**:
-
-1. **웹 녹음 0점 문제**
-   - 원인: Azure가 WebM/Opus 형식 미지원
-   - 해결: WAV 형식으로 변경
-
-2. **로딩 속도 개선**
-   - API 타임아웃: 45초 → 15초
-   - 재시도: 3회/2초 → 2회/1초
-   - 데이터 로딩: 순차 → 병렬 (`Future.wait`)
-
-3. **통과 기준 조정**
-   - Stage 1: 70% (이전 75%)
-   - Stage 2: 75% (이전 78%)
-   - Stage 3: 80% (유지)
+**완료 사항**:
+1. Hook 수정 — python3 → node (Windows 호환)
+2. 커스텀 스킬 5개 생성 (deploy, commit, diagnose, session-start, perf-optimize)
+3. CLAUDE.md에 report 추천 규칙 6개 추가
+4. .gitignore 정리 (hooks/skills 추적)
 
 ### 주요 커밋
 
 ```
-94e9c53 feat: Fix web audio format and optimize loading performance
-789581e feat: Enable web recording and improve documentation
-51acda3 feat: Add web deployment with Cloudflare Worker audio proxy
+1597520 docs: Add session summary for 2026-02-07
+e1ec490 docs: Add report-recommended rules to CLAUDE.md
+2a9625a feat: Add custom Claude skills
+db44eae fix: Use node instead of python3 for Claude hook JSON parsing
 ```
-
-### 테스트 상태
-
-- ✅ 웹 오디오 재생 (ESV API via Cloudflare Worker)
-- ✅ 웹 녹음 (WAV 형식)
-- ✅ 웹 발음 평가 (Azure Speech API) - 90점 정상 작동
-- ✅ 로딩 속도 개선
-- ⚠️ iOS 앱 미배포 (macOS 환경 필요)
 
 ### 다음 작업 제안
 
-1. 단어 학습 기능 구현 (Gemini API)
-2. 게이미피케이션 (스트릭, 달란트)
-3. 피드백 UI 개선 (음파 시각화)
-4. iOS 앱스토어 배포 준비 (macOS 필요)
+1. iOS 앱스토어 배포 (macOS 필요)
+2. 텍스처 설정 UI (강도 조절/토글)
+3. 발음 피드백 UI 강화 (음파 시각화)

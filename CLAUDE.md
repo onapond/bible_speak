@@ -1,5 +1,17 @@
 # Claude Code 개발 규칙
 
+## 환경
+이 프로젝트는 Windows에서 개발한다. PowerShell 호환 명령어를 사용하고, Unix 전용 문법/심링크/인터랙티브 CLI를 사용하지 않는다. 쉘 명령에서 괄호, 한국어 등 특수문자는 적절히 이스케이프한다.
+
+## 기술 스택
+- 모바일/웹: Dart/Flutter
+- 상태 관리: Riverpod
+- 백엔드: Firebase (Firestore, Hosting, Functions)
+- Flutter/Dart 파일명은 항상 snake_case 사용 (하이픈 금지)
+
+## 디버깅 & 성능
+성능 문제 진단 시, 실제 병목(네트워크 호출, DB 쿼리, API 지연)을 먼저 조사한 후 코드를 수정한다. 타임아웃 축소, 병렬화 등 표면적 최적화를 먼저 적용하지 않는다.
+
 ## 세션 시작 시 필수 읽기
 새 세션을 시작할 때 다음 파일들을 먼저 읽어주세요:
 1. `docs/dev/ARCHITECTURE.md` (아키텍처 규칙 - 가장 중요!)
@@ -52,6 +64,8 @@
 ```
 
 ## 빌드 및 배포 규칙
+- 커밋이나 푸시 전에 반드시 빌드가 통과하는지 확인한다.
+- 배포(Firebase, Vercel, Netlify) 후 라이브 사이트가 정상 로드되는지 확인한 후 작업을 완료한다.
 
 ### 웹 빌드 (필수!)
 **항상 `build_web.ps1` 스크립트 사용** - API 키 주입 필수
@@ -86,6 +100,9 @@ await docRef.update({...});
 
 ## 버그 기록
 모든 버그 수정은 `docs/dev/BUG_FIXES.md`에 기록
+
+## Supabase (교회 관리 앱)
+Supabase RLS 정책이 anon key 작업을 차단하면, 재시도하지 않는다. 대신 사용자가 Supabase 대시보드에서 직접 실행할 수 있는 정확한 SQL을 제공한다.
 
 ## 프로젝트 URL
 - 웹앱: https://bible-speak.web.app

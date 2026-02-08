@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/shop_item.dart';
@@ -324,8 +325,8 @@ class ThemeService extends ChangeNotifier {
           borderRadius: BorderRadius.circular(12),
         ),
       ),
-      // 접근성 텍스트 크기 지원
-      textTheme: _buildTextTheme(a11y.textScaleFactor),
+      // 접근성 텍스트 크기 지원 + 한글 폰트 적용
+      textTheme: GoogleFonts.notoSansKrTextTheme(_buildTextTheme(a11y.textScaleFactor)),
     );
   }
 

@@ -64,6 +64,7 @@ ios/*.p12
 # Local configuration
 .claude/*
 !.claude/hooks/
+!.claude/skills/
 
 # Firebase
 .firebase/

@@ -65,6 +65,7 @@ ios/*.p12
 .claude/*
 !.claude/hooks/
 !.claude/skills/
+.claude/skills/ui-ux-pro-max/
 
 # Firebase
 .firebase/

@@ -11,6 +11,8 @@ import 'services/notification/notification_service.dart';
 import 'services/notification/notification_handler.dart';
 import 'services/notification/notification_types.dart';
 import 'services/navigation_service.dart';
+import 'providers/texture_provider.dart';
+import 'widgets/common/parchment_texture_overlay.dart';
 import 'services/offline/offline_services.dart';
 import 'services/offline/bible_offline_service.dart';
 import 'services/accessibility_service.dart';
@@ -90,14 +92,14 @@ Future<void> _safeInit(String name, Future<void> future, int timeoutSeconds) asy
   }
 }
 
-class BibleSpeakApp extends StatefulWidget {
+class BibleSpeakApp extends ConsumerStatefulWidget {
   const BibleSpeakApp({super.key});
 
   @override
-  State<BibleSpeakApp> createState() => _BibleSpeakAppState();
+  ConsumerState<BibleSpeakApp> createState() => _BibleSpeakAppState();
 }
 
-class _BibleSpeakAppState extends State<BibleSpeakApp> {
+class _BibleSpeakAppState extends ConsumerState<BibleSpeakApp> {
   final _navigationService = NavigationService();
   StreamSubscription<Map<String, dynamic>>? _notificationSubscription;
 
@@ -171,6 +173,15 @@ class _BibleSpeakAppState extends State<BibleSpeakApp> {
           brightness: Brightness.light,
         ),
       ),
+      builder: (context, child) {
+        final settings = ref.watch(textureSettingsNotifierProvider);
+        return Stack(
+          children: [
+            child!,
+            if (settings.enabled) const ParchmentTextureOverlay(),
+          ],
+        );
+      },
       home: const SplashScreen(),
     );
   }

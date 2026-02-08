@@ -15,6 +15,7 @@ import '../shop/inventory_screen.dart';
 import '../settings/notification_settings_screen.dart';
 import '../settings/theme_settings_screen.dart';
 import '../settings/accessibility_settings_screen.dart';
+import '../settings/texture_settings_screen.dart';
 import '../admin/migration_screen.dart';
 import '../admin/screenshot_helper_screen.dart';
 import '../splash_screen.dart';
@@ -1450,6 +1451,27 @@ class _MyPageScreenState extends State<MyPageScreen>
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const AccessibilitySettingsScreen()),
+                );
+              },
+            ),
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.brown.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.layers, color: Colors.brown, size: 22),
+              ),
+              title: const Text('텍스처 설정', style: TextStyle(color: Colors.white)),
+              subtitle: Text('양피지 질감 효과 조절',
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12)),
+              trailing: const Icon(Icons.chevron_right, color: Colors.white38),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const TextureSettingsScreen()),
                 );
               },
             ),

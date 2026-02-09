@@ -249,7 +249,7 @@ class _AccessibilitySettingsScreenState extends State<AccessibilitySettingsScree
         children: [
           _buildSwitchTile(
             icon: Icons.contrast,
-            iconColor: Colors.amber,
+            iconColor: ParchmentTheme.manuscriptGold,
             title: '고대비 모드',
             subtitle: '텍스트와 배경의 대비를 높입니다',
             value: _a11y.highContrastMode,
@@ -272,7 +272,7 @@ class _AccessibilitySettingsScreenState extends State<AccessibilitySettingsScree
         children: [
           _buildSwitchTile(
             icon: Icons.animation,
-            iconColor: Colors.purple,
+            iconColor: ParchmentTheme.categorySocial,
             title: '애니메이션 감소',
             subtitle: '화면 전환 및 효과 애니메이션을 줄입니다',
             value: _a11y.reduceMotion,
@@ -295,7 +295,7 @@ class _AccessibilitySettingsScreenState extends State<AccessibilitySettingsScree
         children: [
           _buildSwitchTile(
             icon: Icons.touch_app,
-            iconColor: Colors.teal,
+            iconColor: ParchmentTheme.categoryMyPage,
             title: '큰 터치 영역',
             subtitle: '버튼과 터치 영역을 더 크게 만듭니다',
             value: _a11y.largerTapTargets,

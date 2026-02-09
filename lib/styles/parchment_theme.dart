@@ -38,6 +38,63 @@ class ParchmentTheme {
   static const Color info = Color(0xFF5D7B8E);           // 정보 (세피아 블루)
 
   // ============================================================
+  // 카테고리 색상 (하드코딩 Colors.blue/green/purple/teal 대체)
+  // ============================================================
+
+  /// 학습 카테고리 (기존 Colors.blue 대체)
+  static const Color categoryStudy = Color(0xFF5D7B8E);
+
+  /// 연습/단어 카테고리 (기존 Colors.green 대체)
+  static const Color categoryPractice = Color(0xFF6B8E5D);
+
+  /// 퀴즈/보상 카테고리 (기존 Colors.amber/orange 대체)
+  static const Color categoryQuiz = Color(0xFFD4A744);
+
+  /// 커뮤니티/소셜 카테고리 (기존 Colors.purple 대체)
+  static const Color categorySocial = Color(0xFF8E6B8E);
+
+  /// 마이페이지/접근성 카테고리 (기존 Colors.teal 대체)
+  static const Color categoryMyPage = Color(0xFF5D8E7B);
+
+  // ============================================================
+  // 간격 (Spacing)
+  // ============================================================
+
+  static const double spacingXS = 4;
+  static const double spacingS = 8;
+  static const double spacingM = 12;
+  static const double spacingL = 16;
+  static const double spacingXL = 20;
+  static const double spacing2XL = 24;
+
+  // ============================================================
+  // 아이콘 크기
+  // ============================================================
+
+  static const double iconXS = 16;
+  static const double iconS = 20;
+  static const double iconM = 24;
+  static const double iconL = 28;
+  static const double iconXL = 32;
+
+  // ============================================================
+  // 투명도 표준
+  // ============================================================
+
+  static const double opacityFaint = 0.15;
+  static const double opacityLight = 0.3;
+  static const double opacityMedium = 0.5;
+  static const double opacityStrong = 0.7;
+
+  // ============================================================
+  // 애니메이션 타이밍
+  // ============================================================
+
+  static const Duration durationFast = Duration(milliseconds: 150);
+  static const Duration durationNormal = Duration(milliseconds: 300);
+  static const Duration durationSlow = Duration(milliseconds: 500);
+
+  // ============================================================
   // 텍스처 기본값
   // ============================================================
 
@@ -47,8 +104,8 @@ class ParchmentTheme {
   /// Perlin 노이즈 강도 기본값 (부드러운 얼룩)
   static const double textureCoarseOpacityDefault = 0.24;
 
-  /// 그레인 노이즈 강도 기본값 (미세한 결)
-  static const double textureFineOpacityDefault = 0.16;
+  /// 그레인 노이즈 강도 기본값 (미세한 결) - 0.16→0.10으로 낮춤 (작은 텍스트 가독성 보호)
+  static const double textureFineOpacityDefault = 0.10;
 
   /// 카드용 Perlin 노이즈 강도 (배경보다 약간 약하게)
   static const double cardTextureCoarseOpacity = 0.16;
@@ -83,15 +140,42 @@ class ParchmentTheme {
   );
 
   // ============================================================
-  // 박스 그림자
+  // 박스 그림자 (3단계 elevation 시스템)
   // ============================================================
 
-  /// 카드 그림자
+  /// Low elevation: 기본 카드 (blur 4, offset 0,1)
+  static List<BoxShadow> elevationLow = [
+    BoxShadow(
+      color: warmVellum.withValues(alpha: 0.5),
+      blurRadius: 4,
+      offset: const Offset(0, 1),
+    ),
+  ];
+
+  /// Medium elevation: 강조 카드 (blur 8, offset 0,3)
+  static List<BoxShadow> elevationMedium = [
+    BoxShadow(
+      color: warmVellum.withValues(alpha: 0.5),
+      blurRadius: 8,
+      offset: const Offset(0, 3),
+    ),
+  ];
+
+  /// High elevation: 모달/오버레이 (blur 16, offset 0,6)
+  static List<BoxShadow> elevationHigh = [
+    BoxShadow(
+      color: warmVellum.withValues(alpha: 0.5),
+      blurRadius: 16,
+      offset: const Offset(0, 6),
+    ),
+  ];
+
+  /// 카드 그림자 (기존 호환 - elevationMedium과 동일)
   static List<BoxShadow> cardShadow = [
     BoxShadow(
       color: warmVellum.withValues(alpha: 0.5),
-      blurRadius: 12,
-      offset: const Offset(0, 4),
+      blurRadius: 8,
+      offset: const Offset(0, 3),
     ),
   ];
 
@@ -526,4 +610,9 @@ class ParchmentColors {
   Color get error => ParchmentTheme.error;
   Color get warning => ParchmentTheme.warning;
   Color get info => ParchmentTheme.info;
+  Color get categoryStudy => ParchmentTheme.categoryStudy;
+  Color get categoryPractice => ParchmentTheme.categoryPractice;
+  Color get categoryQuiz => ParchmentTheme.categoryQuiz;
+  Color get categorySocial => ParchmentTheme.categorySocial;
+  Color get categoryMyPage => ParchmentTheme.categoryMyPage;
 }

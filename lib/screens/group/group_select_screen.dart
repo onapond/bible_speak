@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../services/group_service.dart';
 import '../../models/group_model.dart';
+import '../../styles/parchment_theme.dart';
 
 /// 그룹 선택 화면 (개선된 UI)
 /// - 기존 그룹 선택
@@ -197,7 +198,7 @@ class _GroupSelectScreenState extends State<GroupSelectScreen>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Row(
           children: [
-            Icon(Icons.celebration, color: Colors.amber),
+            Icon(Icons.celebration, color: ParchmentTheme.manuscriptGold),
             SizedBox(width: 8),
             Text(
               '그룹 생성 완료!',
@@ -286,7 +287,7 @@ class _GroupSelectScreenState extends State<GroupSelectScreen>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: isError ? Colors.red.shade700 : Colors.green.shade700,
+        backgroundColor: isError ? ParchmentTheme.error : ParchmentTheme.success,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
@@ -609,7 +610,7 @@ class _GroupSelectScreenState extends State<GroupSelectScreen>
               : _bgColor,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? _accentColor : Colors.green,
+            color: isSelected ? _accentColor : ParchmentTheme.success,
             width: 2,
           ),
         ),
@@ -619,10 +620,10 @@ class _GroupSelectScreenState extends State<GroupSelectScreen>
               width: 50,
               height: 50,
               decoration: BoxDecoration(
-                color: Colors.green.withValues(alpha: 0.2),
+                color: ParchmentTheme.success.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(Icons.check, color: Colors.green, size: 28),
+              child: const Icon(Icons.check, color: ParchmentTheme.success, size: 28),
             ),
             const SizedBox(width: 16),
             Expanded(

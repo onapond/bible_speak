@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/daily_verse.dart';
+import '../../styles/parchment_theme.dart';
 
 /// 아침 만나 카드 위젯
 class MorningMannaWidget extends StatelessWidget {
@@ -83,7 +84,7 @@ class MorningMannaWidget extends StatelessWidget {
       ),
       child: const Center(
         child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(Colors.amber),
+          valueColor: AlwaysStoppedAnimation<Color>(ParchmentTheme.manuscriptGold),
         ),
       ),
     );
@@ -111,7 +112,7 @@ class MorningMannaWidget extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: Colors.amber.withValues(alpha: 0.2),
+            color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.2),
             shape: BoxShape.circle,
           ),
           child: Text(
@@ -147,13 +148,13 @@ class MorningMannaWidget extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: Colors.red.withValues(alpha: 0.2),
+              color: ParchmentTheme.error.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Text(
               '시즌',
               style: TextStyle(
-                color: Colors.redAccent,
+                color: ParchmentTheme.error,
                 fontSize: 10,
                 fontWeight: FontWeight.bold,
               ),
@@ -201,7 +202,7 @@ class MorningMannaWidget extends StatelessWidget {
         Text(
           dailyVerse!.reference,
           style: const TextStyle(
-            color: Colors.amber,
+            color: ParchmentTheme.manuscriptGold,
             fontSize: 14,
             fontWeight: FontWeight.w600,
           ),
@@ -216,12 +217,12 @@ class MorningMannaWidget extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Colors.amber.withValues(alpha: 0.2),
-            Colors.orange.withValues(alpha: 0.1),
+            ParchmentTheme.manuscriptGold.withValues(alpha: 0.2),
+            ParchmentTheme.warning.withValues(alpha: 0.1),
           ],
         ),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+        border: Border.all(color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -237,7 +238,7 @@ class MorningMannaWidget extends StatelessWidget {
                 Text(
                   'Early Bird 보너스!',
                   style: TextStyle(
-                    color: Colors.amber.shade300,
+                    color: ParchmentTheme.manuscriptGold,
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
                   ),
@@ -255,7 +256,7 @@ class MorningMannaWidget extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: Colors.amber.withValues(alpha: 0.3),
+              color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
@@ -266,7 +267,7 @@ class MorningMannaWidget extends StatelessWidget {
                 Text(
                   '+${earlyBirdBonus.bonusAmount}',
                   style: const TextStyle(
-                    color: Colors.amber,
+                    color: ParchmentTheme.manuscriptGold,
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
@@ -285,7 +286,7 @@ class MorningMannaWidget extends StatelessWidget {
       child: ElevatedButton(
         onPressed: onTapStudy,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.amber,
+          backgroundColor: ParchmentTheme.manuscriptGold,
           foregroundColor: Colors.black,
           padding: const EdgeInsets.symmetric(vertical: 14),
           shape: RoundedRectangleBorder(
@@ -364,7 +365,7 @@ class EarlyBirdBonusDialog extends StatelessWidget {
             const Text(
               'Early Bird 보너스!',
               style: TextStyle(
-                color: Colors.amber,
+                color: ParchmentTheme.manuscriptGold,
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
               ),
@@ -387,8 +388,8 @@ class EarlyBirdBonusDialog extends StatelessWidget {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    Colors.amber.withValues(alpha: 0.3),
-                    Colors.orange.withValues(alpha: 0.2),
+                    ParchmentTheme.manuscriptGold.withValues(alpha: 0.3),
+                    ParchmentTheme.warning.withValues(alpha: 0.2),
                   ],
                 ),
                 borderRadius: BorderRadius.circular(16),
@@ -401,7 +402,7 @@ class EarlyBirdBonusDialog extends StatelessWidget {
                   Text(
                     '+$bonusAmount 달란트',
                     style: const TextStyle(
-                      color: Colors.amber,
+                      color: ParchmentTheme.manuscriptGold,
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                     ),
@@ -426,7 +427,7 @@ class EarlyBirdBonusDialog extends StatelessWidget {
               child: ElevatedButton(
                 onPressed: onDismiss,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.amber,
+                  backgroundColor: ParchmentTheme.manuscriptGold,
                   foregroundColor: Colors.black,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(

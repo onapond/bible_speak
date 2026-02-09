@@ -403,7 +403,7 @@ class _OfflineDownloadScreenState extends State<OfflineDownloadScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${book.nameKo} 다운로드 완료'),
-            backgroundColor: Colors.green.shade700,
+            backgroundColor: ParchmentTheme.success,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
@@ -412,7 +412,7 @@ class _OfflineDownloadScreenState extends State<OfflineDownloadScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${book.nameKo} 다운로드 실패'),
-            backgroundColor: Colors.red.shade700,
+            backgroundColor: ParchmentTheme.error,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),

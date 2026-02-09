@@ -9,7 +9,7 @@ class TextureSettings {
   const TextureSettings({
     this.enabled = true,
     this.coarseOpacity = 0.24,
-    this.fineOpacity = 0.16,
+    this.fineOpacity = 0.10,
   });
 
   /// 텍스처 활성화 여부

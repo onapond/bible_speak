@@ -71,7 +71,7 @@ class _ShopScreenState extends State<ShopScreen> with SingleTickerProviderStateM
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(result.message),
-        backgroundColor: result.success ? Colors.green.shade700 : Colors.red.shade700,
+        backgroundColor: result.success ? ParchmentTheme.success : ParchmentTheme.error,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),

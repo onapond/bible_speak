@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/pronunciation/azure_pronunciation_service.dart';
+import '../../styles/parchment_theme.dart';
 import 'phoneme_score_bar.dart';
 
 /// 단어 발음 상세 팝업
@@ -266,10 +267,10 @@ class _WordPronunciationPopupState extends State<WordPronunciationPopup> {
                         Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: Colors.amber.withValues(alpha: 0.1),
+                            color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: Colors.amber.withValues(alpha: 0.3),
+                              color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3),
                             ),
                           ),
                           child: Column(
@@ -279,7 +280,7 @@ class _WordPronunciationPopupState extends State<WordPronunciationPopup> {
                                 children: [
                                   Icon(
                                     Icons.tips_and_updates,
-                                    color: Colors.amber[300],
+                                    color: ParchmentTheme.manuscriptGold,
                                     size: 20,
                                   ),
                                   const SizedBox(width: 8),
@@ -288,7 +289,7 @@ class _WordPronunciationPopupState extends State<WordPronunciationPopup> {
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w500,
-                                      color: Colors.amber[300],
+                                      color: ParchmentTheme.manuscriptGold,
                                     ),
                                   ),
                                 ],

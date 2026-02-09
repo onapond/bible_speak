@@ -41,7 +41,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${item.itemName}이(가) 활성화되었습니다'),
-            backgroundColor: Colors.green.shade700,
+            backgroundColor: ParchmentTheme.success,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
@@ -89,7 +89,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('${item.itemName}을(를) 사용했습니다'),
-              backgroundColor: Colors.green.shade700,
+              backgroundColor: ParchmentTheme.success,
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),

@@ -435,7 +435,7 @@ class _CommunityScreenState extends State<CommunityScreen>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Row(
           children: [
-            Icon(Icons.celebration, color: Colors.amber),
+            Icon(Icons.celebration, color: ParchmentTheme.manuscriptGold),
             SizedBox(width: 8),
             Text('그룹 생성 완료!', style: TextStyle(color: ParchmentTheme.ancientInk)),
           ],
@@ -552,7 +552,7 @@ class _CommunityScreenState extends State<CommunityScreen>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: isError ? Colors.red.shade700 : Colors.green.shade700,
+        backgroundColor: isError ? ParchmentTheme.error : ParchmentTheme.success,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
@@ -1410,7 +1410,7 @@ class _CommunityScreenState extends State<CommunityScreen>
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    const Icon(Icons.toll, size: 14, color: Colors.amber),
+                    const Icon(Icons.toll, size: 14, color: ParchmentTheme.manuscriptGold),
                     const SizedBox(width: 4),
                     Text(
                       '${friend.talants}',
@@ -1418,7 +1418,7 @@ class _CommunityScreenState extends State<CommunityScreen>
                     ),
                     if (friend.streak > 0) ...[
                       const SizedBox(width: 12),
-                      const Icon(Icons.local_fire_department, size: 14, color: Colors.orange),
+                      const Icon(Icons.local_fire_department, size: 14, color: ParchmentTheme.warning),
                       const SizedBox(width: 4),
                       Text(
                         '${friend.streak}일',
@@ -1936,7 +1936,7 @@ class _ChallengeSheetState extends State<_ChallengeSheet> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.toll, color: Colors.amber, size: 20),
+                    const Icon(Icons.toll, color: ParchmentTheme.manuscriptGold, size: 20),
                     const SizedBox(width: 8),
                     Text(
                       '$_betAmount',

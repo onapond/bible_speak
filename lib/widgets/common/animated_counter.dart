@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../styles/parchment_theme.dart';
 
 /// 숫자가 부드럽게 변하는 애니메이션 카운터
 class AnimatedCounter extends StatelessWidget {
@@ -167,13 +168,13 @@ class TalantCounter extends StatelessWidget {
   Widget build(BuildContext context) {
     final textStyle = style ?? const TextStyle(
       fontWeight: FontWeight.bold,
-      color: Colors.amber,
+      color: ParchmentTheme.manuscriptGold,
     );
 
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.toll, color: Colors.amber, size: iconSize),
+        Icon(Icons.toll, color: ParchmentTheme.manuscriptGold, size: iconSize),
         const SizedBox(width: 4),
         if (animate)
           AnimatedCounter(value: value, style: textStyle)
@@ -203,13 +204,13 @@ class StreakCounter extends StatelessWidget {
   Widget build(BuildContext context) {
     final textStyle = style ?? const TextStyle(
       fontWeight: FontWeight.bold,
-      color: Colors.orange,
+      color: ParchmentTheme.warning,
     );
 
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.local_fire_department, color: Colors.orange, size: iconSize),
+        Icon(Icons.local_fire_department, color: ParchmentTheme.warning, size: iconSize),
         const SizedBox(width: 4),
         if (animate)
           AnimatedCounter(value: days, style: textStyle, suffix: '일')

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../models/group_model.dart';
+import '../../../styles/parchment_theme.dart';
 
 /// 그룹 통계 카드
 class GroupStatsCard extends StatelessWidget {
@@ -72,19 +73,19 @@ class GroupStatsCard extends StatelessWidget {
             children: [
               _buildStatItem(
                 icon: Icons.toll,
-                iconColor: Colors.amber,
+                iconColor: ParchmentTheme.manuscriptGold,
                 label: '총 탈란트',
                 value: '${group?.totalTalants ?? 0}',
               ),
               _buildStatItem(
                 icon: Icons.emoji_events,
-                iconColor: Colors.orange,
+                iconColor: ParchmentTheme.warning,
                 label: '이번 주 순위',
                 value: '#1',
               ),
               _buildStatItem(
                 icon: Icons.trending_up,
-                iconColor: Colors.green,
+                iconColor: ParchmentTheme.success,
                 label: '활성률',
                 value: '${_calculateActiveRate()}%',
               ),

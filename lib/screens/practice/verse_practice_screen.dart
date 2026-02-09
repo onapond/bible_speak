@@ -22,6 +22,7 @@ import '../../widgets/pronunciation/recording_waveform.dart';
 import '../../widgets/ux_widgets.dart';
 import '../../models/learning_stage.dart';
 import '../../models/verse_progress.dart';
+import '../../styles/parchment_theme.dart';
 
 /// 구절 연습 화면
 /// - 3단계 학습: Listen & Repeat → Key Expressions → Real Speak
@@ -604,7 +605,7 @@ class _VersePracticeScreenState extends ConsumerState<VersePracticeScreen> {
       SnackBar(
         content: Row(
           children: [
-            Icon(Icons.auto_awesome, color: Colors.amber.shade300, size: 20),
+            Icon(Icons.auto_awesome, color: ParchmentTheme.categoryQuiz, size: 20),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
@@ -629,7 +630,7 @@ class _VersePracticeScreenState extends ConsumerState<VersePracticeScreen> {
             ),
           ],
         ),
-        backgroundColor: Colors.indigo.shade700,
+        backgroundColor: ParchmentTheme.categorySocial,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         duration: const Duration(seconds: 5),
@@ -753,17 +754,17 @@ class _VersePracticeScreenState extends ConsumerState<VersePracticeScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: isError ? Colors.red : Colors.green,
+        backgroundColor: isError ? ParchmentTheme.error : ParchmentTheme.success,
         duration: const Duration(seconds: 2),
       ),
     );
   }
 
   Color _getScoreColor(double score) {
-    if (score >= 85) return Colors.green;
-    if (score >= 70) return Colors.lightGreen.shade700;
-    if (score >= 50) return Colors.orange;
-    return Colors.red;
+    if (score >= 85) return ParchmentTheme.success;
+    if (score >= 70) return ParchmentTheme.success;
+    if (score >= 50) return ParchmentTheme.warning;
+    return ParchmentTheme.error;
   }
 
   /// Stage 2: 핵심 단어를 빈칸으로 변환
@@ -889,7 +890,7 @@ class _VersePracticeScreenState extends ConsumerState<VersePracticeScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [_accentColor, Colors.purple.shade700],
+          colors: [_accentColor, ParchmentTheme.categorySocial],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -956,12 +957,12 @@ class _VersePracticeScreenState extends ConsumerState<VersePracticeScreen> {
                 decoration: BoxDecoration(
                   color: isCurrentStage
                       ? _accentColor
-                      : (isPassed ? Colors.green.withValues(alpha: 0.2) : _bgColor),
+                      : (isPassed ? ParchmentTheme.success.withValues(alpha: 0.2) : _bgColor),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: isCurrentStage
                         ? _accentColor
-                        : (isPassed ? Colors.green : Colors.white.withValues(alpha: 0.2)),
+                        : (isPassed ? ParchmentTheme.success : Colors.white.withValues(alpha: 0.2)),
                     width: 2,
                   ),
                 ),
@@ -975,7 +976,7 @@ class _VersePracticeScreenState extends ConsumerState<VersePracticeScreen> {
                       color: isCurrentStage
                           ? Colors.white
                           : (isPassed
-                              ? Colors.green
+                              ? ParchmentTheme.success
                               : (isUnlocked ? _accentColor : Colors.grey)),
                       size: 24,
                     ),
@@ -997,7 +998,7 @@ class _VersePracticeScreenState extends ConsumerState<VersePracticeScreen> {
                         fontWeight: FontWeight.bold,
                         color: isCurrentStage
                             ? Colors.white
-                            : (isPassed ? Colors.green : Colors.white70),
+                            : (isPassed ? ParchmentTheme.success : Colors.white70),
                       ),
                     ),
                     // 최고 점수
@@ -1054,10 +1055,10 @@ class _VersePracticeScreenState extends ConsumerState<VersePracticeScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              color: isCompleted ? Colors.green.withValues(alpha: 0.2) : _cardColor,
+              color: isCompleted ? ParchmentTheme.success.withValues(alpha: 0.2) : _cardColor,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: isCompleted ? Colors.green : _accentColor.withValues(alpha: 0.5),
+                color: isCompleted ? ParchmentTheme.success : _accentColor.withValues(alpha: 0.5),
                 width: 2,
               ),
             ),
@@ -1067,14 +1068,14 @@ class _VersePracticeScreenState extends ConsumerState<VersePracticeScreen> {
                 if (isCompleted)
                   const Padding(
                     padding: EdgeInsets.only(right: 8),
-                    child: Icon(Icons.check_circle, color: Colors.green, size: 20),
+                    child: Icon(Icons.check_circle, color: ParchmentTheme.success, size: 20),
                   ),
                 Text(
                   '${_currentVerse!.verse}절',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: isCompleted ? Colors.green : _accentColor,
+                    color: isCompleted ? ParchmentTheme.success : _accentColor,
                   ),
                 ),
               ],
@@ -1114,7 +1115,7 @@ class _VersePracticeScreenState extends ConsumerState<VersePracticeScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [_accentColor, Colors.purple.shade600],
+                      colors: [_accentColor, ParchmentTheme.categorySocial],
                     ),
                     borderRadius: BorderRadius.circular(16),
                   ),
@@ -1145,9 +1146,9 @@ class _VersePracticeScreenState extends ConsumerState<VersePracticeScreen> {
                   child: Text(
                     '통과 기준: ${_currentStage.passThreshold.toStringAsFixed(0)}%',
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: Colors.white.withValues(alpha: 0.7),
+                      color: Colors.white.withValues(alpha: 0.9),
                     ),
                   ),
                 ),
@@ -1165,7 +1166,7 @@ class _VersePracticeScreenState extends ConsumerState<VersePracticeScreen> {
                       : Icon(
                           _isTTSPlaying ? Icons.stop_circle : Icons.play_circle,
                           size: 32,
-                          color: _isTTSPlaying ? Colors.red : _accentColor,
+                          color: _isTTSPlaying ? ParchmentTheme.error : _accentColor,
                         ),
                   tooltip: _isTTSPlaying ? '중지' : '듣기',
                 ),
@@ -1208,18 +1209,18 @@ class _VersePracticeScreenState extends ConsumerState<VersePracticeScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.blue.withValues(alpha: 0.15),
+                color: ParchmentTheme.categoryStudy.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
+                border: Border.all(color: ParchmentTheme.categoryStudy.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.lightbulb, color: Colors.blue.shade300, size: 20),
+                  const Icon(Icons.lightbulb, color: ParchmentTheme.categoryStudy, size: 20),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       '전체 문장을 보면서 원어민 발음을 듣고 따라해보세요.',
-                      style: TextStyle(fontSize: 13, color: Colors.blue.shade300),
+                      style: const TextStyle(fontSize: 14, color: ParchmentTheme.categoryStudy),
                     ),
                   ),
                 ],
@@ -1247,10 +1248,10 @@ class _VersePracticeScreenState extends ConsumerState<VersePracticeScreen> {
                 ...keyWords.map((word) => Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.amber.withValues(alpha: 0.2),
+                    color: ParchmentTheme.categoryQuiz.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: Text(word, style: const TextStyle(fontWeight: FontWeight.w500, color: Colors.amber)),
+                  child: Text(word, style: const TextStyle(fontWeight: FontWeight.w500, color: ParchmentTheme.categoryQuiz)),
                 )),
               ],
             ),
@@ -1267,18 +1268,18 @@ class _VersePracticeScreenState extends ConsumerState<VersePracticeScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.15),
+                color: ParchmentTheme.warning.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                border: Border.all(color: ParchmentTheme.warning.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.edit_note, color: Colors.orange.shade300, size: 20),
+                  const Icon(Icons.edit_note, color: ParchmentTheme.warning, size: 20),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       '핵심 단어를 기억하며 전체 문장을 말해보세요.',
-                      style: TextStyle(fontSize: 13, color: Colors.orange.shade300),
+                      style: const TextStyle(fontSize: 13, color: ParchmentTheme.warning),
                     ),
                   ),
                 ],
@@ -1324,18 +1325,18 @@ class _VersePracticeScreenState extends ConsumerState<VersePracticeScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.purple.withValues(alpha: 0.15),
+                color: ParchmentTheme.categorySocial.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.purple.withValues(alpha: 0.3)),
+                border: Border.all(color: ParchmentTheme.categorySocial.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.emoji_events, color: Colors.purple.shade300, size: 20),
+                  const Icon(Icons.emoji_events, color: ParchmentTheme.categorySocial, size: 20),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       '최종 단계입니다! 85% 이상 달성하면 암송 완료!',
-                      style: TextStyle(fontSize: 13, color: Colors.purple.shade300),
+                      style: const TextStyle(fontSize: 13, color: ParchmentTheme.categorySocial),
                     ),
                   ),
                 ],
@@ -1413,7 +1414,7 @@ class _VersePracticeScreenState extends ConsumerState<VersePracticeScreen> {
                   child: RecordingWaveform(
                     barCount: 24,
                     height: 60,
-                    color: Colors.red.shade400,
+                    color: ParchmentTheme.error,
                     animate: _isRecording,
                   ),
                 )
@@ -1440,7 +1441,7 @@ class _VersePracticeScreenState extends ConsumerState<VersePracticeScreen> {
                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _isRecording ? Colors.red : _accentColor,
+                  backgroundColor: _isRecording ? ParchmentTheme.error : _accentColor,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -1534,24 +1535,24 @@ class _VersePracticeScreenState extends ConsumerState<VersePracticeScreen> {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Colors.blue.withValues(alpha: 0.15), Colors.purple.withValues(alpha: 0.15)],
+                    colors: [ParchmentTheme.categoryStudy.withValues(alpha: 0.15), ParchmentTheme.categorySocial.withValues(alpha: 0.15)],
                   ),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
+                  border: Border.all(color: ParchmentTheme.categoryStudy.withValues(alpha: 0.3)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.auto_awesome, size: 16, color: Colors.blue.shade300),
+                        const Icon(Icons.auto_awesome, size: 16, color: ParchmentTheme.categoryStudy),
                         const SizedBox(width: 6),
-                        Text(
+                        const Text(
                           'AI 코치 피드백',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
-                            color: Colors.blue.shade300,
+                            color: ParchmentTheme.categoryStudy,
                           ),
                         ),
                       ],
@@ -1584,7 +1585,7 @@ class _VersePracticeScreenState extends ConsumerState<VersePracticeScreen> {
                   children: [
                     SizedBox(
                       width: 16, height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.blue.shade300),
+                      child: CircularProgressIndicator(strokeWidth: 2, color: ParchmentTheme.categoryStudy),
                     ),
                     const SizedBox(width: 10),
                     Text('AI 코치가 분석 중...', style: TextStyle(color: Colors.white.withValues(alpha: 0.6))),
@@ -1599,7 +1600,7 @@ class _VersePracticeScreenState extends ConsumerState<VersePracticeScreen> {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Colors.purple.withValues(alpha: 0.15), _accentColor.withValues(alpha: 0.15)],
+                    colors: [ParchmentTheme.categorySocial.withValues(alpha: 0.15), _accentColor.withValues(alpha: 0.15)],
                   ),
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -1635,9 +1636,9 @@ class _VersePracticeScreenState extends ConsumerState<VersePracticeScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: passed ? Colors.green.withValues(alpha: 0.2) : Colors.orange.withValues(alpha: 0.2),
+        color: passed ? ParchmentTheme.success.withValues(alpha: 0.2) : ParchmentTheme.warning.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: passed ? Colors.green.withValues(alpha: 0.4) : Colors.orange.withValues(alpha: 0.4)),
+        border: Border.all(color: passed ? ParchmentTheme.success.withValues(alpha: 0.4) : ParchmentTheme.warning.withValues(alpha: 0.4)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1656,7 +1657,7 @@ class _VersePracticeScreenState extends ConsumerState<VersePracticeScreen> {
                       margin: const EdgeInsets.only(left: 8),
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
-                        color: Colors.green,
+                        color: ParchmentTheme.success,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Text(
@@ -1672,7 +1673,7 @@ class _VersePracticeScreenState extends ConsumerState<VersePracticeScreen> {
                     : '${_currentStage.passThreshold.toStringAsFixed(0)}% 이상 필요',
                 style: TextStyle(
                   fontSize: 12,
-                  color: passed ? Colors.green : Colors.orange,
+                  color: passed ? ParchmentTheme.success : ParchmentTheme.warning,
                 ),
               ),
             ],
@@ -1703,11 +1704,11 @@ class _VersePracticeScreenState extends ConsumerState<VersePracticeScreen> {
         // 기존 점수 행
         Row(
           children: [
-            Expanded(child: _buildScoreItem('정확도', result.accuracyScore, Colors.blue)),
+            Expanded(child: _buildScoreItem('정확도', result.accuracyScore, ParchmentTheme.categoryStudy)),
             const SizedBox(width: 8),
-            Expanded(child: _buildScoreItem('유창성', result.fluencyScore, Colors.green)),
+            Expanded(child: _buildScoreItem('유창성', result.fluencyScore, ParchmentTheme.success)),
             const SizedBox(width: 8),
-            Expanded(child: _buildScoreItem('운율', result.prosodyScore, Colors.purple)),
+            Expanded(child: _buildScoreItem('운율', result.prosodyScore, ParchmentTheme.categorySocial)),
           ],
         ),
         // 취약 음소 표시 (있을 경우만)
@@ -1727,23 +1728,23 @@ class _VersePracticeScreenState extends ConsumerState<VersePracticeScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.orange.withValues(alpha: 0.1),
+        color: ParchmentTheme.warning.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+        border: Border.all(color: ParchmentTheme.warning.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.record_voice_over, size: 16, color: Colors.orange[300]),
+              const Icon(Icons.record_voice_over, size: 16, color: ParchmentTheme.warning),
               const SizedBox(width: 8),
-              Text(
+              const Text(
                 '집중 연습이 필요한 발음',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: Colors.orange[300],
+                  color: ParchmentTheme.warning,
                 ),
               ),
             ],
@@ -1766,9 +1767,9 @@ class _VersePracticeScreenState extends ConsumerState<VersePracticeScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: Colors.orange.withValues(alpha: 0.2),
+          color: ParchmentTheme.warning.withValues(alpha: 0.2),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.orange.withValues(alpha: 0.5)),
+          border: Border.all(color: ParchmentTheme.warning.withValues(alpha: 0.5)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -1780,7 +1781,7 @@ class _VersePracticeScreenState extends ConsumerState<VersePracticeScreen> {
                 fontFamily: 'monospace',
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
-                color: Colors.orange,
+                color: ParchmentTheme.warning,
               ),
             ),
             const SizedBox(width: 6),
@@ -1797,7 +1798,7 @@ class _VersePracticeScreenState extends ConsumerState<VersePracticeScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: Colors.red.withValues(alpha: 0.3),
+                color: ParchmentTheme.error.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
@@ -1805,7 +1806,7 @@ class _VersePracticeScreenState extends ConsumerState<VersePracticeScreen> {
                 style: const TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
-                  color: Colors.red,
+                  color: ParchmentTheme.error,
                 ),
               ),
             ),
@@ -1861,7 +1862,7 @@ class _VersePracticeScreenState extends ConsumerState<VersePracticeScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.amber.withValues(alpha: 0.1),
+                  color: ParchmentTheme.categoryQuiz.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Column(
@@ -1869,14 +1870,14 @@ class _VersePracticeScreenState extends ConsumerState<VersePracticeScreen> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.tips_and_updates, size: 16, color: Colors.amber[300]),
+                        const Icon(Icons.tips_and_updates, size: 16, color: ParchmentTheme.categoryQuiz),
                         const SizedBox(width: 8),
-                        Text(
+                        const Text(
                           '발음 팁',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: Colors.amber[300],
+                            color: ParchmentTheme.categoryQuiz,
                           ),
                         ),
                       ],
@@ -1929,7 +1930,7 @@ class _VersePracticeScreenState extends ConsumerState<VersePracticeScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFF2A1A1A),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+        border: Border.all(color: ParchmentTheme.error.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2074,13 +2075,13 @@ class _VersePracticeScreenState extends ConsumerState<VersePracticeScreen> {
   Color _getStatusColor(FeedbackStatus status) {
     switch (status) {
       case FeedbackStatus.correct:
-        return Colors.green;
+        return ParchmentTheme.success;
       case FeedbackStatus.needsImprovement:
-        return Colors.orange;
+        return ParchmentTheme.warning;
       case FeedbackStatus.incorrect:
-        return Colors.red;
+        return ParchmentTheme.error;
       case FeedbackStatus.omitted:
-        return Colors.grey;
+        return ParchmentTheme.weatheredGray;
     }
   }
 
@@ -2088,18 +2089,18 @@ class _VersePracticeScreenState extends ConsumerState<VersePracticeScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.blue.shade50,
+        color: ParchmentTheme.categoryStudy.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.blue.shade200),
+        border: Border.all(color: ParchmentTheme.categoryStudy.withValues(alpha: 0.4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Row(
             children: [
-              Icon(Icons.lightbulb, size: 18, color: Colors.blue),
+              Icon(Icons.lightbulb, size: 18, color: ParchmentTheme.categoryStudy),
               SizedBox(width: 8),
-              Text('발음 팁', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
+              Text('발음 팁', style: TextStyle(fontWeight: FontWeight.bold, color: ParchmentTheme.categoryStudy)),
             ],
           ),
           const SizedBox(height: 8),
@@ -2143,7 +2144,7 @@ class _VersePracticeScreenState extends ConsumerState<VersePracticeScreen> {
               icon: Icon(_isPlayingMyVoice ? Icons.stop : Icons.person, size: 18),
               label: Text(_isPlayingMyVoice ? '중지' : '내 목소리'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.purple,
+                backgroundColor: ParchmentTheme.categorySocial,
                 foregroundColor: Colors.white,
               ),
             ),
@@ -2155,7 +2156,7 @@ class _VersePracticeScreenState extends ConsumerState<VersePracticeScreen> {
             icon: Icon(_isTTSPlaying ? Icons.stop : Icons.record_voice_over, size: 18),
             label: Text(_isTTSPlaying ? '중지' : '원어민'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.teal,
+              backgroundColor: ParchmentTheme.categoryMyPage,
               foregroundColor: Colors.white,
             ),
           ),
@@ -2168,7 +2169,7 @@ class _VersePracticeScreenState extends ConsumerState<VersePracticeScreen> {
               icon: const Icon(Icons.arrow_forward, size: 18),
               label: const Text('다음 단계'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
+                backgroundColor: ParchmentTheme.success,
                 foregroundColor: Colors.white,
               ),
             ),

@@ -56,7 +56,7 @@ class ParchmentButton extends StatelessWidget {
             disabledBackgroundColor: ParchmentTheme.warmVellum,
             disabledForegroundColor: ParchmentTheme.weatheredGray,
             elevation: 0,
-            padding: padding ?? const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+            padding: padding ?? const EdgeInsets.symmetric(horizontal: ParchmentTheme.spacing2XL, vertical: 14),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(ParchmentTheme.radiusMedium),
             ),
@@ -138,7 +138,7 @@ class ParchmentOutlineButton extends StatelessWidget {
                 : ParchmentTheme.warmVellum,
             width: 1.5,
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: ParchmentTheme.spacing2XL, vertical: 14),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(ParchmentTheme.radiusMedium),
           ),
@@ -201,7 +201,7 @@ class ParchmentTextButton extends StatelessWidget {
       onPressed: onPressed,
       style: TextButton.styleFrom(
         foregroundColor: textColor,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: ParchmentTheme.spacingL, vertical: 10),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -418,7 +418,7 @@ class ParchmentChip extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: ParchmentTheme.spacingL, vertical: 10),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
             border: isSelected

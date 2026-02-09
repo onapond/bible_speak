@@ -3,6 +3,7 @@ import '../../../models/group_model.dart';
 import '../../../models/nudge.dart';
 import '../../../services/social/nudge_service.dart';
 import '../../../services/auth_service.dart';
+import '../../../styles/parchment_theme.dart';
 
 /// 멤버 목록 카드
 class MemberListCard extends StatefulWidget {
@@ -122,23 +123,23 @@ class _MemberListCardState extends State<MemberListCard> {
               margin: const EdgeInsets.symmetric(horizontal: 16),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.1),
+                color: ParchmentTheme.warning.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                border: Border.all(color: ParchmentTheme.warning.withValues(alpha: 0.3)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.notification_important, color: Colors.orange, size: 18),
+                      const Icon(Icons.notification_important, color: ParchmentTheme.warning, size: 18),
                       const SizedBox(width: 8),
                       Text(
                         '응원이 필요한 멤버 ${_inactiveMembers.length}명',
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
-                          color: Colors.orange,
+                          color: ParchmentTheme.warning,
                         ),
                       ),
                     ],
@@ -236,7 +237,7 @@ class _MemberListCardState extends State<MemberListCard> {
                   child: Container(
                     padding: const EdgeInsets.all(2),
                     decoration: const BoxDecoration(
-                      color: Colors.orange,
+                      color: ParchmentTheme.warning,
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.schedule, size: 12, color: Colors.white),
@@ -288,7 +289,7 @@ class _MemberListCardState extends State<MemberListCard> {
                 const SizedBox(height: 2),
                 Row(
                   children: [
-                    Icon(Icons.toll, size: 12, color: Colors.amber.withValues(alpha: 0.7)),
+                    Icon(Icons.toll, size: 12, color: ParchmentTheme.manuscriptGold),
                     const SizedBox(width: 4),
                     Text(
                       '${member.talants}',
@@ -302,14 +303,14 @@ class _MemberListCardState extends State<MemberListCard> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: Colors.orange.withValues(alpha: 0.2),
+                          color: ParchmentTheme.warning.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
                           '${inactiveInfo.daysSinceActive}일 전',
                           style: const TextStyle(
                             fontSize: 10,
-                            color: Colors.orange,
+                            color: ParchmentTheme.warning,
                           ),
                         ),
                       ),
@@ -326,7 +327,7 @@ class _MemberListCardState extends State<MemberListCard> {
               onPressed: () => _sendNudge(member),
               icon: Icon(
                 Icons.notifications_active,
-                color: isInactive ? Colors.orange : Colors.white30,
+                color: isInactive ? ParchmentTheme.warning : Colors.white30,
                 size: 22,
               ),
               tooltip: '격려 보내기',

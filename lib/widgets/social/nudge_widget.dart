@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../models/nudge.dart';
+import '../../styles/parchment_theme.dart';
 
 /// 비활성 멤버 목록 위젯
 class InactiveMembersWidget extends StatelessWidget {
@@ -55,14 +56,14 @@ class InactiveMembersWidget extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: stats.canSendNudge
-                        ? Colors.amber.withValues(alpha: 0.2)
-                        : Colors.grey.withValues(alpha: 0.2),
+                        ? ParchmentTheme.manuscriptGold.withValues(alpha: 0.2)
+                        : ParchmentTheme.weatheredGray.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     '💌 ${stats.remainingNudges}/${stats.dailyLimit}',
                     style: TextStyle(
-                      color: stats.canSendNudge ? Colors.amber : Colors.grey,
+                      color: stats.canSendNudge ? ParchmentTheme.manuscriptGold : ParchmentTheme.weatheredGray,
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                     ),
@@ -151,7 +152,7 @@ class InactiveMembersWidget extends StatelessWidget {
                 Text(
                   member.statusMessage,
                   style: TextStyle(
-                    color: member.isHighlighted ? Colors.orange : Colors.white54,
+                    color: member.isHighlighted ? ParchmentTheme.warning : Colors.white54,
                     fontSize: 12,
                   ),
                 ),
@@ -166,11 +167,11 @@ class InactiveMembersWidget extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 color: canNudge
-                    ? Colors.amber.withValues(alpha: 0.2)
-                    : Colors.grey.withValues(alpha: 0.1),
+                    ? ParchmentTheme.manuscriptGold.withValues(alpha: 0.2)
+                    : ParchmentTheme.weatheredGray.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(16),
                 border: canNudge
-                    ? Border.all(color: Colors.amber.withValues(alpha: 0.5))
+                    ? Border.all(color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.5))
                     : null,
               ),
               child: Row(
@@ -180,14 +181,14 @@ class InactiveMembersWidget extends StatelessWidget {
                     '💌',
                     style: TextStyle(
                       fontSize: 14,
-                      color: canNudge ? null : Colors.grey,
+                      color: canNudge ? null : ParchmentTheme.weatheredGray,
                     ),
                   ),
                   const SizedBox(width: 4),
                   Text(
                     '찌르기',
                     style: TextStyle(
-                      color: canNudge ? Colors.amber : Colors.grey,
+                      color: canNudge ? ParchmentTheme.manuscriptGold : ParchmentTheme.weatheredGray,
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                     ),
@@ -314,9 +315,9 @@ class _NudgeMessageDialogState extends State<NudgeMessageDialog> {
                     child: ElevatedButton(
                       onPressed: _canSend ? _send : null,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.amber,
+                        backgroundColor: ParchmentTheme.manuscriptGold,
                         foregroundColor: Colors.black,
-                        disabledBackgroundColor: Colors.grey,
+                        disabledBackgroundColor: ParchmentTheme.weatheredGray,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -372,11 +373,11 @@ class _NudgeMessageDialogState extends State<NudgeMessageDialog> {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: isSelected
-              ? Colors.amber.withValues(alpha: 0.2)
+              ? ParchmentTheme.manuscriptGold.withValues(alpha: 0.2)
               : Colors.white.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(12),
           border: isSelected
-              ? Border.all(color: Colors.amber, width: 2)
+              ? Border.all(color: ParchmentTheme.manuscriptGold, width: 2)
               : Border.all(color: Colors.white10),
         ),
         child: Row(
@@ -393,7 +394,7 @@ class _NudgeMessageDialogState extends State<NudgeMessageDialog> {
               ),
             ),
             if (isSelected)
-              const Icon(Icons.check_circle, color: Colors.amber, size: 20),
+              const Icon(Icons.check_circle, color: ParchmentTheme.manuscriptGold, size: 20),
           ],
         ),
       ),
@@ -413,11 +414,11 @@ class _NudgeMessageDialogState extends State<NudgeMessageDialog> {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: _isCustom
-              ? Colors.amber.withValues(alpha: 0.2)
+              ? ParchmentTheme.manuscriptGold.withValues(alpha: 0.2)
               : Colors.white.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(12),
           border: _isCustom
-              ? Border.all(color: Colors.amber, width: 2)
+              ? Border.all(color: ParchmentTheme.manuscriptGold, width: 2)
               : Border.all(color: Colors.white10),
         ),
         child: Row(
@@ -434,7 +435,7 @@ class _NudgeMessageDialogState extends State<NudgeMessageDialog> {
               ),
             ),
             if (_isCustom)
-              const Icon(Icons.check_circle, color: Colors.amber, size: 20),
+              const Icon(Icons.check_circle, color: ParchmentTheme.manuscriptGold, size: 20),
           ],
         ),
       ),
@@ -476,7 +477,7 @@ class NudgeReceivedDialog extends StatelessWidget {
             Text(
               '${nudge.fromUserName}님의 찌르기!',
               style: const TextStyle(
-                color: Colors.amber,
+                color: ParchmentTheme.manuscriptGold,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
@@ -526,7 +527,7 @@ class NudgeReceivedDialog extends StatelessWidget {
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.amber,
+                      backgroundColor: ParchmentTheme.manuscriptGold,
                       foregroundColor: Colors.black,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
@@ -555,7 +556,7 @@ class NudgeSentSnackBar extends SnackBar {
               Text('$targetName님에게 찌르기를 보냈어요!'),
             ],
           ),
-          backgroundColor: Colors.green.shade700,
+          backgroundColor: ParchmentTheme.success,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           duration: const Duration(seconds: 2),

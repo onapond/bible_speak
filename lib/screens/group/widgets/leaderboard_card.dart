@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../models/group_model.dart';
+import '../../../styles/parchment_theme.dart';
 
 /// 리더보드 카드
 class LeaderboardCard extends StatelessWidget {
@@ -104,7 +105,7 @@ class LeaderboardCard extends StatelessWidget {
             rank: 1,
             member: members[0],
             height: 100,
-            color: Colors.amber,
+            color: ParchmentTheme.manuscriptGold,
           ),
           // 3등
           if (members.length > 2)
@@ -112,7 +113,7 @@ class LeaderboardCard extends StatelessWidget {
               rank: 3,
               member: members[2],
               height: 60,
-              color: Colors.orange.shade700,
+              color: ParchmentTheme.warning,
             ),
         ],
       ),
@@ -290,7 +291,7 @@ class LeaderboardCard extends StatelessWidget {
           // 탈란트
           Row(
             children: [
-              const Icon(Icons.toll, size: 16, color: Colors.amber),
+              const Icon(Icons.toll, size: 16, color: ParchmentTheme.manuscriptGold),
               const SizedBox(width: 4),
               Text(
                 '${member.talants}',

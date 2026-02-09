@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../styles/parchment_theme.dart';
 
 /// 페이드 + 슬라이드 애니메이션 전환
 class FadeSlideTransition extends StatelessWidget {
@@ -269,7 +270,7 @@ class SuccessCheckAnimation extends StatefulWidget {
   const SuccessCheckAnimation({
     super.key,
     this.size = 60,
-    this.color = Colors.green,
+    this.color = ParchmentTheme.success,
     this.onComplete,
     this.duration = const Duration(milliseconds: 800),
   });

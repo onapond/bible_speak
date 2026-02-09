@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../styles/parchment_theme.dart';
 
 /// 빈 상태 위젯
 /// 데이터가 없을 때 친절한 안내와 액션 버튼을 제공
@@ -123,7 +124,7 @@ class EmptyStateWidget extends StatelessWidget {
       description: '인터넷 연결을 확인해주세요.\nWi-Fi 또는 모바일 데이터가 켜져 있는지 확인해보세요.',
       actionLabel: '다시 시도',
       onAction: onRetry,
-      accentColor: Colors.orange,
+      accentColor: ParchmentTheme.warning,
     );
   }
 
@@ -138,7 +139,7 @@ class EmptyStateWidget extends StatelessWidget {
       description: message ?? '잠시 후 다시 시도해주세요.\n문제가 계속되면 앱을 재시작해보세요.',
       actionLabel: '다시 시도',
       onAction: onRetry,
-      accentColor: Colors.red,
+      accentColor: ParchmentTheme.error,
     );
   }
 
@@ -152,7 +153,7 @@ class EmptyStateWidget extends StatelessWidget {
       description: '매일 퀴즈로 암송 실력을 점검해보세요!',
       actionLabel: '오늘의 퀴즈 시작',
       onAction: onStartQuiz,
-      accentColor: Colors.orange,
+      accentColor: ParchmentTheme.warning,
       tips: const [
         '매일 퀴즈를 완료하면 보너스 달란트 획득',
         '틀린 문제는 자동으로 복습 목록에 추가',
@@ -170,7 +171,7 @@ class EmptyStateWidget extends StatelessWidget {
       description: '학습한 구절로 플래시카드를 만들어보세요!',
       actionLabel: '플래시카드 만들기',
       onAction: onCreateFlashcard,
-      accentColor: Colors.purple,
+      accentColor: ParchmentTheme.categorySocial,
       tips: const [
         '플래시카드로 짧은 시간에 효율적인 복습',
         '스와이프로 빠르게 넘기며 학습',
@@ -188,7 +189,7 @@ class EmptyStateWidget extends StatelessWidget {
       description: '목표를 설정하면 학습 동기부여가 돼요!',
       actionLabel: '목표 설정하기',
       onAction: onSetGoal,
-      accentColor: Colors.teal,
+      accentColor: ParchmentTheme.categoryMyPage,
       tips: const [
         '쉬움/보통/어려움 중 선택 가능',
         '목표 달성 시 보너스 달란트 10 획득',
@@ -206,7 +207,7 @@ class EmptyStateWidget extends StatelessWidget {
       description: '매일 새로운 성경 구절을 추천받아보세요.',
       actionLabel: '새로고침',
       onAction: onRefresh,
-      accentColor: Colors.amber,
+      accentColor: ParchmentTheme.manuscriptGold,
       tips: const [
         '아침 6시 이전에 학습하면 얼리버드 보너스!',
         '오늘의 만나로 하루를 시작해보세요',
@@ -224,7 +225,7 @@ class EmptyStateWidget extends StatelessWidget {
       description: '학습 중 어려운 단어를 북마크해보세요!',
       actionLabel: '단어 학습 시작',
       onAction: onBrowseWords,
-      accentColor: Colors.green,
+      accentColor: ParchmentTheme.categoryPractice,
       tips: const [
         '모르는 단어는 ★ 버튼으로 저장',
         '저장한 단어는 언제든 복습 가능',

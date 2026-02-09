@@ -105,7 +105,7 @@ class _WordListScreenState extends State<WordListScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: isError ? Colors.red : Colors.green,
+        backgroundColor: isError ? ParchmentTheme.error : ParchmentTheme.success,
       ),
     );
   }

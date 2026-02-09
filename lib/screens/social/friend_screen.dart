@@ -92,7 +92,7 @@ class _FriendScreenState extends State<FriendScreen>
         SnackBar(
           content: Text(result.message),
           backgroundColor:
-              result.success ? Colors.green.shade700 : Colors.red.shade700,
+              result.success ? ParchmentTheme.success : ParchmentTheme.error,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
@@ -112,7 +112,7 @@ class _FriendScreenState extends State<FriendScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('친구가 되었습니다!'),
-            backgroundColor: Colors.green.shade700,
+            backgroundColor: ParchmentTheme.success,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
@@ -147,7 +147,7 @@ class _FriendScreenState extends State<FriendScreen>
               SnackBar(
                 content: Text(result.message),
                 backgroundColor:
-                    result.success ? Colors.green.shade700 : Colors.red.shade700,
+                    result.success ? ParchmentTheme.success : ParchmentTheme.error,
                 behavior: SnackBarBehavior.floating,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),

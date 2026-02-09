@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/auth_provider.dart';
+import '../../styles/parchment_theme.dart';
 import '../home/main_menu_screen.dart';
 import '../group/group_select_screen.dart';
 
@@ -71,7 +72,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.red.shade700,
+        backgroundColor: ParchmentTheme.error,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
@@ -153,13 +154,13 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.green.withValues(alpha: 0.2),
+        color: ParchmentTheme.success.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.green.withValues(alpha: 0.5)),
+        border: Border.all(color: ParchmentTheme.success.withValues(alpha: 0.5)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.check_circle, color: Colors.green),
+          const Icon(Icons.check_circle, color: ParchmentTheme.success),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -167,7 +168,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
               children: [
                 const Text(
                   '선택된 그룹',
-                  style: TextStyle(fontSize: 12, color: Colors.green),
+                  style: TextStyle(fontSize: 12, color: ParchmentTheme.success),
                 ),
                 Text(
                   _selectedGroupName!,

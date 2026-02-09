@@ -51,7 +51,7 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('테마가 적용되었습니다'),
-          backgroundColor: Colors.green.shade700,
+          backgroundColor: ParchmentTheme.success,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
@@ -67,7 +67,7 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('기본 테마로 변경되었습니다'),
-          backgroundColor: Colors.green.shade700,
+          backgroundColor: ParchmentTheme.success,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
@@ -377,20 +377,20 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.amber.withValues(alpha: 0.2),
+                  color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.shopping_bag, color: Colors.amber, size: 16),
+                    Icon(Icons.shopping_bag, color: ParchmentTheme.manuscriptGold, size: 16),
                     SizedBox(width: 4),
                     Text(
                       '구매',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: Colors.amber,
+                        color: ParchmentTheme.manuscriptGold,
                       ),
                     ),
                   ],

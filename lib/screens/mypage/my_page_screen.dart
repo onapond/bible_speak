@@ -138,12 +138,12 @@ class _MyPageScreenState extends State<MyPageScreen>
         SnackBar(
           content: Row(
             children: [
-              const Icon(Icons.toll, color: Colors.amber),
+              const Icon(Icons.toll, color: ParchmentTheme.manuscriptGold),
               const SizedBox(width: 8),
               Text('+${achievement.talantReward} 탈란트를 받았습니다!'),
             ],
           ),
-          backgroundColor: Colors.green.shade700,
+          backgroundColor: ParchmentTheme.success,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
@@ -668,7 +668,7 @@ class _MyPageScreenState extends State<MyPageScreen>
           const Divider(color: ParchmentTheme.warmVellum, height: 1, indent: 60),
           _buildMenuItem(
             icon: Icons.inventory_2,
-            iconColor: Colors.teal,
+            iconColor: ParchmentTheme.categoryMyPage,
             title: '내 아이템',
             subtitle: '구매한 아이템 관리',
             onTap: () {
@@ -726,7 +726,7 @@ class _MyPageScreenState extends State<MyPageScreen>
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+        border: Border.all(color: ParchmentTheme.error.withValues(alpha: 0.3)),
       ),
       child: Column(
         children: [
@@ -735,14 +735,14 @@ class _MyPageScreenState extends State<MyPageScreen>
             child: Row(
               children: [
                 Icon(Icons.admin_panel_settings,
-                    color: Colors.red.withValues(alpha: 0.7), size: 16),
+                    color: ParchmentTheme.error.withValues(alpha: 0.7), size: 16),
                 const SizedBox(width: 8),
                 Text(
                   '관리자 도구',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: Colors.red.withValues(alpha: 0.7),
+                    color: ParchmentTheme.error.withValues(alpha: 0.7),
                   ),
                 ),
               ],
@@ -751,7 +751,7 @@ class _MyPageScreenState extends State<MyPageScreen>
           const Divider(color: Colors.white12, height: 1),
           _buildMenuItem(
             icon: Icons.camera_alt,
-            iconColor: Colors.red,
+            iconColor: ParchmentTheme.error,
             title: '스크린샷 도우미',
             subtitle: '스토어 배포용 스크린샷',
             onTap: () {
@@ -828,7 +828,7 @@ class _MyPageScreenState extends State<MyPageScreen>
                   icon: Icons.menu_book,
                   label: '학습 구절',
                   value: '${_stats!.totalVersesLearned}',
-                  color: Colors.blue,
+                  color: ParchmentTheme.categoryStudy,
                 ),
               ),
               Expanded(
@@ -836,7 +836,7 @@ class _MyPageScreenState extends State<MyPageScreen>
                   icon: Icons.star,
                   label: '마스터',
                   value: '${_stats!.totalVersesMastered}',
-                  color: Colors.amber,
+                  color: ParchmentTheme.categoryQuiz,
                 ),
               ),
               Expanded(
@@ -844,7 +844,7 @@ class _MyPageScreenState extends State<MyPageScreen>
                   icon: Icons.timer,
                   label: '학습 시간',
                   value: _stats!.formattedStudyTime,
-                  color: Colors.green,
+                  color: ParchmentTheme.success,
                 ),
               ),
             ],
@@ -905,7 +905,7 @@ class _MyPageScreenState extends State<MyPageScreen>
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.orange.withValues(alpha: 0.2),
+                    color: ParchmentTheme.warning.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
                   child: const Text('🔥', style: TextStyle(fontSize: 32)),
@@ -940,7 +940,7 @@ class _MyPageScreenState extends State<MyPageScreen>
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.purple.withValues(alpha: 0.2),
+                    color: ParchmentTheme.categorySocial.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
                   child: const Text('👑', style: TextStyle(fontSize: 32)),
@@ -1065,14 +1065,14 @@ class _MyPageScreenState extends State<MyPageScreen>
             '총 퀴즈 참여',
             '${_stats!.totalQuizzesTaken}회',
             Icons.quiz,
-            Colors.blue,
+            ParchmentTheme.categoryStudy,
           ),
           const SizedBox(height: 12),
           _buildQuizStatRow(
             '만점 횟수',
             '${_stats!.perfectQuizCount}회',
             Icons.emoji_events,
-            Colors.amber,
+            ParchmentTheme.categoryQuiz,
           ),
         ],
       ),
@@ -1197,13 +1197,13 @@ class _MyPageScreenState extends State<MyPageScreen>
                   Row(
                     children: [
                       const Icon(Icons.card_giftcard,
-                          color: Colors.amber, size: 16),
+                          color: ParchmentTheme.manuscriptGold, size: 16),
                       const SizedBox(width: 4),
                       Text(
                         '${_achievementStats!.unclaimedRewards}개 보상 수령 가능',
                         style: const TextStyle(
                           fontSize: 12,
-                          color: Colors.amber,
+                          color: ParchmentTheme.manuscriptGold,
                         ),
                       ),
                     ],
@@ -1322,14 +1322,14 @@ class _MyPageScreenState extends State<MyPageScreen>
                 ] else
                   Row(
                     children: [
-                      const Icon(Icons.toll, color: Colors.amber, size: 14),
+                      const Icon(Icons.toll, color: ParchmentTheme.manuscriptGold, size: 14),
                       const SizedBox(width: 4),
                       Text(
                         '+${achievement.talantReward}',
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: Colors.amber,
+                          color: ParchmentTheme.manuscriptGold,
                         ),
                       ),
                     ],
@@ -1343,7 +1343,7 @@ class _MyPageScreenState extends State<MyPageScreen>
               icon: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.amber,
+                  color: ParchmentTheme.manuscriptGold,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
@@ -1354,7 +1354,7 @@ class _MyPageScreenState extends State<MyPageScreen>
               ),
             )
           else if (isUnlocked)
-            const Icon(Icons.check_circle, color: Colors.green, size: 24),
+            const Icon(Icons.check_circle, color: ParchmentTheme.success, size: 24),
         ],
       ),
     );
@@ -1395,10 +1395,10 @@ class _MyPageScreenState extends State<MyPageScreen>
               leading: Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.orange.withValues(alpha: 0.15),
+                  color: ParchmentTheme.warning.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.notifications, color: Colors.orange, size: 22),
+                child: const Icon(Icons.notifications, color: ParchmentTheme.warning, size: 22),
               ),
               title: const Text('알림 설정', style: TextStyle(color: Colors.white)),
               subtitle: Text('푸시 알림 관리',
@@ -1416,10 +1416,10 @@ class _MyPageScreenState extends State<MyPageScreen>
               leading: Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.purple.withValues(alpha: 0.15),
+                  color: ParchmentTheme.categorySocial.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.palette, color: Colors.purple, size: 22),
+                child: const Icon(Icons.palette, color: ParchmentTheme.categorySocial, size: 22),
               ),
               title: const Text('테마 설정', style: TextStyle(color: Colors.white)),
               subtitle: Text('앱 테마 변경',
@@ -1437,10 +1437,10 @@ class _MyPageScreenState extends State<MyPageScreen>
               leading: Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.teal.withValues(alpha: 0.15),
+                  color: ParchmentTheme.categoryMyPage.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.accessibility_new, color: Colors.teal, size: 22),
+                child: const Icon(Icons.accessibility_new, color: ParchmentTheme.categoryMyPage, size: 22),
               ),
               title: const Text('접근성 설정', style: TextStyle(color: Colors.white)),
               subtitle: Text('글꼴 크기, TTS 속도',
@@ -1521,12 +1521,12 @@ class _MyPageScreenState extends State<MyPageScreen>
               leading: Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.red.withValues(alpha: 0.15),
+                  color: ParchmentTheme.error.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.logout, color: Colors.red, size: 22),
+                child: const Icon(Icons.logout, color: ParchmentTheme.error, size: 22),
               ),
-              title: const Text('로그아웃', style: TextStyle(color: Colors.red)),
+              title: const Text('로그아웃', style: TextStyle(color: ParchmentTheme.error)),
               subtitle: Text('계정에서 로그아웃',
                   style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12)),
               trailing: const Icon(Icons.chevron_right, color: Colors.white38),
@@ -1638,7 +1638,7 @@ class _MyPageScreenState extends State<MyPageScreen>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Row(
           children: [
-            Icon(Icons.logout, color: Colors.red, size: 28),
+            Icon(Icons.logout, color: ParchmentTheme.error, size: 28),
             SizedBox(width: 12),
             Text(
               '로그아웃',
@@ -1670,7 +1670,7 @@ class _MyPageScreenState extends State<MyPageScreen>
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
+              backgroundColor: ParchmentTheme.error,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -1687,9 +1687,9 @@ class _MyPageScreenState extends State<MyPageScreen>
   Color _getRoleColor() {
     switch (_user?.role) {
       case UserRole.admin:
-        return Colors.red;
+        return ParchmentTheme.error;
       case UserRole.leader:
-        return Colors.amber;
+        return ParchmentTheme.manuscriptGold;
       default:
         return _accentColor;
     }

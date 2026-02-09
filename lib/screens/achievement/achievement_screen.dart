@@ -67,12 +67,12 @@ class _AchievementScreenState extends State<AchievementScreen>
         SnackBar(
           content: Row(
             children: [
-              const Icon(Icons.toll, color: Colors.amber),
+              const Icon(Icons.toll, color: ParchmentTheme.manuscriptGold),
               const SizedBox(width: 8),
               Text('+${achievement.talantReward} 탈란트를 받았습니다!'),
             ],
           ),
-          backgroundColor: Colors.green.shade700,
+          backgroundColor: ParchmentTheme.success,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),

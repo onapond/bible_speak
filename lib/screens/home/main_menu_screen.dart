@@ -356,28 +356,28 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen> {
                     icon: Icons.menu_book,
                     title: '학습',
                     subtitle: '암송 · 복습 · 퀴즈',
-                    color: Colors.blue,
+                    color: ParchmentTheme.categoryStudy,
                     onTap: () => _showLearningSheet(),
                   ),
                   _buildMenuCard(
                     icon: Icons.abc,
                     title: '단어',
                     subtitle: '성경 영단어',
-                    color: Colors.green,
+                    color: ParchmentTheme.categoryPractice,
                     onTap: () => _navigateToWordStudy(),
                   ),
                   _buildMenuCard(
                     icon: Icons.groups,
                     title: '커뮤니티',
                     subtitle: '그룹 · 친구 · 채팅',
-                    color: Colors.purple,
+                    color: ParchmentTheme.categorySocial,
                     onTap: () => _navigateToGroupDashboard(),
                   ),
                   _buildMenuCard(
                     icon: Icons.person,
                     title: '마이',
                     subtitle: '프로필 · 통계 · 설정',
-                    color: Colors.teal,
+                    color: ParchmentTheme.categoryMyPage,
                     onTap: () => _navigateToMyPage(),
                   ),
                 ]),
@@ -499,7 +499,7 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen> {
             Text(
               subtitle,
               style: const TextStyle(
-                fontSize: 12,
+                fontSize: 13,
                 color: ParchmentTheme.weatheredGray,
               ),
             ),
@@ -1036,7 +1036,7 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen> {
         Text(
           label,
           style: const TextStyle(
-            fontSize: 11,
+            fontSize: 13,
             color: ParchmentTheme.weatheredGray,
           ),
         ),
@@ -1062,7 +1062,7 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen> {
               Text('목표 달성 보너스 10 달란트 획득!'),
             ],
           ),
-          backgroundColor: Colors.green.shade700,
+          backgroundColor: ParchmentTheme.success,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
@@ -1150,9 +1150,9 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen> {
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 14,
-                      color: ParchmentTheme.softPapyrus.withValues(alpha: 0.9),
+                      color: ParchmentTheme.softPapyrus,
                     ),
                   ),
                 ],
@@ -1160,7 +1160,7 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen> {
             ),
             Icon(
               Icons.arrow_forward_ios,
-              color: ParchmentTheme.softPapyrus.withValues(alpha: 0.7),
+              color: ParchmentTheme.softPapyrus.withValues(alpha: 0.85),
               size: 20,
             ),
           ],
@@ -1212,7 +1212,7 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen> {
                     Text('${member.name}님에게 찌르기를 보냈어요!'),
                   ],
                 ),
-                backgroundColor: Colors.green.shade700,
+                backgroundColor: ParchmentTheme.success,
                 behavior: SnackBarBehavior.floating,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
@@ -1224,9 +1224,9 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen> {
             setState(() => _nudgeStats = stats);
           } else if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('찌르기 전송에 실패했습니다.'),
-                backgroundColor: Colors.red,
+              SnackBar(
+                content: const Text('찌르기 전송에 실패했습니다.'),
+                backgroundColor: ParchmentTheme.error,
               ),
             );
           }
@@ -1255,9 +1255,9 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen> {
       if (!deducted) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('달란트가 부족합니다.'),
-              backgroundColor: Colors.red,
+            SnackBar(
+              content: const Text('달란트가 부족합니다.'),
+              backgroundColor: ParchmentTheme.error,
             ),
           );
         }
@@ -1268,9 +1268,9 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen> {
       final success = await _streakService.useProtection();
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('🛡️ 연속 학습 보호권을 사용했습니다!'),
-            backgroundColor: Colors.green,
+          SnackBar(
+            content: const Text('🛡️ 연속 학습 보호권을 사용했습니다!'),
+            backgroundColor: ParchmentTheme.success,
           ),
         );
         // 스트릭 데이터 새로고침

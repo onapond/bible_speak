@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/offline/offline_services.dart';
+import '../../styles/parchment_theme.dart';
 
 /// 오프라인 상태 표시 배너
 class OfflineIndicator extends StatelessWidget {
@@ -23,7 +24,7 @@ class OfflineIndicator extends StatelessWidget {
               height: offlineManager.isOffline ? 32 : 0,
               child: offlineManager.isOffline
                   ? Container(
-                      color: Colors.orange.shade800,
+                      color: ParchmentTheme.warning,
                       child: const SafeArea(
                         bottom: false,
                         child: Row(
@@ -125,7 +126,7 @@ class SyncPendingBadge extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.all(4),
                   decoration: const BoxDecoration(
-                    color: Colors.orange,
+                    color: ParchmentTheme.warning,
                     shape: BoxShape.circle,
                   ),
                   constraints: const BoxConstraints(
@@ -186,7 +187,7 @@ void showOfflineHint(BuildContext context) {
           Text('오프라인 상태입니다. 일부 기능이 제한됩니다.'),
         ],
       ),
-      backgroundColor: Colors.orange.shade800,
+      backgroundColor: ParchmentTheme.warning,
       behavior: SnackBarBehavior.floating,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     ),

@@ -85,7 +85,7 @@ class ParchmentCard extends StatelessWidget {
                 splashColor: ParchmentTheme.manuscriptGold.withValues(alpha: 0.1),
                 highlightColor: ParchmentTheme.manuscriptGold.withValues(alpha: 0.05),
                 child: Padding(
-                  padding: padding ?? const EdgeInsets.all(16),
+                  padding: padding ?? const EdgeInsets.all(ParchmentTheme.spacingL),
                   child: child,
                 ),
               ),
@@ -126,7 +126,7 @@ class ParchmentIconCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return ParchmentCard(
       onTap: onTap,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: ParchmentTheme.spacingL, vertical: 14),
       showTexture: showTexture,
       child: Row(
         children: [
@@ -215,7 +215,7 @@ class ParchmentStatCard extends StatelessWidget {
     return ParchmentCard(
       onTap: onTap,
       width: width,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      padding: const EdgeInsets.symmetric(horizontal: ParchmentTheme.spacingL, vertical: ParchmentTheme.spacingXL),
       showTexture: showTexture,
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -269,7 +269,7 @@ class ParchmentSectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: ParchmentTheme.spacingXS, vertical: ParchmentTheme.spacingS),
       child: Row(
         children: [
           if (icon != null) ...[

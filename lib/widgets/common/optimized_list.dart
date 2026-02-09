@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../styles/parchment_theme.dart';
 
 /// 최적화된 리스트 아이템 래퍼
 /// - RepaintBoundary로 리페인트 범위 제한
@@ -297,7 +298,7 @@ class OptimizedWidgets {
   /// 공통 에러 아이콘
   static const errorIcon = Icon(
     Icons.error_outline,
-    color: Colors.red,
+    color: ParchmentTheme.error,
     size: 48,
   );
 }

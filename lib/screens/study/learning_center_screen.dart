@@ -491,7 +491,7 @@ class _PracticeTabState extends State<_PracticeTab>
                         Text(
                           '${progress.progressPercent}%',
                           style: TextStyle(
-                            fontSize: 10,
+                            fontSize: 12,
                             color: chipColor,
                             fontWeight: FontWeight.w500,
                           ),
@@ -500,7 +500,7 @@ class _PracticeTabState extends State<_PracticeTab>
                         const Text(
                           '미시작',
                           style: TextStyle(
-                            fontSize: 10,
+                            fontSize: 12,
                             color: ParchmentTheme.weatheredGray,
                           ),
                         ),
@@ -553,8 +553,8 @@ class _PracticeTabState extends State<_PracticeTab>
                   const SizedBox(height: 4),
                   Text(
                     '$completedVerses / $_verseCount절 완료',
-                    style: TextStyle(
-                      color: ParchmentTheme.softPapyrus.withValues(alpha: 0.9),
+                    style: const TextStyle(
+                      color: ParchmentTheme.softPapyrus,
                       fontSize: 14,
                     ),
                   ),
@@ -1474,7 +1474,7 @@ class _QuizTabState extends State<_QuizTab>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('제출 중 오류가 발생했습니다'),
-            backgroundColor: Colors.red.shade700,
+            backgroundColor: ParchmentTheme.error,
           ),
         );
       }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/pronunciation/azure_pronunciation_service.dart';
+import '../../styles/parchment_theme.dart';
 
 /// 음소별 점수 바 위젯
 /// - 음소 심볼 + 한글 힌트
@@ -114,7 +115,7 @@ class PhonemeScoreBar extends StatelessWidget {
                     Icon(
                       Icons.lightbulb_outline,
                       size: 16,
-                      color: Colors.amber[300],
+                      color: ParchmentTheme.manuscriptGold,
                     ),
                     const SizedBox(width: 8),
                     Expanded(

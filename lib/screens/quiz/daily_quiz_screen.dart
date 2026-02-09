@@ -125,7 +125,7 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('제출 중 오류가 발생했습니다'),
-            backgroundColor: Colors.red.shade700,
+            backgroundColor: ParchmentTheme.error,
           ),
         );
       }
@@ -169,13 +169,13 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
                         padding: const EdgeInsets.only(right: 8),
                         child: Row(
                           children: [
-                            const Icon(Icons.local_fire_department, color: Colors.orange, size: 20),
+                            const Icon(Icons.local_fire_department, color: ParchmentTheme.warning, size: 20),
                             const SizedBox(width: 4),
                             Text(
                               '${_streak!.currentStreak}',
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
-                                color: Colors.orange,
+                                color: ParchmentTheme.warning,
                               ),
                             ),
                           ],
@@ -267,12 +267,12 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.orange.withValues(alpha: 0.15),
+              color: ParchmentTheme.warning.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(16),
             ),
             child: const Icon(
               Icons.local_fire_department,
-              color: Colors.orange,
+              color: ParchmentTheme.warning,
               size: 32,
             ),
           ),
@@ -296,7 +296,7 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
                       style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
-                        color: Colors.orange,
+                        color: ParchmentTheme.warning,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -327,7 +327,7 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
                 '만점 ${_streak!.perfectScores}회',
                 style: const TextStyle(
                   fontSize: 12,
-                  color: Colors.amber,
+                  color: ParchmentTheme.manuscriptGold,
                 ),
               ),
             ],
@@ -392,13 +392,13 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
             children: [
               _buildInfoItem(
                 icon: Icons.toll,
-                iconColor: Colors.amber,
+                iconColor: ParchmentTheme.manuscriptGold,
                 label: '기본 보상',
                 value: '${_quiz!.totalPoints}',
               ),
               _buildInfoItem(
                 icon: Icons.star,
-                iconColor: Colors.purple,
+                iconColor: ParchmentTheme.categorySocial,
                 label: '만점 보너스',
                 value: '+${_quiz!.bonusPoints}',
               ),
@@ -755,14 +755,14 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.toll, color: Colors.amber, size: 28),
+                    const Icon(Icons.toll, color: ParchmentTheme.manuscriptGold, size: 28),
                     const SizedBox(width: 8),
                     AnimatedCounter(
                       value: result.totalEarned,
                       style: const TextStyle(
                         fontSize: 36,
                         fontWeight: FontWeight.bold,
-                        color: Colors.amber,
+                        color: ParchmentTheme.manuscriptGold,
                       ),
                     ),
                   ],
@@ -772,7 +772,7 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.purple.withValues(alpha: 0.15),
+                      color: ParchmentTheme.categorySocial.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -780,7 +780,7 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: Colors.purple,
+                        color: ParchmentTheme.categorySocial,
                       ),
                     ),
                   ),
@@ -815,7 +815,7 @@ class _DailyQuizScreenState extends State<DailyQuizScreen> {
                   icon: Icons.local_fire_department,
                   label: '연속',
                   value: '${_streak?.currentStreak ?? 1}일',
-                  valueColor: Colors.orange,
+                  valueColor: ParchmentTheme.warning,
                 ),
               ],
             ),

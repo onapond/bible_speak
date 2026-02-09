@@ -66,7 +66,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('알림이 활성화되었습니다'),
-            backgroundColor: Colors.green.shade700,
+            backgroundColor: ParchmentTheme.success,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
@@ -350,7 +350,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
         children: [
           _buildNotificationTile(
             icon: Icons.wb_sunny,
-            iconColor: Colors.amber,
+            iconColor: ParchmentTheme.manuscriptGold,
             title: '아침 만나',
             subtitle: _settings.morningMannaEnabled
                 ? '매일 ${_settings.morningMannaTime}에 알림'
@@ -403,7 +403,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
           _buildDivider(),
           _buildNotificationTile(
             icon: Icons.favorite,
-            iconColor: Colors.red,
+            iconColor: ParchmentTheme.error,
             title: '반응 알림',
             subtitle: '내 활동에 대한 반응',
             value: _settings.reactionEnabled,
@@ -414,7 +414,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
           _buildDivider(),
           _buildNotificationTile(
             icon: Icons.bar_chart,
-            iconColor: Colors.teal,
+            iconColor: ParchmentTheme.categoryMyPage,
             title: '주간 리포트',
             subtitle: '매주 일요일 저녁 6시',
             value: _settings.weeklySummaryEnabled,
@@ -440,7 +440,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
         children: [
           _buildNotificationTile(
             icon: Icons.volume_up,
-            iconColor: Colors.blue,
+            iconColor: ParchmentTheme.categoryStudy,
             title: '소리',
             subtitle: '알림 소리 켜기/끄기',
             value: _settings.soundEnabled,
@@ -451,7 +451,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
           _buildDivider(),
           _buildNotificationTile(
             icon: Icons.vibration,
-            iconColor: Colors.purple,
+            iconColor: ParchmentTheme.categorySocial,
             title: '진동',
             subtitle: '알림 진동 켜기/끄기',
             value: _settings.vibrationEnabled,

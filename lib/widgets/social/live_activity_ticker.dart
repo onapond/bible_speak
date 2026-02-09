@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../models/group_activity.dart';
 import '../../services/social/group_activity_service.dart';
+import '../../styles/parchment_theme.dart';
 
 /// Live Activity Ticker - 실시간 그룹 활동 스트림
 /// Speak 스타일의 부드러운 스크롤 애니메이션
@@ -175,12 +176,12 @@ class _LiveActivityTickerState extends State<LiveActivityTicker>
         mainAxisSize: MainAxisSize.min,
         children: [
           // 펄스 애니메이션 점
-          const _PulsingDot(color: Colors.red),
+          const _PulsingDot(color: ParchmentTheme.error),
           const SizedBox(width: 6),
           const Text(
             'LIVE',
             style: TextStyle(
-              color: Colors.red,
+              color: ParchmentTheme.error,
               fontSize: 11,
               fontWeight: FontWeight.bold,
               letterSpacing: 1,

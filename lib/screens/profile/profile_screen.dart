@@ -4,6 +4,7 @@ import '../../models/user_model.dart';
 import '../../models/shop_item.dart';
 import '../../services/auth_service.dart';
 import '../../services/shop_service.dart';
+import '../../styles/parchment_theme.dart';
 import '../shop/shop_screen.dart';
 import '../shop/inventory_screen.dart';
 import '../settings/notification_settings_screen.dart';
@@ -200,7 +201,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    const Icon(Icons.toll, color: Colors.amber, size: 18),
+                    const Icon(Icons.toll, color: ParchmentTheme.manuscriptGold, size: 18),
                     const SizedBox(width: 4),
                     Text(
                       '${_user?.talants ?? 0} 탈란트',
@@ -243,7 +244,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: Colors.amber.withValues(alpha: 0.2),
+                      color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.2),
                       shape: BoxShape.circle,
                     ),
                     child: Text(
@@ -291,7 +292,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: LinearProgressIndicator(
               value: progress.clamp(0.0, 1.0),
               backgroundColor: Colors.white.withValues(alpha: 0.1),
-              valueColor: const AlwaysStoppedAnimation<Color>(Colors.amber),
+              valueColor: const AlwaysStoppedAnimation<Color>(ParchmentTheme.manuscriptGold),
               minHeight: 10,
             ),
           ),
@@ -339,13 +340,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               _buildStatItem(
                 icon: Icons.local_fire_department,
-                iconColor: Colors.orange,
+                iconColor: ParchmentTheme.warning,
                 value: '${_stats['currentStreak'] ?? 0}',
                 label: '연속 학습',
               ),
               _buildStatItem(
                 icon: Icons.emoji_events,
-                iconColor: Colors.amber,
+                iconColor: ParchmentTheme.manuscriptGold,
                 value: '${_stats['longestStreak'] ?? 0}',
                 label: '최장 기록',
               ),
@@ -356,13 +357,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               _buildStatItem(
                 icon: Icons.calendar_today,
-                iconColor: Colors.green,
+                iconColor: ParchmentTheme.success,
                 value: '${_stats['totalStudyDays'] ?? 0}',
                 label: '총 학습일',
               ),
               _buildStatItem(
                 icon: Icons.check_circle,
-                iconColor: Colors.blue,
+                iconColor: ParchmentTheme.categoryStudy,
                 value: '${_stats['completedVerses'] ?? 0}',
                 label: '완료 구절',
               ),
@@ -439,7 +440,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.military_tech, color: Colors.amber, size: 20),
+                  const Icon(Icons.military_tech, color: ParchmentTheme.manuscriptGold, size: 20),
                   const SizedBox(width: 8),
                   const Text(
                     '뱃지',
@@ -568,7 +569,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const Divider(color: Colors.white12, height: 1, indent: 60),
           _buildMenuItem(
             icon: Icons.inventory_2,
-            iconColor: Colors.teal,
+            iconColor: ParchmentTheme.categoryMyPage,
             title: '내 아이템',
             subtitle: '구매한 아이템 관리',
             onTap: () {
@@ -581,7 +582,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const Divider(color: Colors.white12, height: 1, indent: 60),
           _buildMenuItem(
             icon: Icons.notifications,
-            iconColor: Colors.orange,
+            iconColor: ParchmentTheme.warning,
             title: '알림 설정',
             subtitle: '푸시 알림 관리',
             onTap: () {
@@ -639,7 +640,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+        border: Border.all(color: ParchmentTheme.error.withValues(alpha: 0.3)),
       ),
       child: Column(
         children: [
@@ -647,14 +648,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             padding: const EdgeInsets.all(12),
             child: Row(
               children: [
-                Icon(Icons.admin_panel_settings, color: Colors.red.withValues(alpha: 0.7), size: 16),
+                Icon(Icons.admin_panel_settings, color: ParchmentTheme.error.withValues(alpha: 0.7), size: 16),
                 const SizedBox(width: 8),
                 Text(
                   '관리자 도구',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: Colors.red.withValues(alpha: 0.7),
+                    color: ParchmentTheme.error.withValues(alpha: 0.7),
                   ),
                 ),
               ],
@@ -663,7 +664,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const Divider(color: Colors.white12, height: 1),
           _buildMenuItem(
             icon: Icons.camera_alt,
-            iconColor: Colors.red,
+            iconColor: ParchmentTheme.error,
             title: '스크린샷 도우미',
             subtitle: '스토어 배포용 스크린샷 촬영',
             onTap: () {
@@ -684,9 +685,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Color _getRoleColor() {
     switch (_user?.role) {
       case UserRole.admin:
-        return Colors.red;
+        return ParchmentTheme.error;
       case UserRole.leader:
-        return Colors.amber;
+        return ParchmentTheme.manuscriptGold;
       default:
         return _accentColor;
     }

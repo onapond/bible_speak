@@ -237,11 +237,11 @@ class TextureSettingsScreen extends ConsumerWidget {
                 Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: Colors.orange.withValues(alpha: 0.15),
+                    color: ParchmentTheme.warning.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child:
-                      const Icon(Icons.grain, color: Colors.orange, size: 16),
+                      const Icon(Icons.grain, color: ParchmentTheme.warning, size: 16),
                 ),
                 const SizedBox(width: 12),
                 const Expanded(
@@ -284,11 +284,11 @@ class TextureSettingsScreen extends ConsumerWidget {
                 Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: Colors.amber.withValues(alpha: 0.15),
+                    color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Icon(Icons.blur_on,
-                      color: Colors.amber, size: 16),
+                      color: ParchmentTheme.manuscriptGold, size: 16),
                 ),
                 const SizedBox(width: 12),
                 const Expanded(

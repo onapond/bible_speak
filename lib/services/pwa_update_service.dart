@@ -4,6 +4,7 @@ import 'dart:js_interop';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:web/web.dart' as web;
+import '../styles/parchment_theme.dart';
 
 // JS interop 함수 정의
 @JS('applyAppUpdate')
@@ -111,10 +112,10 @@ class PwaUpdateService {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.blue.withValues(alpha: 0.2),
+                color: ParchmentTheme.categoryStudy.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.system_update, color: Colors.blue),
+              child: const Icon(Icons.system_update, color: ParchmentTheme.categoryStudy),
             ),
             const SizedBox(width: 12),
             const Text(
@@ -153,7 +154,7 @@ class PwaUpdateService {
               applyUpdate();
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
+              backgroundColor: ParchmentTheme.categoryStudy,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),

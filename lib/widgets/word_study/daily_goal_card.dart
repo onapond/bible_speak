@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/daily_goal.dart';
 import '../../services/daily_goal_service.dart';
+import '../../styles/parchment_theme.dart';
 
 /// 일일 학습 목표 카드 위젯
 class DailyGoalCard extends StatefulWidget {
@@ -117,7 +118,7 @@ class _DailyGoalCardState extends State<DailyGoalCard> {
                         '+3 달란트 획득!',
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.amber.withValues(alpha: 0.9),
+                          color: ParchmentTheme.manuscriptGold,
                           fontWeight: FontWeight.bold,
                         ),
                       ),

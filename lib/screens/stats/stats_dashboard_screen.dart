@@ -146,7 +146,7 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
                   icon: Icons.menu_book,
                   label: '학습 구절',
                   value: '${_stats!.totalVersesLearned}',
-                  color: Colors.blue,
+                  color: ParchmentTheme.categoryStudy,
                 ),
               ),
               Expanded(
@@ -226,7 +226,7 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.orange.withValues(alpha: 0.2),
+                    color: ParchmentTheme.warning.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
                   child: Text(
@@ -400,7 +400,7 @@ class _StatsDashboardScreenState extends State<StatsDashboardScreen> {
             '총 퀴즈 참여',
             '${_stats!.totalQuizzesTaken}회',
             Icons.quiz,
-            Colors.blue,
+            ParchmentTheme.categoryStudy,
           ),
           const SizedBox(height: 12),
           _buildDetailRow(

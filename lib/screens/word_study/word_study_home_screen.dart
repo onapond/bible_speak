@@ -228,7 +228,7 @@ class _WordStudyHomeScreenState extends State<WordStudyHomeScreen> {
         decoration: BoxDecoration(
           color: _cardColor,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.orange.withValues(alpha: 0.5)),
+          border: Border.all(color: ParchmentTheme.warning.withValues(alpha: 0.5)),
           boxShadow: ParchmentTheme.cardShadow,
         ),
         child: Row(
@@ -236,12 +236,12 @@ class _WordStudyHomeScreenState extends State<WordStudyHomeScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.15),
+                color: ParchmentTheme.warning.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
                 Icons.local_fire_department,
-                color: Colors.orange,
+                color: ParchmentTheme.warning,
                 size: 28,
               ),
             ),
@@ -674,7 +674,7 @@ class _GoalSettingsSheet extends StatelessWidget {
               '목표를 달성하면 +3 달란트 보너스!',
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.amber,
+                color: ParchmentTheme.manuscriptGold,
               ),
             ),
             const SizedBox(height: 24),

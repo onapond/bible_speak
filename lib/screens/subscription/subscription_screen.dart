@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/subscription.dart';
 import '../../services/iap_service.dart';
+import '../../styles/parchment_theme.dart';
 
 /// 구독 화면
 /// - 프리미엄 기능 소개
@@ -36,7 +37,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('프리미엄 구독이 활성화되었습니다!'),
-            backgroundColor: Colors.green,
+            backgroundColor: ParchmentTheme.success,
           ),
         );
       }
@@ -61,7 +62,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(_iapService.lastError ?? '결제를 시작할 수 없습니다.'),
-          backgroundColor: Colors.red,
+          backgroundColor: ParchmentTheme.error,
         ),
       );
     }
@@ -74,7 +75,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(success ? '구매 복원을 시도합니다.' : _iapService.lastError ?? '복원 실패'),
-          backgroundColor: success ? Colors.blue : Colors.red,
+          backgroundColor: success ? ParchmentTheme.categoryStudy : ParchmentTheme.error,
         ),
       );
     }

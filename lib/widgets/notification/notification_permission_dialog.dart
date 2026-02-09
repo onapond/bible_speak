@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../styles/parchment_theme.dart';
 
 /// 알림 권한 요청 다이얼로그 (다크 테마)
 class NotificationPermissionDialog extends StatelessWidget {
@@ -54,7 +55,7 @@ class NotificationPermissionDialog extends StatelessWidget {
             // 기능 목록
             _buildFeatureRow(
               Icons.wb_sunny,
-              Colors.amber,
+              ParchmentTheme.manuscriptGold,
               '아침 만나',
               '매일 아침 말씀과 함께 시작',
             ),

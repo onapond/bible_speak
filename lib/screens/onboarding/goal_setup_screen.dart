@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../models/daily_goal.dart';
 import '../../services/daily_goal_service.dart';
+import '../../styles/parchment_theme.dart';
 import 'onboarding_screen.dart';
 
 /// 목표 설정 색상 팔레트 (Warm Parchment Light Theme)
@@ -140,7 +141,7 @@ class _GoalSetupScreenState extends State<GoalSetupScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('설정 저장에 실패했습니다.'),
-            backgroundColor: Colors.red.shade700,
+            backgroundColor: ParchmentTheme.error,
           ),
         );
       }

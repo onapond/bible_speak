@@ -748,7 +748,7 @@ class _MyPageScreenState extends State<MyPageScreen>
               ],
             ),
           ),
-          const Divider(color: Colors.white12, height: 1),
+          Divider(color: ParchmentTheme.warmVellum.withValues(alpha: 0.5), height: 1),
           _buildMenuItem(
             icon: Icons.camera_alt,
             iconColor: ParchmentTheme.error,
@@ -817,7 +817,7 @@ class _MyPageScreenState extends State<MyPageScreen>
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: ParchmentTheme.ancientInk,
             ),
           ),
           const SizedBox(height: 20),
@@ -876,14 +876,14 @@ class _MyPageScreenState extends State<MyPageScreen>
           style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: ParchmentTheme.ancientInk,
           ),
         ),
         Text(
           label,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 12,
-            color: Colors.white.withValues(alpha: 0.6),
+            color: ParchmentTheme.weatheredGray,
           ),
         ),
       ],
@@ -916,14 +916,14 @@ class _MyPageScreenState extends State<MyPageScreen>
                   style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: ParchmentTheme.ancientInk,
                   ),
                 ),
-                Text(
+                const Text(
                   '연속 학습',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.white.withValues(alpha: 0.6),
+                    color: ParchmentTheme.weatheredGray,
                   ),
                 ),
               ],
@@ -932,7 +932,7 @@ class _MyPageScreenState extends State<MyPageScreen>
           Container(
             width: 1,
             height: 80,
-            color: Colors.white.withValues(alpha: 0.1),
+            color: ParchmentTheme.warmVellum.withValues(alpha: 0.5),
           ),
           Expanded(
             child: Column(
@@ -951,14 +951,14 @@ class _MyPageScreenState extends State<MyPageScreen>
                   style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: ParchmentTheme.ancientInk,
                   ),
                 ),
-                Text(
+                const Text(
                   '최장 기록',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.white.withValues(alpha: 0.6),
+                    color: ParchmentTheme.weatheredGray,
                   ),
                 ),
               ],
@@ -988,7 +988,7 @@ class _MyPageScreenState extends State<MyPageScreen>
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: ParchmentTheme.ancientInk,
             ),
           ),
           const SizedBox(height: 20),
@@ -1008,9 +1008,9 @@ class _MyPageScreenState extends State<MyPageScreen>
                     if (data.minutes > 0)
                       Text(
                         '${data.minutes}분',
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 10,
-                          color: Colors.white.withValues(alpha: 0.6),
+                          color: ParchmentTheme.weatheredGray,
                         ),
                       ),
                     const SizedBox(height: 4),
@@ -1020,16 +1020,16 @@ class _MyPageScreenState extends State<MyPageScreen>
                       decoration: BoxDecoration(
                         color: data.minutes > 0
                             ? _accentColor
-                            : Colors.white.withValues(alpha: 0.1),
+                            : ParchmentTheme.warmVellum.withValues(alpha: 0.5),
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       data.dayLabel,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 12,
-                        color: Colors.white.withValues(alpha: 0.6),
+                        color: ParchmentTheme.weatheredGray,
                       ),
                     ),
                   ],
@@ -1057,7 +1057,7 @@ class _MyPageScreenState extends State<MyPageScreen>
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: ParchmentTheme.ancientInk,
             ),
           ),
           const SizedBox(height: 16),
@@ -1099,8 +1099,8 @@ class _MyPageScreenState extends State<MyPageScreen>
         Expanded(
           child: Text(
             label,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.8),
+            style: const TextStyle(
+              color: ParchmentTheme.fadedScript,
             ),
           ),
         ),
@@ -1108,7 +1108,7 @@ class _MyPageScreenState extends State<MyPageScreen>
           value,
           style: const TextStyle(
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: ParchmentTheme.ancientInk,
           ),
         ),
       ],
@@ -1172,7 +1172,7 @@ class _MyPageScreenState extends State<MyPageScreen>
                     '${_achievementStats!.progressPercent}%',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: ParchmentTheme.ancientInk,
                     ),
                   ),
                 ),
@@ -1189,7 +1189,7 @@ class _MyPageScreenState extends State<MyPageScreen>
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: ParchmentTheme.ancientInk,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -1269,7 +1269,7 @@ class _MyPageScreenState extends State<MyPageScreen>
                         achievement.name,
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: isUnlocked ? Colors.white : Colors.white54,
+                          color: isUnlocked ? ParchmentTheme.ancientInk : ParchmentTheme.weatheredGray,
                         ),
                       ),
                     ),
@@ -1292,7 +1292,7 @@ class _MyPageScreenState extends State<MyPageScreen>
                           fontWeight: FontWeight.bold,
                           color: isUnlocked
                               ? achievement.tier.color
-                              : Colors.white38,
+                              : ParchmentTheme.weatheredGray.withValues(alpha: 0.6),
                         ),
                       ),
                     ),
@@ -1314,9 +1314,9 @@ class _MyPageScreenState extends State<MyPageScreen>
                   const SizedBox(height: 4),
                   Text(
                     '${userAch.progress}/${achievement.requirement}',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 10,
-                      color: Colors.white.withValues(alpha: 0.5),
+                      color: ParchmentTheme.weatheredGray,
                     ),
                   ),
                 ] else
@@ -1377,7 +1377,7 @@ class _MyPageScreenState extends State<MyPageScreen>
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white24,
+                color: ParchmentTheme.warmVellum,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -1387,7 +1387,7 @@ class _MyPageScreenState extends State<MyPageScreen>
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: ParchmentTheme.ancientInk,
               ),
             ),
             const SizedBox(height: 16),
@@ -1400,10 +1400,10 @@ class _MyPageScreenState extends State<MyPageScreen>
                 ),
                 child: const Icon(Icons.notifications, color: ParchmentTheme.warning, size: 22),
               ),
-              title: const Text('알림 설정', style: TextStyle(color: Colors.white)),
-              subtitle: Text('푸시 알림 관리',
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12)),
-              trailing: const Icon(Icons.chevron_right, color: Colors.white38),
+              title: const Text('알림 설정', style: TextStyle(color: ParchmentTheme.ancientInk)),
+              subtitle: const Text('푸시 알림 관리',
+                  style: TextStyle(color: ParchmentTheme.weatheredGray, fontSize: 12)),
+              trailing: Icon(Icons.chevron_right, color: ParchmentTheme.weatheredGray.withValues(alpha: 0.6)),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
@@ -1421,10 +1421,10 @@ class _MyPageScreenState extends State<MyPageScreen>
                 ),
                 child: const Icon(Icons.palette, color: ParchmentTheme.categorySocial, size: 22),
               ),
-              title: const Text('테마 설정', style: TextStyle(color: Colors.white)),
-              subtitle: Text('앱 테마 변경',
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12)),
-              trailing: const Icon(Icons.chevron_right, color: Colors.white38),
+              title: const Text('테마 설정', style: TextStyle(color: ParchmentTheme.ancientInk)),
+              subtitle: const Text('앱 테마 변경',
+                  style: TextStyle(color: ParchmentTheme.weatheredGray, fontSize: 12)),
+              trailing: Icon(Icons.chevron_right, color: ParchmentTheme.weatheredGray.withValues(alpha: 0.6)),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
@@ -1442,10 +1442,10 @@ class _MyPageScreenState extends State<MyPageScreen>
                 ),
                 child: const Icon(Icons.accessibility_new, color: ParchmentTheme.categoryMyPage, size: 22),
               ),
-              title: const Text('접근성 설정', style: TextStyle(color: Colors.white)),
-              subtitle: Text('글꼴 크기, TTS 속도',
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12)),
-              trailing: const Icon(Icons.chevron_right, color: Colors.white38),
+              title: const Text('접근성 설정', style: TextStyle(color: ParchmentTheme.ancientInk)),
+              subtitle: const Text('글꼴 크기, TTS 속도',
+                  style: TextStyle(color: ParchmentTheme.weatheredGray, fontSize: 12)),
+              trailing: Icon(Icons.chevron_right, color: ParchmentTheme.weatheredGray.withValues(alpha: 0.6)),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
@@ -1463,10 +1463,10 @@ class _MyPageScreenState extends State<MyPageScreen>
                 ),
                 child: const Icon(Icons.layers, color: Colors.brown, size: 22),
               ),
-              title: const Text('텍스처 설정', style: TextStyle(color: Colors.white)),
-              subtitle: Text('양피지 질감 효과 조절',
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12)),
-              trailing: const Icon(Icons.chevron_right, color: Colors.white38),
+              title: const Text('텍스처 설정', style: TextStyle(color: ParchmentTheme.ancientInk)),
+              subtitle: const Text('양피지 질감 효과 조절',
+                  style: TextStyle(color: ParchmentTheme.weatheredGray, fontSize: 12)),
+              trailing: Icon(Icons.chevron_right, color: ParchmentTheme.weatheredGray.withValues(alpha: 0.6)),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
@@ -1485,10 +1485,10 @@ class _MyPageScreenState extends State<MyPageScreen>
                   ),
                   child: const Icon(Icons.cloud_upload, color: Colors.deepPurple, size: 22),
                 ),
-                title: const Text('데이터 마이그레이션', style: TextStyle(color: Colors.white)),
-                subtitle: Text('관리자용',
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12)),
-                trailing: const Icon(Icons.chevron_right, color: Colors.white38),
+                title: const Text('데이터 마이그레이션', style: TextStyle(color: ParchmentTheme.ancientInk)),
+                subtitle: const Text('관리자용',
+                    style: TextStyle(color: ParchmentTheme.weatheredGray, fontSize: 12)),
+                trailing: Icon(Icons.chevron_right, color: ParchmentTheme.weatheredGray.withValues(alpha: 0.6)),
                 onTap: () {
                   Navigator.pop(context);
                   Navigator.push(
@@ -1497,7 +1497,7 @@ class _MyPageScreenState extends State<MyPageScreen>
                   );
                 },
               ),
-            const Divider(color: Colors.white12),
+            Divider(color: ParchmentTheme.warmVellum.withValues(alpha: 0.5)),
             ListTile(
               leading: Container(
                 padding: const EdgeInsets.all(10),
@@ -1507,16 +1507,16 @@ class _MyPageScreenState extends State<MyPageScreen>
                 ),
                 child: const Icon(Icons.info_outline, color: Colors.blueGrey, size: 22),
               ),
-              title: const Text('앱 정보', style: TextStyle(color: Colors.white)),
-              subtitle: Text('v1.0.0',
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12)),
-              trailing: const Icon(Icons.chevron_right, color: Colors.white38),
+              title: const Text('앱 정보', style: TextStyle(color: ParchmentTheme.ancientInk)),
+              subtitle: const Text('v1.0.0',
+                  style: TextStyle(color: ParchmentTheme.weatheredGray, fontSize: 12)),
+              trailing: Icon(Icons.chevron_right, color: ParchmentTheme.weatheredGray.withValues(alpha: 0.6)),
               onTap: () {
                 Navigator.pop(context);
                 _showAppInfoDialog();
               },
             ),
-            const Divider(color: Colors.white12),
+            Divider(color: ParchmentTheme.warmVellum.withValues(alpha: 0.5)),
             ListTile(
               leading: Container(
                 padding: const EdgeInsets.all(10),
@@ -1527,9 +1527,9 @@ class _MyPageScreenState extends State<MyPageScreen>
                 child: const Icon(Icons.logout, color: ParchmentTheme.error, size: 22),
               ),
               title: const Text('로그아웃', style: TextStyle(color: ParchmentTheme.error)),
-              subtitle: Text('계정에서 로그아웃',
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12)),
-              trailing: const Icon(Icons.chevron_right, color: Colors.white38),
+              subtitle: const Text('계정에서 로그아웃',
+                  style: TextStyle(color: ParchmentTheme.weatheredGray, fontSize: 12)),
+              trailing: Icon(Icons.chevron_right, color: ParchmentTheme.weatheredGray.withValues(alpha: 0.6)),
               onTap: () {
                 Navigator.pop(context);
                 _showLogoutConfirmDialog();
@@ -1563,7 +1563,7 @@ class _MyPageScreenState extends State<MyPageScreen>
             const Text(
               '바이블스픽',
               style: TextStyle(
-                color: Colors.white,
+                color: ParchmentTheme.ancientInk,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -1589,7 +1589,7 @@ class _MyPageScreenState extends State<MyPageScreen>
                     },
                     child: const Text(
                       '개인정보처리방침',
-                      style: TextStyle(color: Colors.white70, fontSize: 12),
+                      style: TextStyle(color: ParchmentTheme.fadedScript, fontSize: 12),
                     ),
                   ),
                 ),
@@ -1601,7 +1601,7 @@ class _MyPageScreenState extends State<MyPageScreen>
                     },
                     child: const Text(
                       '이용약관',
-                      style: TextStyle(color: Colors.white70, fontSize: 12),
+                      style: TextStyle(color: ParchmentTheme.fadedScript, fontSize: 12),
                     ),
                   ),
                 ),
@@ -1612,7 +1612,7 @@ class _MyPageScreenState extends State<MyPageScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('닫기', style: TextStyle(color: Colors.white70)),
+            child: const Text('닫기', style: TextStyle(color: ParchmentTheme.fadedScript)),
           ),
         ],
       ),
@@ -1623,8 +1623,8 @@ class _MyPageScreenState extends State<MyPageScreen>
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: const TextStyle(color: Colors.white54, fontSize: 14)),
-        Text(value, style: const TextStyle(color: Colors.white, fontSize: 14)),
+        Text(label, style: const TextStyle(color: ParchmentTheme.weatheredGray, fontSize: 14)),
+        Text(value, style: const TextStyle(color: ParchmentTheme.ancientInk, fontSize: 14)),
       ],
     );
   }
@@ -1643,7 +1643,7 @@ class _MyPageScreenState extends State<MyPageScreen>
             Text(
               '로그아웃',
               style: TextStyle(
-                color: Colors.white,
+                color: ParchmentTheme.ancientInk,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -1651,12 +1651,12 @@ class _MyPageScreenState extends State<MyPageScreen>
         ),
         content: const Text(
           '정말 로그아웃 하시겠습니까?',
-          style: TextStyle(color: Colors.white70),
+          style: TextStyle(color: ParchmentTheme.fadedScript),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('취소', style: TextStyle(color: Colors.white54)),
+            child: const Text('취소', style: TextStyle(color: ParchmentTheme.weatheredGray)),
           ),
           ElevatedButton(
             onPressed: () async {

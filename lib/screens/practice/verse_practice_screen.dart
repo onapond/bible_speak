@@ -861,7 +861,6 @@ class _VersePracticeScreenState extends ConsumerState<VersePracticeScreen> {
 
     return Column(
       children: [
-        _buildProgressBar(),
         _buildStageIndicator(),
         _buildVerseNavigator(),
         Expanded(
@@ -869,6 +868,8 @@ class _VersePracticeScreenState extends ConsumerState<VersePracticeScreen> {
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
+                _buildProgressBar(),
+                const SizedBox(height: 16),
                 _buildVerseCard(),
                 const SizedBox(height: 20),
                 _buildControlButtons(),
@@ -886,7 +887,6 @@ class _VersePracticeScreenState extends ConsumerState<VersePracticeScreen> {
 
   Widget _buildProgressBar() {
     return Container(
-      margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(

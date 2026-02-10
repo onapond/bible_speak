@@ -43,6 +43,7 @@ class _GroupSelectScreenState extends State<GroupSelectScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(() => setState(() {}));
     _loadGroups();
     _searchController.addListener(_filterGroups);
   }
@@ -381,18 +382,12 @@ class _GroupSelectScreenState extends State<GroupSelectScreen>
 
           const SizedBox(height: 16),
 
-          // 탭 컨텐츠
-          SizedBox(
-            height: 280,
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildGroupListTab(),
-                _buildCodeInputTab(),
-                _buildCreateTab(),
-              ],
-            ),
-          ),
+          // 탭 컨텐츠 (탭 인덱스 기반 — 고정 높이 불필요)
+          [
+            _buildGroupListTab(),
+            _buildCodeInputTab(),
+            _buildCreateTab(),
+          ][_tabController.index],
         ],
       ),
     );
@@ -423,102 +418,104 @@ class _GroupSelectScreenState extends State<GroupSelectScreen>
         ),
         const SizedBox(height: 12),
 
-        // 그룹 목록
-        Expanded(
-          child: _isLoading
-              ? const Center(child: CircularProgressIndicator(color: _accentColor))
-              : _filteredGroups.isEmpty
-                  ? Center(
-                      child: Text(
-                        _searchController.text.isEmpty
-                            ? '등록된 그룹이 없습니다'
-                            : '검색 결과가 없습니다',
-                        style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
-                      ),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: _filteredGroups.length,
-                      itemBuilder: (context, index) {
-                        final group = _filteredGroups[index];
-                        final isSelected = _selectedGroupId == group.id;
+        // 그룹 목록 (부모 스크롤에 통합)
+        if (_isLoading)
+          const Padding(
+            padding: EdgeInsets.all(32),
+            child: Center(child: CircularProgressIndicator(color: _accentColor)),
+          )
+        else if (_filteredGroups.isEmpty)
+          Padding(
+            padding: const EdgeInsets.all(32),
+            child: Center(
+              child: Text(
+                _searchController.text.isEmpty
+                    ? '등록된 그룹이 없습니다'
+                    : '검색 결과가 없습니다',
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+              ),
+            ),
+          )
+        else
+          ...List.generate(_filteredGroups.length, (index) {
+            final group = _filteredGroups[index];
+            final isSelected = _selectedGroupId == group.id;
 
-                        return KeyedSubtree(
-                          key: ValueKey(group.id),
-                          child: GestureDetector(
-                          onTap: () => _selectGroup(group.id, group.name),
-                          child: Container(
-                            margin: const EdgeInsets.only(bottom: 8),
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? _accentColor.withValues(alpha: 0.2)
-                                  : _bgColor,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: isSelected
-                                    ? _accentColor
-                                    : Colors.transparent,
-                                width: 2,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 40,
-                                  height: 40,
-                                  decoration: BoxDecoration(
-                                    color: _accentColor.withValues(alpha: 0.2),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      group.name.isNotEmpty
-                                          ? group.name[0]
-                                          : '?',
-                                      style: const TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: _accentColor,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        group.name,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      Text(
-                                        '${group.memberCount}명 · ${group.totalTalants} 탈란트',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.white.withValues(alpha: 0.6),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                if (isSelected)
-                                  const Icon(
-                                    Icons.check_circle,
-                                    color: _accentColor,
-                                  ),
-                              ],
+            return Padding(
+              key: ValueKey(group.id),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: GestureDetector(
+                onTap: () => _selectGroup(group.id, group.name),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? _accentColor.withValues(alpha: 0.2)
+                        : _bgColor,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isSelected
+                          ? _accentColor
+                          : Colors.transparent,
+                      width: 2,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: _accentColor.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Center(
+                          child: Text(
+                            group.name.isNotEmpty
+                                ? group.name[0]
+                                : '?',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: _accentColor,
                             ),
                           ),
                         ),
-                        );
-                      },
-                    ),
-        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              group.name,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            Text(
+                              '${group.memberCount}명 · ${group.totalTalants} 탈란트',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.white.withValues(alpha: 0.6),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (isSelected)
+                        const Icon(
+                          Icons.check_circle,
+                          color: _accentColor,
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }),
       ],
     );
   }

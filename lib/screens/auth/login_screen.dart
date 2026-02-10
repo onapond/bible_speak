@@ -479,7 +479,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             onPressed: _isLoading ? null : _signInWithEmail,
             style: ElevatedButton.styleFrom(
               backgroundColor: _LoginColors.manuscriptGold,
-              foregroundColor: Colors.white,
+              foregroundColor: ParchmentTheme.softPapyrus,
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -491,7 +491,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     height: 20,
                     width: 20,
                     child: CircularProgressIndicator(
-                      color: Colors.white,
+                      color: ParchmentTheme.softPapyrus,
                       strokeWidth: 2,
                     ),
                   )

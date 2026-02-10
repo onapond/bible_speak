@@ -328,7 +328,7 @@ class _GoalSetupScreenState extends State<GoalSetupScreen>
                     child: const Text(
                       '추천',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: ParchmentTheme.softPapyrus,
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
                       ),
@@ -440,7 +440,7 @@ class _GoalSetupScreenState extends State<GoalSetupScreen>
                       child: isSelected
                           ? const Icon(
                               Icons.check,
-                              color: Colors.white,
+                              color: ParchmentTheme.softPapyrus,
                               size: 16,
                             )
                           : null,

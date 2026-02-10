@@ -356,6 +356,36 @@ Text(
 );
 ```
 
+### 4.7 하드코딩 색상 금지 (Colors.white, Colors.black)
+
+`Colors.white`, `Colors.black` 등의 하드코딩 색상은 테마 컨텍스트(배경색)를 무시하므로 사용을 금지합니다.
+커밋 전 `scripts/ui_check.dart` 스크립트를 실행하여 자동 감지합니다.
+
+```dart
+// ❌ 금지: 배경색과 무관하게 흰색 텍스트 → 밝은 배경에서 안 보임
+Text('제목', style: TextStyle(color: Colors.white));
+
+// ✅ 권장: 테마 색상으로 배경과 대비 보장
+Text('제목', style: TextStyle(color: ParchmentTheme.ancientInk));
+// 밝은 텍스트가 필요한 경우 (어두운 배경 위)
+Text('제목', style: TextStyle(color: ParchmentTheme.softPapyrus));
+```
+
+**예외 허용:**
+- `Colors.white.withOpacity()`로 오버레이/글로우 효과에 사용하는 경우
+- `Colors.black.withOpacity()`로 그림자/장벽 효과에 사용하는 경우
+- `Colors.transparent` 사용
+
+### 4.8 커밋 전 UI 자동 검사
+
+색상/테마/폰트 관련 변경 시 커밋 전에 반드시 실행:
+
+```bash
+dart run scripts/ui_check.dart
+```
+
+이 스크립트는 pre-commit 훅에도 연동되어 있어 자동으로 실행됩니다.
+
 ### 4.4 로딩 상태 표시
 
 ```dart

@@ -18,6 +18,7 @@ import 'services/offline/offline_services.dart';
 import 'services/offline/bible_offline_service.dart';
 import 'services/accessibility_service.dart';
 import 'services/app_update_service.dart';
+import 'styles/parchment_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -166,14 +167,10 @@ class _BibleSpeakAppState extends ConsumerState<BibleSpeakApp> {
       title: '바이블 스픽',
       debugShowCheckedModeBanner: false,
       navigatorKey: _navigationService.navigatorKey,
-      theme: ThemeData(
-        primarySwatch: Colors.indigo,
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.indigo,
-          brightness: Brightness.light,
+      theme: ParchmentTheme.lightTheme.copyWith(
+        textTheme: GoogleFonts.notoSansKrTextTheme(
+          ParchmentTheme.lightTheme.textTheme,
         ),
-        textTheme: GoogleFonts.notoSansKrTextTheme(),
       ),
       builder: (context, child) {
         final settings = ref.watch(textureSettingsNotifierProvider);

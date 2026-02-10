@@ -1348,7 +1348,7 @@ class _MyPageScreenState extends State<MyPageScreen>
                 ),
                 child: const Icon(
                   Icons.card_giftcard,
-                  color: Colors.white,
+                  color: ParchmentTheme.softPapyrus,
                   size: 18,
                 ),
               ),
@@ -1671,7 +1671,7 @@ class _MyPageScreenState extends State<MyPageScreen>
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: ParchmentTheme.error,
-              foregroundColor: Colors.white,
+              foregroundColor: ParchmentTheme.softPapyrus,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),

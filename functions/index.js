@@ -1,19 +1,178 @@
-const functions = require("firebase-functions");
-const admin = require("firebase-admin");
+const functions = require("firebase-functions/v1");
+const {initializeApp} = require("firebase-admin/app");
+const {getAuth} = require("firebase-admin/auth");
+const {FieldValue, getFirestore} = require("firebase-admin/firestore");
+const {getMessaging} = require("firebase-admin/messaging");
 const fetch = require("node-fetch");
+const {
+  getKstDateParts,
+  getKstDayOfYear,
+  getKstDateStringDaysAgo,
+} = require("./time");
+const {
+  PurchaseVerificationError,
+  verifyStorePurchase,
+} = require("./purchase_verification");
 
 // Firebase Admin 초기화
-admin.initializeApp();
-
-// ESV API 키 (Firebase Functions 환경변수에서 가져오거나 직접 설정)
-const ESV_API_KEY = "03eafa93305836c02901ca31ee0f10508e950550";
+initializeApp();
+const db = getFirestore();
+const messaging = getMessaging();
 
 // CORS 헤더
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
+
+function getRequiredSecret(name) {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing required server secret: ${name}`);
+  }
+  return value;
+}
+
+async function requireAuthenticatedUser(req, res) {
+  const authorization = req.get("Authorization") || "";
+  if (!authorization.startsWith("Bearer ")) {
+    res.set(corsHeaders);
+    res.status(401).json({error: "Authentication required"});
+    return null;
+  }
+
+  try {
+    return await getAuth().verifyIdToken(authorization.substring(7));
+  } catch (error) {
+    console.warn("Invalid Firebase ID token", error.message);
+    res.set(corsHeaders);
+    res.status(401).json({error: "Invalid authentication token"});
+    return null;
+  }
+}
+
+async function enforceDailyRequestLimit(userId, feature, limit, res) {
+  const date = getKstDateParts().dateString;
+  const usageRef = db
+    .collection("internalApiUsage")
+    .doc(userId)
+    .collection("days")
+    .doc(date);
+
+  const allowed = await db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(usageRef);
+    const current = snapshot.data()?.[feature] || 0;
+    if (current >= limit) return false;
+
+    transaction.set(usageRef, {
+      [feature]: current + 1,
+      updatedAt: FieldValue.serverTimestamp(),
+    }, {merge: true});
+    return true;
+  });
+
+  if (!allowed) {
+    res.set(corsHeaders);
+    res.status(429).json({error: "Daily request limit reached"});
+  }
+  return allowed;
+}
+
+async function saveVerifiedSubscription(userId, verified) {
+  const claimRef = db.collection("purchaseClaims").doc(verified.claimKey);
+  const userRef = db.collection("users").doc(userId);
+  const subscriptionRef = userRef.collection("subscription").doc("current");
+  const subscription = {
+    planId: verified.planId,
+    expiryDate: verified.expiryDate,
+    originalTransactionId: verified.originalTransactionId,
+    isActive: true,
+    source: verified.source,
+    environment: verified.environment,
+    serverVerified: true,
+  };
+
+  await db.runTransaction(async (transaction) => {
+    const existingClaim = await transaction.get(claimRef);
+    if (existingClaim.exists && existingClaim.data().userId !== userId) {
+      throw new PurchaseVerificationError(
+        "purchase_already_claimed",
+        "Purchase belongs to another account",
+        409,
+      );
+    }
+
+    transaction.set(claimRef, {
+      userId,
+      source: verified.source,
+      productId: verified.planId,
+      originalTransactionId: verified.originalTransactionId,
+      updatedAt: FieldValue.serverTimestamp(),
+    }, {merge: true});
+    transaction.set(subscriptionRef, {
+      ...subscription,
+      verifiedAt: FieldValue.serverTimestamp(),
+    });
+    transaction.set(userRef, {
+      isPremium: true,
+      subscriptionExpiry: verified.expiryDate,
+      updatedAt: FieldValue.serverTimestamp(),
+    }, {merge: true});
+  });
+
+  return subscription;
+}
+
+/**
+ * Google Play/App Store 구독 영수증을 스토어 서버에서 검증한다.
+ * 검증 성공 전에는 어떤 프리미엄 권한도 부여하지 않는다.
+ */
+exports.verifySubscriptionPurchase = functions
+  .region("asia-northeast3")
+  .runWith({
+    secrets: [
+      "APPLE_APP_ID",
+      "APPLE_IAP_KEY_ID",
+      "APPLE_IAP_ISSUER_ID",
+      "APPLE_IAP_PRIVATE_KEY",
+    ],
+    timeoutSeconds: 60,
+    memory: "512MB",
+  })
+  .https.onRequest(async (req, res) => {
+    if (req.method === "OPTIONS") {
+      res.set(corsHeaders);
+      res.status(204).send("");
+      return;
+    }
+    if (req.method !== "POST") {
+      res.set(corsHeaders);
+      res.status(405).json({error: "Method Not Allowed"});
+      return;
+    }
+
+    const user = await requireAuthenticatedUser(req, res);
+    if (!user) return;
+    if (!(await enforceDailyRequestLimit(user.uid, "purchaseVerification", 20, res))) return;
+
+    try {
+      const verified = await verifyStorePurchase(req.body, user.uid);
+      const subscription = await saveVerifiedSubscription(user.uid, verified);
+      res.set(corsHeaders);
+      res.status(200).json({subscription});
+    } catch (error) {
+      if (error instanceof PurchaseVerificationError) {
+        console.warn(`Purchase verification rejected: ${error.code}`);
+        res.set(corsHeaders);
+        res.status(error.httpStatus).json({error: error.code});
+        return;
+      }
+      console.error("Purchase verification failed", error);
+      res.set(corsHeaders);
+      res.status(502).json({error: "store_verification_failed"});
+    }
+  });
 
 /**
  * ESV 오디오 프록시 함수
@@ -23,6 +182,7 @@ const corsHeaders = {
  */
 exports.esvAudio = functions
   .region("asia-northeast3") // 서울 리전
+  .runWith({secrets: ["ESV_API_KEY"]})
   .https.onRequest(async (req, res) => {
     // CORS preflight 처리
     if (req.method === "OPTIONS") {
@@ -38,6 +198,10 @@ exports.esvAudio = functions
       return;
     }
 
+    const user = await requireAuthenticatedUser(req, res);
+    if (!user) return;
+    if (!(await enforceDailyRequestLimit(user.uid, "esvAudio", 500, res))) return;
+
     const reference = req.query.q;
 
     if (!reference) {
@@ -47,13 +211,14 @@ exports.esvAudio = functions
     }
 
     try {
+      const esvApiKey = getRequiredSecret("ESV_API_KEY");
       console.log(`Fetching ESV audio for: ${reference}`);
 
       const esvUrl = `https://api.esv.org/v3/passage/audio/?q=${encodeURIComponent(reference)}`;
 
       const response = await fetch(esvUrl, {
         headers: {
-          Authorization: `Token ${ESV_API_KEY}`,
+          Authorization: `Token ${esvApiKey}`,
         },
         redirect: "follow",
       });
@@ -85,11 +250,197 @@ exports.esvAudio = functions
   });
 
 /**
+ * ESV 본문 프록시. API 키를 앱 번들에 포함하지 않는다.
+ */
+exports.esvText = functions
+  .region("asia-northeast3")
+  .runWith({secrets: ["ESV_API_KEY"]})
+  .https.onRequest(async (req, res) => {
+    if (req.method === "OPTIONS") {
+      res.set(corsHeaders);
+      res.status(204).send("");
+      return;
+    }
+    if (req.method !== "GET") {
+      res.set(corsHeaders);
+      res.status(405).send("Method Not Allowed");
+      return;
+    }
+    const user = await requireAuthenticatedUser(req, res);
+    if (!user) return;
+    if (!(await enforceDailyRequestLimit(user.uid, "esvText", 100, res))) return;
+
+    const reference = req.query.q;
+    if (typeof reference !== "string" || reference.length === 0 || reference.length > 100) {
+      res.set(corsHeaders);
+      res.status(400).json({error: "Invalid q parameter"});
+      return;
+    }
+
+    try {
+      const params = new URLSearchParams({
+        q: reference,
+        "include-passage-references": "false",
+        "include-verse-numbers": "true",
+        "include-first-verse-numbers": "true",
+        "include-footnotes": "false",
+        "include-headings": "false",
+        "include-short-copyright": "false",
+        "indent-paragraphs": "0",
+        "indent-poetry": "false",
+        "indent-declares": "0",
+        "indent-psalm-doxology": "0",
+      });
+      const response = await fetch(`https://api.esv.org/v3/passage/text/?${params}`, {
+        headers: {Authorization: `Token ${getRequiredSecret("ESV_API_KEY")}`},
+      });
+      const payload = await response.text();
+      res.set({...corsHeaders, "Content-Type": "application/json"});
+      res.status(response.status).send(payload);
+    } catch (error) {
+      console.error("Error fetching ESV text:", error);
+      res.set(corsHeaders);
+      res.status(500).json({error: "Unable to fetch Bible text"});
+    }
+  });
+
+/**
+ * Azure Speech 발음 평가 프록시.
+ */
+exports.pronunciationAssessment = functions
+  .region("asia-northeast3")
+  .runWith({
+    secrets: ["AZURE_SPEECH_KEY"],
+    timeoutSeconds: 60,
+    memory: "512MB",
+  })
+  .https.onRequest(async (req, res) => {
+    if (req.method === "OPTIONS") {
+      res.set(corsHeaders);
+      res.status(204).send("");
+      return;
+    }
+    if (req.method !== "POST") {
+      res.set(corsHeaders);
+      res.status(405).send("Method Not Allowed");
+      return;
+    }
+    const user = await requireAuthenticatedUser(req, res);
+    if (!user) return;
+    if (!(await enforceDailyRequestLimit(user.uid, "pronunciation", 100, res))) return;
+
+    const {audioBase64, referenceText, language = "en-US"} = req.body || {};
+    if (typeof audioBase64 !== "string" || typeof referenceText !== "string" ||
+        referenceText.length === 0 || referenceText.length > 1000) {
+      res.set(corsHeaders);
+      res.status(400).json({error: "Invalid pronunciation request"});
+      return;
+    }
+
+    const audioBuffer = Buffer.from(audioBase64, "base64");
+    if (audioBuffer.length < 1000 || audioBuffer.length > 10 * 1024 * 1024) {
+      res.set(corsHeaders);
+      res.status(400).json({error: "Invalid audio size"});
+      return;
+    }
+
+    const pronunciationConfig = Buffer.from(JSON.stringify({
+      ReferenceText: referenceText,
+      GradingSystem: "HundredMark",
+      Granularity: "Phoneme",
+      EnableMiscue: true,
+      EnableProsodyAssessment: true,
+    })).toString("base64");
+    const region = process.env.AZURE_SPEECH_REGION || "koreacentral";
+    const endpoint = `https://${region}.stt.speech.microsoft.com/` +
+      "speech/recognition/conversation/cognitiveservices/v1" +
+      `?language=${encodeURIComponent(language)}&format=detailed`;
+
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Ocp-Apim-Subscription-Key": getRequiredSecret("AZURE_SPEECH_KEY"),
+          "Content-Type": "audio/wav",
+          "Pronunciation-Assessment": pronunciationConfig,
+          Accept: "application/json",
+        },
+        body: audioBuffer,
+      });
+      const payload = await response.text();
+      res.set({...corsHeaders, "Content-Type": "application/json"});
+      res.status(response.status).send(payload);
+    } catch (error) {
+      console.error("Azure pronunciation request failed:", error);
+      res.set(corsHeaders);
+      res.status(502).json({error: "Pronunciation service unavailable"});
+    }
+  });
+
+/**
+ * Gemini 피드백 프록시. 프롬프트 길이를 제한해 오용 범위를 줄인다.
+ */
+exports.geminiFeedback = functions
+  .region("asia-northeast3")
+  .runWith({secrets: ["GEMINI_API_KEY"]})
+  .https.onRequest(async (req, res) => {
+    if (req.method === "OPTIONS") {
+      res.set(corsHeaders);
+      res.status(204).send("");
+      return;
+    }
+    if (req.method !== "POST") {
+      res.set(corsHeaders);
+      res.status(405).send("Method Not Allowed");
+      return;
+    }
+    const user = await requireAuthenticatedUser(req, res);
+    if (!user) return;
+    if (!(await enforceDailyRequestLimit(user.uid, "gemini", 100, res))) return;
+
+    const {prompt} = req.body || {};
+    if (typeof prompt !== "string" || prompt.length === 0 || prompt.length > 4000) {
+      res.set(corsHeaders);
+      res.status(400).json({error: "Invalid prompt"});
+      return;
+    }
+
+    try {
+      const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+      const url = "https://generativelanguage.googleapis.com/v1beta/models/" +
+        `${model}:generateContent?key=${getRequiredSecret("GEMINI_API_KEY")}`;
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          contents: [{parts: [{text: prompt}]}],
+          generationConfig: {temperature: 0.7, maxOutputTokens: 300},
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        console.error("Gemini API error", response.status, payload?.error?.message);
+        res.set(corsHeaders);
+        res.status(response.status).json({error: "AI feedback unavailable"});
+        return;
+      }
+      const text = payload?.candidates?.[0]?.content?.parts?.[0]?.text;
+      res.set(corsHeaders);
+      res.status(200).json({text: typeof text === "string" ? text : ""});
+    } catch (error) {
+      console.error("Gemini feedback request failed:", error);
+      res.set(corsHeaders);
+      res.status(502).json({error: "AI feedback unavailable"});
+    }
+  });
+
+/**
  * ElevenLabs TTS 프록시 함수 (선택적)
  * 웹에서 TTS 기능 사용을 위한 프록시
  */
 exports.elevenLabsTts = functions
   .region("asia-northeast3")
+  .runWith({secrets: ["ELEVENLABS_API_KEY"]})
   .https.onRequest(async (req, res) => {
     // CORS preflight
     if (req.method === "OPTIONS") {
@@ -104,13 +455,16 @@ exports.elevenLabsTts = functions
       return;
     }
 
-    const ELEVENLABS_API_KEY = "a37eb906f7735ff06fe51303dce546cd36866f40e59be609a8686a13f2b6b1e5";
+    const user = await requireAuthenticatedUser(req, res);
+    if (!user) return;
+    if (!(await enforceDailyRequestLimit(user.uid, "elevenLabs", 200, res))) return;
+
     const VOICE_ID = "21m00Tcm4TlvDq8ikWAM";
 
     try {
       const {text} = req.body;
 
-      if (!text) {
+      if (typeof text !== "string" || text.length === 0 || text.length > 1000) {
         res.set(corsHeaders);
         res.status(400).send("Missing 'text' in request body");
         return;
@@ -121,7 +475,7 @@ exports.elevenLabsTts = functions
           {
             method: "POST",
             headers: {
-              "xi-api-key": ELEVENLABS_API_KEY,
+              "xi-api-key": getRequiredSecret("ELEVENLABS_API_KEY"),
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
@@ -160,9 +514,6 @@ exports.elevenLabsTts = functions
 // ============================================================================
 // FCM 푸시 알림 함수들
 // ============================================================================
-
-const db = admin.firestore();
-const messaging = admin.messaging();
 
 /**
  * 사용자의 FCM 토큰 목록 가져오기
@@ -273,7 +624,7 @@ exports.sendStreakWarning = functions
   .onRun(async (context) => {
     console.log("Running streak warning job at 21:00 KST");
 
-    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+    const today = getKstDateParts().dateString;
 
     // 오늘 학습하지 않은 사용자 조회 (스트릭이 1 이상인 사용자)
     const usersSnapshot = await db
@@ -430,9 +781,7 @@ exports.sendWeeklySummary = functions
     console.log("Running weekly summary job");
 
     // 활성 사용자 조회 (최근 7일 내 학습 기록)
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    const weekAgoStr = weekAgo.toISOString().split("T")[0];
+    const weekAgoStr = getKstDateStringDaysAgo(7);
 
     const usersSnapshot = await db
       .collection("users")
@@ -559,13 +908,11 @@ exports.selectDailyVerse = functions
   .onRun(async (context) => {
     console.log("Selecting daily verse at 00:00 KST");
 
-    const today = new Date();
-    const dateStr = today.toISOString().split("T")[0];
+    const now = new Date();
+    const {dateString: dateStr} = getKstDateParts(now);
 
     // 날짜 기반 인덱스 (일정하게 순환)
-    const dayOfYear = Math.floor(
-      (today - new Date(today.getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24)
-    );
+    const dayOfYear = getKstDayOfYear(now);
     const verseIndex = dayOfYear % DAILY_VERSES.length;
     const selectedVerse = DAILY_VERSES[verseIndex];
 
@@ -573,7 +920,7 @@ exports.selectDailyVerse = functions
     await db.collection("global").doc("dailyVerse").set({
       ...selectedVerse,
       date: dateStr,
-      selectedAt: admin.firestore.FieldValue.serverTimestamp(),
+      selectedAt: FieldValue.serverTimestamp(),
     });
 
     console.log(`Daily verse selected: ${selectedVerse.reference}`);
@@ -590,7 +937,8 @@ exports.sendMorningManna = functions
   .timeZone("Asia/Seoul")
   .onRun(async (context) => {
     const now = new Date();
-    const currentHour = now.getHours().toString().padStart(2, "0");
+    const {day, hour} = getKstDateParts(now);
+    const currentHour = hour.toString().padStart(2, "0");
     const targetTime = `${currentHour}:00`;
 
     console.log(`Running morning manna for ${targetTime}`);
@@ -603,7 +951,7 @@ exports.sendMorningManna = functions
       dailyVerse = dailyVerseDoc.data();
     } else {
       // 기본값 (selectDailyVerse가 아직 실행되지 않은 경우)
-      const fallbackIndex = now.getDate() % DAILY_VERSES.length;
+      const fallbackIndex = day % DAILY_VERSES.length;
       dailyVerse = DAILY_VERSES[fallbackIndex];
     }
 
@@ -673,7 +1021,7 @@ exports.sendNudgeNotification = functions
     console.log(`Nudge created for user ${userId} from ${fromUserId}:`, nudge);
 
     // 1. Rate Limit 체크 - 발신자의 일일 찌르기 횟수
-    const today = new Date().toISOString().split("T")[0];
+    const today = getKstDateParts().dateString;
     const senderStatsRef = db
       .collection("users")
       .doc(fromUserId)
@@ -751,9 +1099,9 @@ exports.sendNudgeNotification = functions
     // 6. 발신자 통계 업데이트
     await senderStatsRef.set(
       {
-        nudgesSent: admin.firestore.FieldValue.increment(1),
-        [`nudgesTo.${userId}`]: admin.firestore.FieldValue.serverTimestamp(),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        nudgesSent: FieldValue.increment(1),
+        [`nudgesTo.${userId}`]: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
       },
       { merge: true }
     );
@@ -761,7 +1109,7 @@ exports.sendNudgeNotification = functions
     // 7. nudge 문서 업데이트
     await snap.ref.update({
       delivered: result.success > 0,
-      deliveredAt: admin.firestore.FieldValue.serverTimestamp(),
+      deliveredAt: FieldValue.serverTimestamp(),
     });
 
     console.log(`Nudge delivered: ${result.success > 0}`);

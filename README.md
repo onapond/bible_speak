@@ -43,19 +43,32 @@
 flutter pub get
 ```
 
-### 2. 환경 변수 설정
-`.env` 파일 생성:
-```
-ESV_API_KEY=...
-GEMINI_API_KEY=...
-AZURE_SPEECH_KEY=...
-AZURE_SPEECH_REGION=koreacentral
+### 2. 서버 비밀키 설정
+
+외부 API 키는 앱에 넣지 않고 Firebase Functions Secret으로 설정합니다.
+
+```bash
+firebase functions:secrets:set ESV_API_KEY
+firebase functions:secrets:set GEMINI_API_KEY
+firebase functions:secrets:set AZURE_SPEECH_KEY
+firebase functions:secrets:set ELEVENLABS_API_KEY
+firebase functions:secrets:set APPLE_APP_ID
+firebase functions:secrets:set APPLE_IAP_KEY_ID
+firebase functions:secrets:set APPLE_IAP_ISSUER_ID
+firebase functions:secrets:set APPLE_IAP_PRIVATE_KEY
+firebase deploy --only functions
 ```
 
-### 3. 웹 빌드 (API 키 주입 필수)
+이미 저장소에 노출된 키는 반드시 공급자 콘솔에서 폐기하고 새 키로 교체해야 합니다.
+Google Play 구독 검증을 위해 Functions 런타임 서비스 계정에 Play Console의
+앱 조회 권한도 부여해야 합니다. 세부 절차는 `docs/deploy/WEB.md`를 확인합니다.
+
+### 3. 웹 빌드
 ```powershell
 powershell -ExecutionPolicy Bypass -File build_web.ps1
 ```
+
+기본 Functions 주소가 아닌 경우 공개 설정인 `API_BASE_URL`만 환경 변수로 지정합니다.
 
 ### 4. 배포
 ```bash

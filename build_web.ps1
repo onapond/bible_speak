@@ -1,22 +1,10 @@
 # Web build script - English comments only to avoid encoding issues
 
-if (Test-Path .env) {
-    Get-Content .env | ForEach-Object {
-        if ($_ -match '^([^#][^=]+)=(.*)$') {
-            [Environment]::SetEnvironmentVariable($matches[1], $matches[2])
-        }
-    }
-}
-
 $ts = Get-Date -Format "yyyyMMddHHmmss"
 Write-Host "Build: $ts"
 
 flutter build web --release --pwa-strategy=offline-first `
-    --dart-define="ESV_API_KEY=$env:ESV_API_KEY" `
-    --dart-define="GEMINI_API_KEY=$env:GEMINI_API_KEY" `
-    --dart-define="ELEVENLABS_API_KEY=$env:ELEVENLABS_API_KEY" `
-    --dart-define="AZURE_SPEECH_KEY=$env:AZURE_SPEECH_KEY" `
-    --dart-define="AZURE_SPEECH_REGION=$env:AZURE_SPEECH_REGION"
+    --dart-define="API_BASE_URL=$(if ($env:API_BASE_URL) { $env:API_BASE_URL } else { 'https://asia-northeast3-bible-speak.cloudfunctions.net' })"
 
 # version.json
 $vj = @{ version = $ts; buildDate = (Get-Date -Format "yyyy-MM-dd HH:mm:ss") } | ConvertTo-Json

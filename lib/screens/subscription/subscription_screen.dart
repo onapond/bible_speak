@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../models/subscription.dart';
 import '../../services/iap_service.dart';
@@ -19,6 +20,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   SubscriptionPlan _selectedPlan = SubscriptionPlan.yearly;
   bool _isLoading = true;
   bool _isPurchasing = false;
+  StreamSubscription<UserSubscription>? _subscriptionListener;
 
   @override
   void initState() {
@@ -31,7 +33,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     setState(() => _isLoading = false);
 
     // 구독 상태 변경 리스닝
-    _iapService.subscriptionStream.listen((subscription) {
+    _subscriptionListener =
+        _iapService.subscriptionStream.listen((subscription) {
       if (subscription.isPremium && mounted) {
         Navigator.of(context).pop(true);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -46,7 +49,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
   @override
   void dispose() {
-    _iapService.dispose();
+    _subscriptionListener?.cancel();
     super.dispose();
   }
 
@@ -74,8 +77,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(success ? '구매 복원을 시도합니다.' : _iapService.lastError ?? '복원 실패'),
-          backgroundColor: success ? ParchmentTheme.categoryStudy : ParchmentTheme.error,
+          content: Text(
+              success ? '구매 복원을 시도합니다.' : _iapService.lastError ?? '복원 실패'),
+          backgroundColor:
+              success ? ParchmentTheme.categoryStudy : ParchmentTheme.error,
         ),
       );
     }
@@ -171,7 +176,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             'AI 튜터와 함께하는 무제한 영어 성경 암송',
             style: TextStyle(
               fontSize: 16,
-              color: Colors.white.withValues(alpha:0.7),
+              color: Colors.white.withValues(alpha: 0.7),
             ),
             textAlign: TextAlign.center,
           ),
@@ -194,7 +199,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha:0.1),
+                    color: Colors.white.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Center(
@@ -225,7 +230,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                         feature.description,
                         style: TextStyle(
                           fontSize: 13,
-                          color: Colors.white.withValues(alpha:0.6),
+                          color: Colors.white.withValues(alpha: 0.6),
                         ),
                       ),
                     ],
@@ -276,10 +281,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     String? badge,
   }) {
     final product = _iapService.getProduct(plan);
-    final priceString = product?.price ?? '₩${plan.priceKRW.toString().replaceAllMapped(
-      RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]},',
-    )}';
+    final priceString = product?.price ??
+        '₩${plan.priceKRW.toString().replaceAllMapped(
+              RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+              (Match m) => '${m[1]},',
+            )}';
 
     return GestureDetector(
       onTap: () => setState(() => _selectedPlan = plan),
@@ -289,7 +295,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           color: isSelected ? const Color(0xFF2D2D44) : Colors.transparent,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? const Color(0xFFFFD700) : Colors.white.withValues(alpha:0.2),
+            color: isSelected
+                ? const Color(0xFFFFD700)
+                : Colors.white.withValues(alpha: 0.2),
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -302,7 +310,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isSelected ? const Color(0xFFFFD700) : Colors.white.withValues(alpha:0.4),
+                  color: isSelected
+                      ? const Color(0xFFFFD700)
+                      : Colors.white.withValues(alpha: 0.4),
                   width: 2,
                 ),
               ),
@@ -336,7 +346,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                       if (badge != null) ...[
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
                             color: const Color(0xFFFF6B6B),
                             borderRadius: BorderRadius.circular(4),
@@ -357,13 +368,13 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   Text(
                     plan == SubscriptionPlan.yearly
                         ? '월 ₩${plan.monthlyEquivalent.toString().replaceAllMapped(
-                            RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
-                            (Match m) => '${m[1]},',
-                          )}원 상당'
+                              RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+                              (Match m) => '${m[1]},',
+                            )}원 상당'
                         : '매월 자동 갱신',
                     style: TextStyle(
                       fontSize: 13,
-                      color: Colors.white.withValues(alpha:0.6),
+                      color: Colors.white.withValues(alpha: 0.6),
                     ),
                   ),
                 ],
@@ -432,7 +443,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               '이전 구매 복원',
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.white.withValues(alpha:0.7),
+                color: Colors.white.withValues(alpha: 0.7),
               ),
             ),
           ),
@@ -452,7 +463,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             '구독 및 자동 갱신은 구매 후 계정 설정에서 관리할 수 있습니다.',
             style: TextStyle(
               fontSize: 11,
-              color: Colors.white.withValues(alpha:0.4),
+              color: Colors.white.withValues(alpha: 0.4),
               height: 1.5,
             ),
             textAlign: TextAlign.center,
@@ -472,13 +483,13 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   '이용약관',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.white.withValues(alpha:0.5),
+                    color: Colors.white.withValues(alpha: 0.5),
                   ),
                 ),
               ),
               Text(
                 '|',
-                style: TextStyle(color: Colors.white.withValues(alpha:0.3)),
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
               ),
               TextButton(
                 onPressed: () {
@@ -488,7 +499,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   '개인정보처리방침',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.white.withValues(alpha:0.5),
+                    color: Colors.white.withValues(alpha: 0.5),
                   ),
                 ),
               ),

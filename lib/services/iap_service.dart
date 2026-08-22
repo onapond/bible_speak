@@ -1,16 +1,25 @@
 import 'dart:async';
-import 'dart:io';
+import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:crypto/crypto.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../config/app_config.dart';
 import '../models/subscription.dart';
+import 'api/authenticated_api_client.dart';
 
 /// 인앱 결제 서비스
 /// - iOS/Android 구독 관리
 /// - Firestore 구독 상태 동기화
 /// - 로컬 캐시로 오프라인 지원
 class IAPService {
+  static final IAPService _instance = IAPService._internal();
+
+  factory IAPService() => _instance;
+
+  IAPService._internal();
+
   static const String _localSubscriptionKey = 'bible_speak_subscription';
   static const String _dailyCountKey = 'bible_speak_daily_count';
   static const String _dailyDateKey = 'bible_speak_daily_date';
@@ -20,7 +29,9 @@ class IAPService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   SharedPreferences? _prefs;
-  StreamSubscription<List<PurchaseDetails>>? _purchaseSubscription;
+  Future<void>? _initialization;
+  bool _isInitialized = false;
+  String? _loadedUserId;
 
   // 상품 정보 캐시
   final Map<String, ProductDetails> _products = {};
@@ -30,8 +41,10 @@ class IAPService {
   UserSubscription get currentSubscription => _currentSubscription;
 
   // 구독 상태 스트림
-  final _subscriptionController = StreamController<UserSubscription>.broadcast();
-  Stream<UserSubscription> get subscriptionStream => _subscriptionController.stream;
+  final _subscriptionController =
+      StreamController<UserSubscription>.broadcast();
+  Stream<UserSubscription> get subscriptionStream =>
+      _subscriptionController.stream;
 
   // 구매 진행 중 여부
   bool _isPurchasing = false;
@@ -43,17 +56,43 @@ class IAPService {
 
   /// 초기화
   Future<void> init() async {
+    final userId = _auth.currentUser?.uid;
+    if (_isInitialized) {
+      if (_loadedUserId != userId) {
+        await _loadSubscriptionStatus();
+      }
+      return;
+    }
+
+    if (_initialization != null) {
+      await _initialization;
+      return;
+    }
+
+    _initialization = _initialize();
+    try {
+      await _initialization;
+    } finally {
+      _initialization = null;
+    }
+  }
+
+  Future<void> _initialize() async {
     _prefs = await SharedPreferences.getInstance();
+
+    // 스토어를 사용할 수 없는 플랫폼에서도 서버 구독 상태는 반영한다.
+    await _loadSubscriptionStatus();
 
     // 스토어 가용성 확인
     final available = await _iap.isAvailable();
     if (!available) {
       _lastError = '인앱 결제를 사용할 수 없습니다.';
+      _isInitialized = true;
       return;
     }
 
     // 구매 이벤트 리스닝
-    _purchaseSubscription = _iap.purchaseStream.listen(
+    _iap.purchaseStream.listen(
       _handlePurchaseUpdates,
       onError: (error) {
         _lastError = '결제 오류: $error';
@@ -63,11 +102,7 @@ class IAPService {
     // 상품 정보 로드
     await _loadProducts();
 
-    // 현재 구독 상태 로드
-    await _loadSubscriptionStatus();
-
-    // 보류 중인 구매 확인
-    await _restorePurchases();
+    _isInitialized = true;
   }
 
   /// 상품 정보 로드
@@ -95,8 +130,11 @@ class IAPService {
 
   /// 구독 상태 로드
   Future<void> _loadSubscriptionStatus() async {
+    _currentSubscription = UserSubscription.free();
+
     // Firestore에서 로드 시도
     final userId = _auth.currentUser?.uid;
+    _loadedUserId = userId;
     if (userId != null) {
       try {
         final doc = await _firestore
@@ -125,20 +163,22 @@ class IAPService {
   Future<void> _loadFromLocal() async {
     if (_prefs == null) return;
 
-    final json = _prefs!.getString(_localSubscriptionKey);
+    final json = _prefs!.getString(_scopedKey(_localSubscriptionKey));
     if (json != null) {
       try {
         // 간단한 파싱 (실제로는 JSON 사용 권장)
         final parts = json.split('|');
         if (parts.length >= 3) {
-          final plan = SubscriptionPlan.fromProductId(parts[0]) ?? SubscriptionPlan.free;
+          final plan =
+              SubscriptionPlan.fromProductId(parts[0]) ?? SubscriptionPlan.free;
           final expiryDate = DateTime.tryParse(parts[1]);
           final isActive = parts[2] == 'true';
 
           _currentSubscription = UserSubscription(
             plan: plan,
             expiryDate: expiryDate,
-            isActive: isActive && (expiryDate?.isAfter(DateTime.now()) ?? false),
+            isActive:
+                isActive && (expiryDate?.isAfter(DateTime.now()) ?? false),
           );
           _subscriptionController.add(_currentSubscription);
         }
@@ -156,7 +196,7 @@ class IAPService {
         '${subscription.expiryDate?.toIso8601String() ?? ''}|'
         '${subscription.isActive}';
 
-    await _prefs!.setString(_localSubscriptionKey, json);
+    await _prefs!.setString(_scopedKey(_localSubscriptionKey), json);
   }
 
   /// 상품 정보 가져오기
@@ -173,6 +213,10 @@ class IAPService {
       _lastError = '이미 결제가 진행 중입니다.';
       return false;
     }
+    if (_auth.currentUser == null) {
+      _lastError = '결제하려면 먼저 로그인해주세요.';
+      return false;
+    }
 
     final product = _products[plan.productId];
     if (product == null) {
@@ -184,7 +228,10 @@ class IAPService {
     _lastError = null;
 
     try {
-      final purchaseParam = PurchaseParam(productDetails: product);
+      final purchaseParam = PurchaseParam(
+        productDetails: product,
+        applicationUserName: _accountToken(_auth.currentUser!.uid),
+      );
 
       // 구독 상품 구매
       final success = await _iap.buyNonConsumable(purchaseParam: purchaseParam);
@@ -203,21 +250,19 @@ class IAPService {
     }
   }
 
-  /// 구매 복원
-  Future<void> _restorePurchases() async {
-    try {
-      await _iap.restorePurchases();
-    } catch (e) {
-      _lastError = '구매 복원 실패: $e';
-    }
-  }
-
   /// 구매 복원 (사용자 요청)
   Future<bool> restorePurchases() async {
     _lastError = null;
 
     try {
-      await _iap.restorePurchases();
+      final user = _auth.currentUser;
+      if (user == null) {
+        _lastError = '구매를 복원하려면 먼저 로그인해주세요.';
+        return false;
+      }
+      await _iap.restorePurchases(
+        applicationUserName: _accountToken(user.uid),
+      );
       return true;
     } catch (e) {
       _lastError = '구매 복원 실패: $e';
@@ -234,98 +279,96 @@ class IAPService {
 
   /// 개별 구매 처리
   Future<void> _handlePurchase(PurchaseDetails purchase) async {
+    var shouldCompletePurchase = false;
     switch (purchase.status) {
       case PurchaseStatus.pending:
         // 결제 대기 중
         break;
 
       case PurchaseStatus.purchased:
+        shouldCompletePurchase = await _verifyAndActivate(purchase);
+        break;
+
       case PurchaseStatus.restored:
-        // 결제 완료 또는 복원
-        await _verifyAndActivate(purchase);
+        shouldCompletePurchase = await _verifyAndActivate(purchase);
         break;
 
       case PurchaseStatus.error:
         _isPurchasing = false;
         _lastError = purchase.error?.message ?? '결제 오류가 발생했습니다.';
+        shouldCompletePurchase = true;
         break;
 
       case PurchaseStatus.canceled:
         _isPurchasing = false;
         _lastError = '결제가 취소되었습니다.';
+        shouldCompletePurchase = true;
         break;
     }
 
-    // 구매 완료 처리
-    if (purchase.pendingCompletePurchase) {
+    // 서버 검증이 실패한 구매는 완료 처리하지 않는다. 네트워크나 스토어
+    // 장애가 해소되면 purchaseStream으로 다시 전달되어 검증할 수 있다.
+    if (shouldCompletePurchase && purchase.pendingCompletePurchase) {
       await _iap.completePurchase(purchase);
     }
   }
 
-  /// 구매 검증 및 활성화
-  Future<void> _verifyAndActivate(PurchaseDetails purchase) async {
-    _isPurchasing = false;
-
-    // 상품 ID에서 플랜 확인
+  /// 서버에서 스토어 원본 데이터를 검증한 뒤에만 구독을 활성화한다.
+  Future<bool> _verifyAndActivate(PurchaseDetails purchase) async {
     final plan = SubscriptionPlan.fromProductId(purchase.productID);
     if (plan == null || plan == SubscriptionPlan.free) {
+      _isPurchasing = false;
       _lastError = '알 수 없는 상품입니다.';
-      return;
+      return false;
     }
-
-    // 만료일 계산
-    final now = DateTime.now();
-    final expiryDate = plan == SubscriptionPlan.yearly
-        ? now.add(const Duration(days: 365))
-        : now.add(const Duration(days: 30));
-
-    // 구독 상태 업데이트
-    _currentSubscription = UserSubscription(
-      plan: plan,
-      expiryDate: expiryDate,
-      originalTransactionId: _getTransactionId(purchase),
-      isActive: true,
-    );
-
-    _subscriptionController.add(_currentSubscription);
-
-    // Firestore에 저장
-    await _saveToFirestore(_currentSubscription);
-
-    // 로컬에 저장
-    await _saveToLocal(_currentSubscription);
-  }
-
-  /// 트랜잭션 ID 추출
-  String? _getTransactionId(PurchaseDetails purchase) {
-    if (Platform.isIOS) {
-      return purchase.purchaseID;
-    } else if (Platform.isAndroid) {
-      return purchase.purchaseID;
-    }
-    return null;
-  }
-
-  /// Firestore에 저장
-  Future<void> _saveToFirestore(UserSubscription subscription) async {
-    final userId = _auth.currentUser?.uid;
-    if (userId == null) return;
 
     try {
-      await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('subscription')
-          .doc('current')
-          .set(subscription.toMap());
+      final verificationData = purchase.verificationData.serverVerificationData;
+      if (verificationData.isEmpty) {
+        _lastError = '스토어 검증 정보를 찾을 수 없습니다.';
+        return false;
+      }
 
-      // 사용자 문서에도 프리미엄 상태 저장 (빠른 조회용)
-      await _firestore.collection('users').doc(userId).set({
-        'isPremium': subscription.isPremium,
-        'subscriptionExpiry': subscription.expiryDate?.toIso8601String(),
-      }, SetOptions(merge: true));
-    } catch (e) {
-      // Firestore 저장 실패 시 로컬에만 저장됨
+      final response = await AuthenticatedApiClient.postJson(
+        Uri.parse(AppConfig.verifySubscriptionPurchaseUrl),
+        {
+          'source': purchase.verificationData.source,
+          'productId': purchase.productID,
+          'verificationData': verificationData,
+          'purchaseId': purchase.purchaseID,
+        },
+      );
+      final payload = jsonDecode(response.body);
+      if (response.statusCode != 200 || payload is! Map<String, dynamic>) {
+        _lastError = response.statusCode == 409
+            ? '이 구매는 다른 계정에 연결되어 있습니다.'
+            : '스토어 구매 검증에 실패했습니다. 잠시 후 다시 시도해주세요.';
+        return false;
+      }
+
+      final subscriptionMap = payload['subscription'];
+      if (subscriptionMap is! Map<String, dynamic>) {
+        _lastError = '서버의 구독 응답이 올바르지 않습니다.';
+        return false;
+      }
+
+      final verifiedSubscription = UserSubscription.fromMap(subscriptionMap);
+      if (!verifiedSubscription.isPremium ||
+          verifiedSubscription.plan != plan) {
+        _lastError = '검증된 활성 구독을 찾지 못했습니다.';
+        return false;
+      }
+
+      _currentSubscription = verifiedSubscription;
+      _subscriptionController.add(_currentSubscription);
+      await _saveToLocal(_currentSubscription);
+      _lastError = null;
+      return true;
+    } catch (error) {
+      _lastError = '구매 검증 중 연결 오류가 발생했습니다.';
+      return false;
+    } finally {
+      _isPurchasing = false;
     }
   }
 
@@ -337,16 +380,16 @@ class IAPService {
     if (_prefs == null) await init();
 
     final today = DateTime.now().toIso8601String().substring(0, 10);
-    final savedDate = _prefs!.getString(_dailyDateKey);
+    final savedDate = _prefs!.getString(_scopedKey(_dailyDateKey));
 
     if (savedDate != today) {
       // 날짜가 다르면 카운트 리셋
-      await _prefs!.setString(_dailyDateKey, today);
-      await _prefs!.setInt(_dailyCountKey, 0);
+      await _prefs!.setString(_scopedKey(_dailyDateKey), today);
+      await _prefs!.setInt(_scopedKey(_dailyCountKey), 0);
       return 0;
     }
 
-    return _prefs!.getInt(_dailyCountKey) ?? 0;
+    return _prefs!.getInt(_scopedKey(_dailyCountKey)) ?? 0;
   }
 
   /// 오늘 학습 카운트 증가
@@ -354,17 +397,17 @@ class IAPService {
     if (_prefs == null) await init();
 
     final today = DateTime.now().toIso8601String().substring(0, 10);
-    final savedDate = _prefs!.getString(_dailyDateKey);
+    final savedDate = _prefs!.getString(_scopedKey(_dailyDateKey));
 
     int count;
     if (savedDate != today) {
-      await _prefs!.setString(_dailyDateKey, today);
+      await _prefs!.setString(_scopedKey(_dailyDateKey), today);
       count = 1;
     } else {
-      count = (_prefs!.getInt(_dailyCountKey) ?? 0) + 1;
+      count = (_prefs!.getInt(_scopedKey(_dailyCountKey)) ?? 0) + 1;
     }
 
-    await _prefs!.setInt(_dailyCountKey, count);
+    await _prefs!.setInt(_scopedKey(_dailyCountKey), count);
     return count;
   }
 
@@ -389,12 +432,30 @@ class IAPService {
     if (isPremium) return -1; // 무제한
 
     final count = await getTodayLearnedCount();
-    return (FreeTierLimits.dailyVerseLimit - count).clamp(0, FreeTierLimits.dailyVerseLimit);
+    return (FreeTierLimits.dailyVerseLimit - count)
+        .clamp(0, FreeTierLimits.dailyVerseLimit);
+  }
+
+  String _scopedKey(String key) {
+    return '${key}_${_auth.currentUser?.uid ?? 'guest'}';
+  }
+
+  /// 스토어에는 Firebase UID 원문 대신 결정적 UUID를 전달한다. 서버도 같은
+  /// 값을 계산해 영수증이 현재 앱 계정에서 생성됐는지 확인한다.
+  String _accountToken(String userId) {
+    final bytes = sha256.convert(utf8.encode('bible-speak:iap:$userId')).bytes;
+    final uuidBytes = bytes.take(16).toList();
+    uuidBytes[6] = (uuidBytes[6] & 0x0f) | 0x50;
+    uuidBytes[8] = (uuidBytes[8] & 0x3f) | 0x80;
+    final hex =
+        uuidBytes.map((byte) => byte.toRadixString(16).padLeft(2, '0')).join();
+    return '${hex.substring(0, 8)}-${hex.substring(8, 12)}-'
+        '${hex.substring(12, 16)}-${hex.substring(16, 20)}-'
+        '${hex.substring(20)}';
   }
 
   /// 리소스 해제
   void dispose() {
-    _purchaseSubscription?.cancel();
-    _subscriptionController.close();
+    // 앱 전역 싱글턴이므로 개별 화면에서는 해제하지 않는다.
   }
 }

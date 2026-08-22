@@ -1,19 +1,11 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:http/http.dart' as http;
-
 import '../config/app_config.dart';
+import 'api/authenticated_api_client.dart';
 
 /// Gemini AI 튜터 서비스
 /// - 발음 평가 결과 분석
 /// - 맞춤형 피드백 제공
 class GeminiService {
-  // API 키
-  String get _apiKey => AppConfig.geminiApiKey;
-  static const String _model = 'gemini-1.5-flash';
-  static const String _baseUrl =
-      'https://generativelanguage.googleapis.com/v1beta/models';
-
   /// 발음 피드백 생성
   Future<String> getFeedback({
     required String originalText,
@@ -21,10 +13,6 @@ class GeminiService {
     required List<String> incorrectWords,
     required double score,
   }) async {
-    if (_apiKey == 'YOUR_GEMINI_API_KEY_HERE') {
-      return '💡 API 키를 설정하면 AI 튜터가 맞춤 피드백을 제공합니다.';
-    }
-
     try {
       final prompt = _buildPrompt(
         originalText: originalText,
@@ -70,38 +58,16 @@ ${score.toStringAsFixed(0)}%
 
   /// Gemini API 호출
   Future<String> _callGeminiAPI(String prompt) async {
-    final url = '$_baseUrl/$_model:generateContent?key=$_apiKey';
-
-    final requestBody = {
-      'contents': [
-        {
-          'parts': [
-            {'text': prompt}
-          ]
-        }
-      ],
-      'generationConfig': {
-        'temperature': 0.7,
-        'maxOutputTokens': 150,
-      },
-    };
-
     print('🤖 Gemini API 호출 중...');
 
-    // 웹에서는 빠른 응답 우선, 모바일은 여유있게
-    final timeout = kIsWeb ? const Duration(seconds: 8) : const Duration(seconds: 15);
-    final response = await http
-        .post(
-          Uri.parse(url),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode(requestBody),
-        )
-        .timeout(timeout);
+    final response = await AuthenticatedApiClient.postJson(
+      Uri.parse(AppConfig.geminiFeedbackUrl),
+      {'prompt': prompt},
+    ).timeout(const Duration(seconds: 15));
 
     if (response.statusCode == 200) {
       final jsonResponse = jsonDecode(response.body);
-      final text =
-          jsonResponse['candidates']?[0]?['content']?['parts']?[0]?['text'];
+      final text = jsonResponse['text'];
 
       if (text != null) {
         print('✅ Gemini 응답 완료');

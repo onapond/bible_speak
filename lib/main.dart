@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'firebase_options.dart';
 import 'screens/splash_screen.dart';
 import 'services/bible_data_service.dart';
@@ -15,7 +14,6 @@ import 'services/navigation_service.dart';
 import 'providers/texture_provider.dart';
 import 'widgets/common/parchment_texture_overlay.dart';
 import 'services/offline/offline_services.dart';
-import 'services/offline/bible_offline_service.dart';
 import 'services/accessibility_service.dart';
 import 'services/app_update_service.dart';
 import 'styles/parchment_theme.dart';
@@ -44,39 +42,22 @@ void main() async {
 
 /// 백그라운드 초기화 (앱 실행 후 비동기)
 Future<void> _initializeInBackground() async {
-  // 환경 변수 로드 (타임아웃 적용)
+  // Hive를 사용하는 서비스는 반드시 순서대로 초기화한다.
   try {
-    await dotenv.load(fileName: 'assets/.env').timeout(
-      const Duration(seconds: 2),
-      onTimeout: () {
-        debugPrint('⚠️ .env 로드 타임아웃 (assets/)');
-        throw TimeoutException('.env load timeout');
-      },
-    );
-    debugPrint('✅ .env 로드 성공 (assets/.env)');
+    await initializeOfflineManager().timeout(const Duration(seconds: 5));
+    await BibleOfflineService()
+        .initialize()
+        .timeout(const Duration(seconds: 5));
   } catch (e) {
-    try {
-      await dotenv.load(fileName: '.env').timeout(
-        const Duration(seconds: 2),
-        onTimeout: () {
-          debugPrint('⚠️ .env 로드 타임아웃');
-          throw TimeoutException('.env load timeout');
-        },
-      );
-      debugPrint('✅ .env 로드 성공 (.env)');
-    } catch (e2) {
-      debugPrint('❌ .env 로드 실패 (웹에서는 정상): $e2');
-    }
+    debugPrint('⚠️ 오프라인 서비스 초기화 실패 (재시도 가능): $e');
   }
 
   // 서비스 초기화 병렬 실행 (타임아웃 적용)
   try {
     await Future.wait([
       _safeInit('AccessibilityService', AccessibilityService().init(), 2),
-      _safeInit('BibleOfflineService', BibleOfflineService().initialize(), 3),
       _safeInit('NotificationService', NotificationService().initialize(), 3),
       _safeInit('BibleDataService', BibleDataService.instance.init(), 5),
-      _safeInit('OfflineManager', initializeOfflineManager(), 3),
     ]);
   } catch (e) {
     debugPrint('⚠️ 백그라운드 초기화 일부 실패: $e');
@@ -86,7 +67,8 @@ Future<void> _initializeInBackground() async {
 }
 
 /// 안전한 초기화 헬퍼 (타임아웃 + 에러 처리)
-Future<void> _safeInit(String name, Future<void> future, int timeoutSeconds) async {
+Future<void> _safeInit(
+    String name, Future<void> future, int timeoutSeconds) async {
   try {
     await future.timeout(Duration(seconds: timeoutSeconds));
   } catch (e) {
@@ -109,7 +91,8 @@ class _BibleSpeakAppState extends ConsumerState<BibleSpeakApp> {
   void initState() {
     super.initState();
     // 알림 탭 이벤트 리스닝
-    _notificationSubscription = NotificationHandler.onNotificationTap.listen(_handleNotificationTap);
+    _notificationSubscription =
+        NotificationHandler.onNotificationTap.listen(_handleNotificationTap);
   }
 
   @override

@@ -27,6 +27,14 @@ class ProgressService {
   /// 현재 사용자 ID
   String? get _userId => _auth.currentUser?.uid;
 
+  String get _localUserScope => _userId ?? 'guest';
+
+  String _cacheKey(String book, int chapter, int verse) =>
+      '$_localUserScope:$book:$chapter:$verse';
+
+  String _localVerseKey(String book, int chapter, int verse) =>
+      '$_localKeyPrefix${_localUserScope}_${book}_${chapter}_$verse';
+
   /// Firestore 진행 문서 참조
   DocumentReference? _progressDoc(String bookId) {
     if (_userId == null) return null;
@@ -47,7 +55,7 @@ class ProgressService {
   }) async {
     if (_prefs == null) await init();
 
-    final verseKey = '${book}_${chapter}_$verse';
+    final verseKey = _cacheKey(book, chapter, verse);
 
     // 현재 진행 상태 가져오기
     VerseProgress current = await getVerseProgress(
@@ -108,7 +116,7 @@ class ProgressService {
   ) async {
     if (_prefs == null) return;
 
-    final key = '$_localKeyPrefix${book}_${chapter}_$verse';
+    final key = _localVerseKey(book, chapter, verse);
 
     // 간단한 형태로 저장 (최고점수, 현재 스테이지)
     await _prefs!.setDouble('${key}_best', progress.overallBestScore);
@@ -131,7 +139,7 @@ class ProgressService {
   }) async {
     if (_prefs == null) await init();
 
-    final verseKey = '${book}_${chapter}_$verse';
+    final verseKey = _cacheKey(book, chapter, verse);
 
     // 캐시 확인
     if (_cache.containsKey(verseKey)) {
@@ -204,7 +212,7 @@ class ProgressService {
   ) async {
     if (_prefs == null) return null;
 
-    final key = '$_localKeyPrefix${book}_${chapter}_$verse';
+    final key = _localVerseKey(book, chapter, verse);
     final bestScore = _prefs!.getDouble('${key}_best');
 
     if (bestScore == null) return null;
@@ -251,7 +259,7 @@ class ProgressService {
     int scoredVerses = 0;
 
     for (int v = 1; v <= totalVerses; v++) {
-      final verseKey = '${book}_${chapter}_$v';
+      final verseKey = _cacheKey(book, chapter, v);
 
       // 캐시 확인
       VerseProgress? progress = _cache[verseKey];
@@ -260,7 +268,8 @@ class ProgressService {
       if (progress == null && chapterData != null) {
         final verseData = chapterData[v.toString()] as Map<String, dynamic>?;
         if (verseData != null) {
-          progress = VerseProgress.fromMap(verseData, bookId: book, chapter: chapter, verse: v);
+          progress = VerseProgress.fromMap(verseData,
+              bookId: book, chapter: chapter, verse: v);
           _cache[verseKey] = progress;
         }
       }
@@ -269,7 +278,8 @@ class ProgressService {
       progress ??= await _loadFromLocal(book, chapter, v);
 
       // 기본값
-      progress ??= VerseProgress.empty(bookId: book, chapter: chapter, verse: v);
+      progress ??=
+          VerseProgress.empty(bookId: book, chapter: chapter, verse: v);
 
       if (progress.isCompleted) {
         completedCount++;
@@ -294,7 +304,8 @@ class ProgressService {
   }
 
   /// 챕터 전체 데이터를 Firestore에서 한 번에 로드
-  Future<Map<String, dynamic>?> _loadChapterFromFirestore(String book, int chapter) async {
+  Future<Map<String, dynamic>?> _loadChapterFromFirestore(
+      String book, int chapter) async {
     final doc = _progressDoc(book);
     if (doc == null) return null;
 
@@ -340,7 +351,7 @@ class ProgressService {
     final scores = <int, double>{};
 
     for (int i = 1; i <= totalVerses; i++) {
-      final verseKey = '${book}_${chapter}_$i';
+      final verseKey = _cacheKey(book, chapter, i);
 
       // 캐시 확인
       if (_cache.containsKey(verseKey)) {
@@ -352,7 +363,8 @@ class ProgressService {
       if (chapterData != null) {
         final verseData = chapterData[i.toString()] as Map<String, dynamic>?;
         if (verseData != null) {
-          final progress = VerseProgress.fromMap(verseData, bookId: book, chapter: chapter, verse: i);
+          final progress = VerseProgress.fromMap(verseData,
+              bookId: book, chapter: chapter, verse: i);
           _cache[verseKey] = progress;
           scores[i] = progress.overallBestScore;
           continue;
@@ -418,13 +430,15 @@ class ProgressService {
     if (_prefs == null) await init();
     if (_userId == null) return;
 
-    final keys = _prefs!.getKeys()
-        .where((k) => k.startsWith(_localKeyPrefix) && k.endsWith('_best'));
+    final scopedPrefix = '$_localKeyPrefix${_localUserScope}_';
+    final keys = _prefs!
+        .getKeys()
+        .where((k) => k.startsWith(scopedPrefix) && k.endsWith('_best'));
 
     for (final key in keys) {
       // 키에서 book, chapter, verse 추출
       final parts = key
-          .replaceFirst(_localKeyPrefix, '')
+          .replaceFirst(scopedPrefix, '')
           .replaceFirst('_best', '')
           .split('_');
 
@@ -458,15 +472,14 @@ class ProgressService {
 
     // 로컬 삭제
     for (int i = 1; i <= totalVerses; i++) {
-      final key = '$_localKeyPrefix${book}_${chapter}_$i';
-      final keysToRemove = _prefs!.getKeys()
-          .where((k) => k.startsWith(key));
+      final key = _localVerseKey(book, chapter, i);
+      final keysToRemove = _prefs!.getKeys().where((k) => k.startsWith(key));
       for (final k in keysToRemove) {
         await _prefs!.remove(k);
       }
 
       // 캐시 삭제
-      _cache.remove('${book}_${chapter}_$i');
+      _cache.remove(_cacheKey(book, chapter, i));
     }
 
     // Firestore 삭제 (set + merge로 안전하게)

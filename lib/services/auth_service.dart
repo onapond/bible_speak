@@ -12,6 +12,10 @@ import '../models/user_model.dart';
 /// - Google, Apple, Email 로그인 지원
 /// - 사용자 프로필 관리
 class AuthService {
+  static final AuthService _instance = AuthService._internal();
+  factory AuthService() => _instance;
+  AuthService._internal();
+
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -47,7 +51,8 @@ class AuthService {
 
       if (savedUserId != null && _auth.currentUser != null) {
         // Firestore에서 사용자 정보 로드
-        final userDoc = await _firestore.collection('users').doc(savedUserId).get();
+        final userDoc =
+            await _firestore.collection('users').doc(savedUserId).get();
         if (userDoc.exists) {
           _currentUser = UserModel.fromFirestore(savedUserId, userDoc.data()!);
           print('✅ 세션 복원: ${_currentUser!.name}');
@@ -101,7 +106,7 @@ class AuthService {
       );
 
       final userCredential = await _auth.signInWithCredential(credential);
-      return _handleUserCredential(
+      return await _handleUserCredential(
         userCredential,
         displayName: googleUser.displayName,
         email: googleUser.email,
@@ -145,11 +150,14 @@ class AuthService {
 
       // Apple은 첫 로그인 시에만 이름을 제공
       String? displayName;
-      if (appleCredential.givenName != null || appleCredential.familyName != null) {
-        displayName = '${appleCredential.givenName ?? ''} ${appleCredential.familyName ?? ''}'.trim();
+      if (appleCredential.givenName != null ||
+          appleCredential.familyName != null) {
+        displayName =
+            '${appleCredential.givenName ?? ''} ${appleCredential.familyName ?? ''}'
+                .trim();
       }
 
-      return _handleUserCredential(
+      return await _handleUserCredential(
         userCredential,
         displayName: displayName,
         email: appleCredential.email,
@@ -182,7 +190,7 @@ class AuthService {
         password: password,
       );
 
-      return _handleUserCredential(userCredential, email: email.trim());
+      return await _handleUserCredential(userCredential, email: email.trim());
     } on FirebaseAuthException catch (e) {
       return AuthResult.error(_getFirebaseErrorMessage(e.code));
     } catch (e) {
@@ -203,7 +211,7 @@ class AuthService {
         password: password,
       );
 
-      return _handleUserCredential(
+      return await _handleUserCredential(
         userCredential,
         displayName: name.trim(),
         email: email.trim(),
@@ -335,7 +343,8 @@ class AuthService {
     String? groupId,
   }) async {
     final prefs = await SharedPreferences.getInstance();
-    final uid = prefs.getString('bible_speak_tempUid') ?? _auth.currentUser?.uid;
+    final uid =
+        prefs.getString('bible_speak_tempUid') ?? _auth.currentUser?.uid;
 
     if (uid == null) {
       print('❌ 프로필 완료 오류: UID 없음');
@@ -528,9 +537,11 @@ class AuthService {
     if (_currentUser == null) return;
 
     try {
-      final userDoc = await _firestore.collection('users').doc(_currentUser!.uid).get();
+      final userDoc =
+          await _firestore.collection('users').doc(_currentUser!.uid).get();
       if (userDoc.exists) {
-        _currentUser = UserModel.fromFirestore(_currentUser!.uid, userDoc.data()!);
+        _currentUser =
+            UserModel.fromFirestore(_currentUser!.uid, userDoc.data()!);
       }
     } catch (e) {
       print('❌ 사용자 정보 새로고침 오류: $e');
@@ -600,39 +611,61 @@ class AuthService {
   // ============================================================
 
   /// 달란트 추가
-  Future<bool> addTalant(int verseNumber) async {
+  Future<bool> addTalant({
+    required String book,
+    required int chapter,
+    required int verse,
+  }) async {
     if (_currentUser == null) {
       print('❌ 달란트 적립 실패: 사용자 없음');
       return false;
     }
 
     try {
-      if (_currentUser!.completedVerses.contains(verseNumber)) {
-        print('ℹ️ 이미 완료한 구절: $verseNumber');
-        return false;
-      }
-
+      final verseId = '$book:$chapter:$verse';
       final userRef = _firestore.collection('users').doc(_currentUser!.uid);
+      final added = await _firestore.runTransaction<bool>((transaction) async {
+        final snapshot = await transaction.get(userRef);
+        final completed =
+            ((snapshot.data()?['completedVerses'] as List?) ?? const [])
+                .map((value) => value is String ? value : 'legacy:$value')
+                .toSet();
 
-      // set with merge로 안전하게 업데이트
-      await userRef.set({
-        'talants': FieldValue.increment(1),
-        'completedVerses': FieldValue.arrayUnion([verseNumber]),
-      }, SetOptions(merge: true));
+        if (completed.contains(verseId)) return false;
 
-      // 그룹 달란트도 업데이트
-      if (_currentUser!.groupId.isNotEmpty) {
-        await _firestore.collection('groups').doc(_currentUser!.groupId).set({
-          'totalTalants': FieldValue.increment(1),
-        }, SetOptions(merge: true));
+        transaction.set(
+            userRef,
+            {
+              'talants': FieldValue.increment(1),
+              'completedVerses': FieldValue.arrayUnion([verseId]),
+            },
+            SetOptions(merge: true));
+
+        if (_currentUser!.groupId.isNotEmpty) {
+          final groupRef =
+              _firestore.collection('groups').doc(_currentUser!.groupId);
+          transaction.set(
+              groupRef,
+              {
+                'totalTalants': FieldValue.increment(1),
+              },
+              SetOptions(merge: true));
+        }
+
+        return true;
+      });
+
+      if (!added) {
+        print('ℹ️ 이미 완료한 구절: $verseId');
+        return false;
       }
 
       _currentUser = _currentUser!.copyWith(
         talants: _currentUser!.talants + 1,
-        completedVerses: [..._currentUser!.completedVerses, verseNumber],
+        completedVerses: [..._currentUser!.completedVerses, verseId],
       );
 
-      print('🏆 달란트 적립 완료! 구절 $verseNumber, 총 ${_currentUser!.talants} 달란트');
+      print('🏆 달란트 적립 완료! 구절 $verseId, 총 ${_currentUser!.talants} 달란트');
       return true;
     } catch (e) {
       print('❌ 달란트 적립 오류: $e');
@@ -770,7 +803,8 @@ class AuthResult {
     this.tempUid,
   });
 
-  factory AuthResult.success({UserModel? user, bool needsProfile = false, String? tempUid}) {
+  factory AuthResult.success(
+      {UserModel? user, bool needsProfile = false, String? tempUid}) {
     return AuthResult._(
       success: true,
       user: user,

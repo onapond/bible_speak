@@ -160,8 +160,16 @@ class AuthNotifier extends _$AuthNotifier {
   }
 
   /// 달란트 추가
-  Future<bool> addTalant(int verseNumber) async {
-    final success = await _authService.addTalant(verseNumber);
+  Future<bool> addTalant({
+    required String book,
+    required int chapter,
+    required int verse,
+  }) async {
+    final success = await _authService.addTalant(
+      book: book,
+      chapter: chapter,
+      verse: verse,
+    );
     if (success) {
       state = AsyncValue.data(_authService.currentUser);
     }

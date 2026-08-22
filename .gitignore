@@ -1,6 +1,8 @@
 # Environment variables (보안)
 .env
 .env.*
+!.env.example
+!assets/.env.example
 
 # Miscellaneous
 *.class

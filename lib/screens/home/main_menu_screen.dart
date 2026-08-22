@@ -23,6 +23,7 @@ import '../../models/daily_verse.dart';
 import '../../models/nudge.dart';
 import '../../models/daily_goal.dart';
 import '../../models/user_stats.dart';
+import '../../models/user_model.dart';
 import '../../widgets/common/shimmer_loading.dart';
 import '../../widgets/common/animated_transitions.dart';
 import '../ranking/ranking_screen.dart';
@@ -60,7 +61,8 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen> {
   EarlyBirdBonus _earlyBirdBonus = EarlyBirdBonus.calculate(DateTime.now());
   bool _hasClaimedEarlyBird = false;
   List<InactiveMember> _inactiveMembers = [];
-  NudgeDailyStats _nudgeStats = const NudgeDailyStats(nudgesSent: 0, nudgesTo: {}, dailyLimit: 3);
+  NudgeDailyStats _nudgeStats =
+      const NudgeDailyStats(nudgesSent: 0, nudgesTo: {}, dailyLimit: 3);
   bool _isLoading = true;
   bool _isLoadingManna = true;
 
@@ -73,6 +75,7 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen> {
   DailyGoal? _dailyGoal;
   UserStats? _userStats;
   bool _isLoadingStats = true;
+  String? _loadedGroupSignature;
 
   @override
   void initState() {
@@ -84,6 +87,7 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen> {
   /// 모든 데이터 병렬 로드 (타임아웃 적용)
   Future<void> _loadAllData() async {
     final user = ref.read(currentUserProvider);
+    _loadedGroupSignature = _groupSignature(user);
 
     // 스트릭과 만나 데이터 병렬 로드 (그룹 무관)
     await Future.wait([
@@ -93,6 +97,32 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen> {
       _loadDailyGoalAndStats(),
       if (user != null && user.groupId.isNotEmpty) _loadGroupData(user),
     ]);
+  }
+
+  String? _groupSignature(UserModel? user) {
+    if (user == null || user.groupId.isEmpty) return null;
+    return '${user.uid}:${user.groupId}:${user.role.name}';
+  }
+
+  Future<void> _handleUserChanged(UserModel? user) async {
+    final signature = _groupSignature(user);
+    if (_loadedGroupSignature == signature) return;
+    _loadedGroupSignature = signature;
+
+    if (signature == null) {
+      if (!mounted) return;
+      setState(() {
+        _groupName = null;
+        _challenge = null;
+        _myContribution = 0;
+        _inactiveMembers = [];
+        _isLoading = false;
+      });
+      return;
+    }
+
+    if (mounted) setState(() => _isLoading = true);
+    await _loadGroupData(user!);
   }
 
   /// 일일 목표 및 통계 로드
@@ -140,8 +170,11 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen> {
   Future<void> _loadStreakData() async {
     try {
       // 타임아웃 적용
-      await _streakService.checkAndResetStreak().timeout(const Duration(seconds: 3));
-      final streak = await _streakService.getStreak().timeout(const Duration(seconds: 2));
+      await _streakService
+          .checkAndResetStreak()
+          .timeout(const Duration(seconds: 3));
+      final streak =
+          await _streakService.getStreak().timeout(const Duration(seconds: 2));
       if (mounted) {
         setState(() => _streak = streak);
       }
@@ -205,6 +238,9 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen> {
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
+    ref.listen<UserModel?>(currentUserProvider, (previous, next) {
+      _handleUserChanged(next);
+    });
     final talants = ref.watch(userTalantsProvider);
     final hasGroup = user != null && user.groupId.isNotEmpty;
 
@@ -217,179 +253,180 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen> {
         child: SafeArea(
           child: CustomScrollView(
             slivers: [
-            // 헤더
-            SliverToBoxAdapter(
-              child: _buildHeader(user?.name ?? '사용자', talants),
-            ),
-
-            // 라이브 활동 티커 (그룹 있을 때만)
-            if (hasGroup && user != null)
+              // 헤더
               SliverToBoxAdapter(
-                child: LiveActivityTicker(
-                  groupId: user.groupId,
-                  onTap: () => _navigateToRanking(),
-                ),
+                child: _buildHeader(user?.name ?? '사용자', talants),
               ),
 
-            // 스트릭 위젯
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                child: StreakWidget(
-                  streak: _streak,
-                  onTapProtection: _streak.isAtRisk && _streak.canUseProtection
-                      ? () => _showProtectionDialog()
-                      : null,
-                ),
-              ),
-            ),
-
-            // 오늘의 할 일 요약 카드 (로딩 중 스켈레톤)
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
-                  child: _isLoadingTasks
-                      ? const TasksCardSkeleton()
-                      : _buildTodaysTasksCard(),
-                ),
-              ),
-            ),
-
-            // 일일 목표 진행률 & 주간 통계 (로딩 중 스켈레톤)
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
-                  child: _isLoadingStats
-                      ? const GoalCardSkeleton()
-                      : _dailyGoal != null
-                          ? _buildProgressStatsCard()
-                          : const SizedBox.shrink(),
-                ),
-              ),
-            ),
-
-            // 아침 만나 (오늘의 구절)
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                child: MorningMannaWidget(
-                  dailyVerse: _dailyVerse,
-                  earlyBirdBonus: _earlyBirdBonus,
-                  hasClaimedBonus: _hasClaimedEarlyBird,
-                  onTapStudy: () => _navigateToDailyVerse(),
-                  isLoading: _isLoadingManna,
-                ),
-              ),
-            ),
-
-            // 소셜 섹션 (그룹 있을 때만)
-            if (hasGroup && !_isLoading && user != null) ...[
-              // 그룹 활동 피드
-              if (_groupName != null)
+              // 라이브 활동 티커 (그룹 있을 때만)
+              if (hasGroup)
                 SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                    child: ActivityTicker(
-                      groupId: user.groupId,
-                      groupName: _groupName!,
-                      onTapMore: () => _navigateToRanking(),
-                    ),
+                  child: LiveActivityTicker(
+                    groupId: user.groupId,
+                    onTap: () => _navigateToRanking(),
                   ),
                 ),
 
-              // 주간 챌린지
-              if (_challenge != null)
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                    child: GroupGoalWidget(
-                      challenge: _challenge!,
-                      myContribution: _myContribution,
-                      onTapContribute: () => _navigateToLearningCenter(),
-                    ),
+              // 스트릭 위젯
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                  child: StreakWidget(
+                    streak: _streak,
+                    onTapProtection:
+                        _streak.isAtRisk && _streak.canUseProtection
+                            ? () => _showProtectionDialog()
+                            : null,
                   ),
                 ),
+              ),
 
-              // 비활성 멤버 (찌르기)
-              if (_inactiveMembers.isNotEmpty)
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                    child: InactiveMembersWidget(
-                      members: _inactiveMembers,
-                      stats: _nudgeStats,
-                      onNudge: (member) => _showNudgeDialog(member),
-                    ),
+              // 오늘의 할 일 요약 카드 (로딩 중 스켈레톤)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    child: _isLoadingTasks
+                        ? const TasksCardSkeleton()
+                        : _buildTodaysTasksCard(),
                   ),
                 ),
+              ),
+
+              // 일일 목표 진행률 & 주간 통계 (로딩 중 스켈레톤)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    child: _isLoadingStats
+                        ? const GoalCardSkeleton()
+                        : _dailyGoal != null
+                            ? _buildProgressStatsCard()
+                            : const SizedBox.shrink(),
+                  ),
+                ),
+              ),
+
+              // 아침 만나 (오늘의 구절)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  child: MorningMannaWidget(
+                    dailyVerse: _dailyVerse,
+                    earlyBirdBonus: _earlyBirdBonus,
+                    hasClaimedBonus: _hasClaimedEarlyBird,
+                    onTapStudy: () => _navigateToDailyVerse(),
+                    isLoading: _isLoadingManna,
+                  ),
+                ),
+              ),
+
+              // 소셜 섹션 (그룹 있을 때만)
+              if (hasGroup && !_isLoading) ...[
+                // 그룹 활동 피드
+                if (_groupName != null)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                      child: ActivityTicker(
+                        groupId: user.groupId,
+                        groupName: _groupName!,
+                        onTapMore: () => _navigateToRanking(),
+                      ),
+                    ),
+                  ),
+
+                // 주간 챌린지
+                if (_challenge != null)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                      child: GroupGoalWidget(
+                        challenge: _challenge!,
+                        myContribution: _myContribution,
+                        onTapContribute: () => _navigateToLearningCenter(),
+                      ),
+                    ),
+                  ),
+
+                // 비활성 멤버 (찌르기)
+                if (_inactiveMembers.isNotEmpty)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      child: InactiveMembersWidget(
+                        members: _inactiveMembers,
+                        stats: _nudgeStats,
+                        onNudge: (member) => _showNudgeDialog(member),
+                      ),
+                    ),
+                  ),
+              ],
+
+              // 오늘의 학습 CTA 버튼 (로딩 중 스켈레톤)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    child: _isLoadingTasks
+                        ? const CTAButtonSkeleton()
+                        : _buildMainCTAButton(),
+                  ),
+                ),
+              ),
+
+              // 4개 핵심 메뉴
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverGrid(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    childAspectRatio: 1.3,
+                  ),
+                  delegate: SliverChildListDelegate([
+                    _buildMenuCard(
+                      icon: Icons.menu_book,
+                      title: '학습',
+                      subtitle: '암송 · 복습 · 퀴즈',
+                      color: ParchmentTheme.categoryStudy,
+                      onTap: () => _showLearningSheet(),
+                    ),
+                    _buildMenuCard(
+                      icon: Icons.abc,
+                      title: '단어',
+                      subtitle: '성경 영단어',
+                      color: ParchmentTheme.categoryPractice,
+                      onTap: () => _navigateToWordStudy(),
+                    ),
+                    _buildMenuCard(
+                      icon: Icons.groups,
+                      title: '커뮤니티',
+                      subtitle: '그룹 · 친구 · 채팅',
+                      color: ParchmentTheme.categorySocial,
+                      onTap: () => _navigateToGroupDashboard(),
+                    ),
+                    _buildMenuCard(
+                      icon: Icons.person,
+                      title: '마이',
+                      subtitle: '프로필 · 통계 · 설정',
+                      color: ParchmentTheme.categoryMyPage,
+                      onTap: () => _navigateToMyPage(),
+                    ),
+                  ]),
+                ),
+              ),
+
+              // 하단 여백
+              const SliverToBoxAdapter(
+                child: SizedBox(height: 20),
+              ),
             ],
-
-            // 오늘의 학습 CTA 버튼 (로딩 중 스켈레톤)
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
-                  child: _isLoadingTasks
-                      ? const CTAButtonSkeleton()
-                      : _buildMainCTAButton(),
-                ),
-              ),
-            ),
-
-            // 4개 핵심 메뉴
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              sliver: SliverGrid(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  childAspectRatio: 1.3,
-                ),
-                delegate: SliverChildListDelegate([
-                  _buildMenuCard(
-                    icon: Icons.menu_book,
-                    title: '학습',
-                    subtitle: '암송 · 복습 · 퀴즈',
-                    color: ParchmentTheme.categoryStudy,
-                    onTap: () => _showLearningSheet(),
-                  ),
-                  _buildMenuCard(
-                    icon: Icons.abc,
-                    title: '단어',
-                    subtitle: '성경 영단어',
-                    color: ParchmentTheme.categoryPractice,
-                    onTap: () => _navigateToWordStudy(),
-                  ),
-                  _buildMenuCard(
-                    icon: Icons.groups,
-                    title: '커뮤니티',
-                    subtitle: '그룹 · 친구 · 채팅',
-                    color: ParchmentTheme.categorySocial,
-                    onTap: () => _navigateToGroupDashboard(),
-                  ),
-                  _buildMenuCard(
-                    icon: Icons.person,
-                    title: '마이',
-                    subtitle: '프로필 · 통계 · 설정',
-                    color: ParchmentTheme.categoryMyPage,
-                    onTap: () => _navigateToMyPage(),
-                  ),
-                ]),
-              ),
-            ),
-
-            // 하단 여백
-            const SliverToBoxAdapter(
-              child: SizedBox(height: 20),
-            ),
-          ],
-        ),
+          ),
         ),
       ),
     );
@@ -430,12 +467,14 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen> {
             decoration: BoxDecoration(
               color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.4)),
+              border: Border.all(
+                  color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.4)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.monetization_on, color: ParchmentTheme.manuscriptGold, size: 18),
+                const Icon(Icons.monetization_on,
+                    color: ParchmentTheme.manuscriptGold, size: 18),
                 const SizedBox(width: 6),
                 Text(
                   '$talants',
@@ -466,7 +505,8 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen> {
         decoration: BoxDecoration(
           color: ParchmentTheme.softPapyrus,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3)),
+          border: Border.all(
+              color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3)),
           boxShadow: [
             BoxShadow(
               color: ParchmentTheme.warmVellum.withValues(alpha: 0.5),
@@ -564,7 +604,8 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => RankingScreen(authService: ref.read(authServiceProvider)),
+        builder: (_) =>
+            RankingScreen(authService: ref.read(authServiceProvider)),
       ),
     );
   }
@@ -573,7 +614,8 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => WordStudyHomeScreen(authService: ref.read(authServiceProvider)),
+        builder: (_) =>
+            WordStudyHomeScreen(authService: ref.read(authServiceProvider)),
       ),
     );
   }
@@ -585,7 +627,8 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen> {
       MaterialPageRoute(
         builder: (_) => CommunityScreen(
           authService: ref.read(authServiceProvider),
-          initialGroupId: user?.groupId.isNotEmpty == true ? user!.groupId : null,
+          initialGroupId:
+              user?.groupId.isNotEmpty == true ? user!.groupId : null,
         ),
       ),
     );
@@ -643,7 +686,8 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen> {
               ),
               if (totalTasks > 0)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: ParchmentTheme.warning.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
@@ -659,7 +703,8 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen> {
                 )
               else
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: ParchmentTheme.success.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
@@ -686,7 +731,9 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen> {
               _buildQuickActionChip(
                 icon: Icons.replay,
                 label: hasReview ? '복습 $_dueReviewCount개' : '복습 완료',
-                color: hasReview ? ParchmentTheme.info : ParchmentTheme.weatheredGray,
+                color: hasReview
+                    ? ParchmentTheme.info
+                    : ParchmentTheme.weatheredGray,
                 isActive: hasReview,
                 onTap: () => _navigateToLearningCenter(tabIndex: 1),
               ),
@@ -694,7 +741,9 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen> {
               _buildQuickActionChip(
                 icon: Icons.quiz,
                 label: hasQuiz ? '오늘의 퀴즈' : '퀴즈 완료',
-                color: hasQuiz ? ParchmentTheme.warning : ParchmentTheme.weatheredGray,
+                color: hasQuiz
+                    ? ParchmentTheme.warning
+                    : ParchmentTheme.weatheredGray,
                 isActive: hasQuiz,
                 onTap: () => _navigateToLearningCenter(tabIndex: 2),
               ),
@@ -727,10 +776,14 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: isActive ? color.withValues(alpha: 0.15) : ParchmentTheme.warmVellum.withValues(alpha: 0.5),
+          color: isActive
+              ? color.withValues(alpha: 0.15)
+              : ParchmentTheme.warmVellum.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isActive ? color.withValues(alpha: 0.5) : ParchmentTheme.warmVellum,
+            color: isActive
+                ? color.withValues(alpha: 0.5)
+                : ParchmentTheme.warmVellum,
           ),
         ),
         child: Row(
@@ -840,7 +893,8 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen> {
               decoration: BoxDecoration(
                 color: ParchmentTheme.success.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: ParchmentTheme.success.withValues(alpha: 0.3)),
+                border: Border.all(
+                    color: ParchmentTheme.success.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
@@ -937,13 +991,16 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen> {
               strokeWidth: 4,
               backgroundColor: ParchmentTheme.warmVellum,
               valueColor: AlwaysStoppedAnimation(
-                isComplete ? ParchmentTheme.success : ParchmentTheme.manuscriptGold,
+                isComplete
+                    ? ParchmentTheme.success
+                    : ParchmentTheme.manuscriptGold,
               ),
             ),
           ),
           Center(
             child: isComplete
-                ? const Icon(Icons.check, color: ParchmentTheme.success, size: 22)
+                ? const Icon(Icons.check,
+                    color: ParchmentTheme.success, size: 22)
                 : Text(
                     '$percent%',
                     style: const TextStyle(
@@ -1005,7 +1062,9 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen> {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: isComplete ? ParchmentTheme.success : ParchmentTheme.fadedScript,
+              color: isComplete
+                  ? ParchmentTheme.success
+                  : ParchmentTheme.fadedScript,
             ),
           ),
         ),
@@ -1064,7 +1123,8 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen> {
           ),
           backgroundColor: ParchmentTheme.success,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
     }
@@ -1096,9 +1156,8 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen> {
     } else {
       // 새 학습
       title = '오늘의 학습 시작';
-      subtitle = _dailyVerse != null
-          ? _dailyVerse!.reference
-          : '새로운 구절을 시작해보세요';
+      subtitle =
+          _dailyVerse != null ? _dailyVerse!.reference : '새로운 구절을 시작해보세요';
       icon = Icons.play_arrow_rounded;
       onTap = () => _navigateToDailyVerse();
     }
@@ -1179,7 +1238,8 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => MyPageScreen(authService: ref.read(authServiceProvider)),
+        builder: (_) =>
+            MyPageScreen(authService: ref.read(authServiceProvider)),
       ),
     );
   }
@@ -1214,7 +1274,8 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen> {
                 ),
                 backgroundColor: ParchmentTheme.success,
                 behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
               ),
             );
             // 통계 새로고침
@@ -1279,5 +1340,4 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen> {
       }
     }
   }
-
 }

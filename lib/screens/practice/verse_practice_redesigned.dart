@@ -9,12 +9,12 @@ import '../../services/progress_service.dart';
 import '../../services/esv_service.dart';
 import '../../services/bible_data_service.dart';
 import '../../services/pronunciation/azure_pronunciation_service.dart';
-import '../../services/pronunciation/pronunciation_feedback_service.dart';
 import '../../services/tutor/tutor_coordinator.dart';
 import '../../services/social/group_activity_service.dart';
 import '../../services/social/group_challenge_service.dart';
 import '../../services/social/streak_service.dart';
 import '../../services/review_service.dart';
+import '../../services/iap_service.dart';
 import '../../services/achievement_service.dart';
 import '../../styles/parchment_theme.dart';
 import '../../widgets/social/streak_widget.dart';
@@ -43,10 +43,12 @@ class VersePracticeRedesigned extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<VersePracticeRedesigned> createState() => _VersePracticeRedesignedState();
+  ConsumerState<VersePracticeRedesigned> createState() =>
+      _VersePracticeRedesignedState();
 }
 
-class _VersePracticeRedesignedState extends ConsumerState<VersePracticeRedesigned>
+class _VersePracticeRedesignedState
+    extends ConsumerState<VersePracticeRedesigned>
     with TickerProviderStateMixin {
   // Parchment 테마 색상
   static const _primaryColor = ParchmentTheme.manuscriptGold;
@@ -63,7 +65,6 @@ class _VersePracticeRedesignedState extends ConsumerState<VersePracticeRedesigne
   final EsvService _esv = EsvService();
   final BibleDataService _bibleData = BibleDataService.instance;
   final AzurePronunciationService _pronunciation = AzurePronunciationService();
-  final PronunciationFeedbackService _feedbackService = PronunciationFeedbackService();
   final AudioPlayer _myVoicePlayer = AudioPlayer();
   final GroupActivityService _activityService = GroupActivityService();
   final GroupChallengeService _challengeService = GroupChallengeService();
@@ -90,8 +91,6 @@ class _VersePracticeRedesignedState extends ConsumerState<VersePracticeRedesigne
   bool _isAudioReady = false;
 
   String? _lastRecordingPath;
-  TutorFeedback? _aiFeedback;
-  bool _isLoadingAiFeedback = false;
   Map<int, VerseProgress> _verseProgressMap = {};
 
   // 데이터
@@ -120,7 +119,8 @@ class _VersePracticeRedesignedState extends ConsumerState<VersePracticeRedesigne
       duration: const Duration(seconds: 10),
       vsync: this,
     );
-    _bgAnimation = Tween<double>(begin: 0, end: 1).animate(_bgAnimationController);
+    _bgAnimation =
+        Tween<double>(begin: 0, end: 1).animate(_bgAnimationController);
     _bgAnimationController.repeat(reverse: true);
   }
 
@@ -161,33 +161,43 @@ class _VersePracticeRedesignedState extends ConsumerState<VersePracticeRedesigne
         _isAudioReady = true;
       }
 
-      final verses = await _esv.getChapter(
-        book: _bookNameEn,
-        chapter: widget.chapter,
-      ).timeout(const Duration(seconds: 8));
+      final verses = await _esv
+          .getChapter(
+            book: _bookNameEn,
+            chapter: widget.chapter,
+          )
+          .timeout(const Duration(seconds: 8));
 
       List<String?> koreanTexts;
       final initialVerse = widget.initialVerse;
       final dailyKorean = widget.dailyVerseKoreanText;
 
       try {
-        final koreanFutures = verses.map((v) => _bibleData.getKoreanText(
-          widget.book,
-          widget.chapter,
-          v.verse,
-        )).toList();
-        koreanTexts = await Future.wait(koreanFutures).timeout(const Duration(seconds: 5));
+        final koreanFutures = verses
+            .map((v) => _bibleData.getKoreanText(
+                  widget.book,
+                  widget.chapter,
+                  v.verse,
+                ))
+            .toList();
+        koreanTexts = await Future.wait(koreanFutures)
+            .timeout(const Duration(seconds: 5));
 
-        if (dailyKorean != null && dailyKorean.isNotEmpty && initialVerse != null) {
+        if (dailyKorean != null &&
+            dailyKorean.isNotEmpty &&
+            initialVerse != null) {
           for (int i = 0; i < verses.length; i++) {
-            if (verses[i].verse == initialVerse && (koreanTexts[i] == null || koreanTexts[i]!.isEmpty)) {
+            if (verses[i].verse == initialVerse &&
+                (koreanTexts[i] == null || koreanTexts[i]!.isEmpty)) {
               koreanTexts[i] = dailyKorean;
             }
           }
         }
       } catch (e) {
         koreanTexts = List.filled(verses.length, null);
-        if (dailyKorean != null && dailyKorean.isNotEmpty && initialVerse != null) {
+        if (dailyKorean != null &&
+            dailyKorean.isNotEmpty &&
+            initialVerse != null) {
           for (int i = 0; i < verses.length; i++) {
             if (verses[i].verse == initialVerse) {
               koreanTexts[i] = dailyKorean;
@@ -223,13 +233,16 @@ class _VersePracticeRedesignedState extends ConsumerState<VersePracticeRedesigne
     if (_verses.isEmpty) return;
 
     try {
-      final progressFutures = _verses.map((verse) => _progress.getVerseProgress(
-        book: widget.book,
-        chapter: widget.chapter,
-        verse: verse.verse,
-      )).toList();
+      final progressFutures = _verses
+          .map((verse) => _progress.getVerseProgress(
+                book: widget.book,
+                chapter: widget.chapter,
+                verse: verse.verse,
+              ))
+          .toList();
 
-      final progressList = await Future.wait(progressFutures).timeout(const Duration(seconds: 5));
+      final progressList = await Future.wait(progressFutures)
+          .timeout(const Duration(seconds: 5));
 
       final progressMap = <int, VerseProgress>{};
       for (int i = 0; i < _verses.length; i++) {
@@ -259,9 +272,8 @@ class _VersePracticeRedesignedState extends ConsumerState<VersePracticeRedesigne
     }
   }
 
-  int get _completedCount => _verseProgressMap.values
-      .where((p) => p.isCompleted)
-      .length;
+  int get _completedCount =>
+      _verseProgressMap.values.where((p) => p.isCompleted).length;
 
   double get _progressPercent =>
       _totalVerses > 0 ? _completedCount / _totalVerses : 0;
@@ -314,8 +326,6 @@ class _VersePracticeRedesignedState extends ConsumerState<VersePracticeRedesigne
   }
 
   void _resetState() {
-    _aiFeedback = null;
-    _isLoadingAiFeedback = false;
     _lastRecordingPath = null;
   }
 
@@ -463,8 +473,7 @@ class _VersePracticeRedesignedState extends ConsumerState<VersePracticeRedesigne
         return;
       }
 
-      final feedback = _feedbackService.generateFeedback(result);
-      _requestAiFeedback(result);
+      final aiFeedbackFuture = _requestAiFeedback(result);
 
       final updatedProgress = await _progress.saveScore(
         book: widget.book,
@@ -478,13 +487,19 @@ class _VersePracticeRedesignedState extends ConsumerState<VersePracticeRedesigne
 
       if (_currentStage == LearningStage.realSpeak &&
           result.overallScore >= LearningStage.realSpeak.passThreshold) {
-        final added = await ref.read(authServiceProvider).addTalant(_currentVerse!.verse);
+        final added = await ref.read(authServiceProvider).addTalant(
+              book: widget.book,
+              chapter: widget.chapter,
+              verse: _currentVerse!.verse,
+            );
         if (added) {
+          await IAPService().incrementTodayCount();
           _showSnackBar('달란트 +1 획득! 암송 완료!', isError: false);
           _checkAchievements();
         }
         await _reviewService.addReviewItem(
-          verseReference: '$_bookNameEn ${widget.chapter}:${_currentVerse!.verse}',
+          verseReference:
+              '$_bookNameEn ${widget.chapter}:${_currentVerse!.verse}',
           book: widget.book,
           chapter: widget.chapter,
           verse: _currentVerse!.verse,
@@ -505,14 +520,18 @@ class _VersePracticeRedesignedState extends ConsumerState<VersePracticeRedesigne
         _isProcessing = false;
       });
 
-      _showResultBottomSheet(result, passed);
+      _showResultBottomSheet(result, passed, aiFeedbackFuture);
     } catch (e) {
       _showSnackBar('처리 중 오류: $e', isError: true);
       setState(() => _isProcessing = false);
     }
   }
 
-  void _showResultBottomSheet(PronunciationResult result, bool passed) {
+  void _showResultBottomSheet(
+    PronunciationResult result,
+    bool passed,
+    Future<TutorFeedback?> aiFeedbackFuture,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -522,8 +541,7 @@ class _VersePracticeRedesignedState extends ConsumerState<VersePracticeRedesigne
         result: result,
         passed: passed,
         stage: _currentStage,
-        aiFeedback: _aiFeedback,
-        isLoadingAiFeedback: _isLoadingAiFeedback,
+        aiFeedbackFuture: aiFeedbackFuture,
         onRetry: () {
           Navigator.pop(context);
           _resetState();
@@ -538,30 +556,18 @@ class _VersePracticeRedesignedState extends ConsumerState<VersePracticeRedesigne
     );
   }
 
-  Future<void> _requestAiFeedback(PronunciationResult result) async {
-    if (!mounted) return;
-
-    setState(() => _isLoadingAiFeedback = true);
-
+  Future<TutorFeedback?> _requestAiFeedback(
+    PronunciationResult result,
+  ) async {
     try {
       final tutor = TutorCoordinator.instance;
       final aiFeedback = await tutor.generateFeedbackFromResult(
         pronunciationResult: result,
         currentStage: _currentStage.stageNumber,
       );
-
-      if (mounted && aiFeedback.isSuccess) {
-        setState(() {
-          _aiFeedback = aiFeedback;
-          _isLoadingAiFeedback = false;
-        });
-      } else {
-        setState(() => _isLoadingAiFeedback = false);
-      }
+      return aiFeedback.isSuccess ? aiFeedback : null;
     } catch (e) {
-      if (mounted) {
-        setState(() => _isLoadingAiFeedback = false);
-      }
+      return null;
     }
   }
 
@@ -672,7 +678,9 @@ class _VersePracticeRedesignedState extends ConsumerState<VersePracticeRedesigne
         content: Text(
           message,
           style: TextStyle(
-            color: isError ? ParchmentTheme.softPapyrus : ParchmentTheme.ancientInk,
+            color: isError
+                ? ParchmentTheme.softPapyrus
+                : ParchmentTheme.ancientInk,
           ),
         ),
         backgroundColor: isError ? ParchmentTheme.error : _successColor,
@@ -707,7 +715,10 @@ class _VersePracticeRedesignedState extends ConsumerState<VersePracticeRedesigne
                 end: Alignment.bottomCenter,
                 colors: [
                   _bgGradientStart,
-                  Color.lerp(ParchmentTheme.agedParchment, _primaryColor.withValues(alpha: 0.1), _bgAnimation.value * 0.2)!,
+                  Color.lerp(
+                      ParchmentTheme.agedParchment,
+                      _primaryColor.withValues(alpha: 0.1),
+                      _bgAnimation.value * 0.2)!,
                   _bgGradientEnd,
                 ],
                 stops: const [0.0, 0.5, 1.0],
@@ -819,7 +830,8 @@ class _VersePracticeRedesignedState extends ConsumerState<VersePracticeRedesigne
               style: ElevatedButton.styleFrom(
                 backgroundColor: _primaryColor,
                 foregroundColor: ParchmentTheme.softPapyrus,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -918,7 +930,8 @@ class _VersePracticeRedesignedState extends ConsumerState<VersePracticeRedesigne
                 ],
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
                   color: _successColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
@@ -963,8 +976,8 @@ class _VersePracticeRedesignedState extends ConsumerState<VersePracticeRedesigne
               : stage.stageNumber <= progress.currentStage.stageNumber;
           final isActive = stage == _currentStage;
           final stageProgress = progress?.stages[stage];
-          final isPassed = stageProgress != null &&
-              stage.isPassed(stageProgress.bestScore);
+          final isPassed =
+              stageProgress != null && stage.isPassed(stageProgress.bestScore);
 
           return Expanded(
             child: GestureDetector(
@@ -973,9 +986,7 @@ class _VersePracticeRedesignedState extends ConsumerState<VersePracticeRedesigne
                 margin: const EdgeInsets.symmetric(horizontal: 4),
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
-                  gradient: isActive
-                      ? ParchmentTheme.goldButtonGradient
-                      : null,
+                  gradient: isActive ? ParchmentTheme.goldButtonGradient : null,
                   color: isActive
                       ? null
                       : (isPassed
@@ -1014,7 +1025,8 @@ class _VersePracticeRedesignedState extends ConsumerState<VersePracticeRedesigne
                       stage.koreanName,
                       style: TextStyle(
                         fontSize: 12,
-                        fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                        fontWeight:
+                            isActive ? FontWeight.w600 : FontWeight.w400,
                         color: isActive
                             ? ParchmentTheme.softPapyrus
                             : (isPassed
@@ -1028,7 +1040,8 @@ class _VersePracticeRedesignedState extends ConsumerState<VersePracticeRedesigne
                         style: TextStyle(
                           fontSize: 10,
                           color: isActive
-                              ? ParchmentTheme.softPapyrus.withValues(alpha: 0.9)
+                              ? ParchmentTheme.softPapyrus
+                                  .withValues(alpha: 0.9)
                               : _getScoreColor(stageProgress.bestScore),
                           fontWeight: FontWeight.bold,
                         ),
@@ -1121,7 +1134,8 @@ class _VersePracticeRedesignedState extends ConsumerState<VersePracticeRedesigne
           ),
           _buildNavButton(
             icon: Icons.chevron_right_rounded,
-            onTap: _currentVerseIndex < _verses.length - 1 ? _goToNextVerse : null,
+            onTap:
+                _currentVerseIndex < _verses.length - 1 ? _goToNextVerse : null,
           ),
         ],
       ),
@@ -1315,7 +1329,8 @@ class _VersePracticeRedesignedState extends ConsumerState<VersePracticeRedesigne
                 ],
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                 decoration: BoxDecoration(
                   gradient: ParchmentTheme.goldButtonGradient,
                   borderRadius: BorderRadius.circular(12),
@@ -1349,7 +1364,8 @@ class _VersePracticeRedesignedState extends ConsumerState<VersePracticeRedesigne
                     thumbColor: _primaryLight,
                     overlayColor: _primaryColor.withValues(alpha: 0.2),
                     trackHeight: 4,
-                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8),
+                    thumbShape:
+                        const RoundSliderThumbShape(enabledThumbRadius: 8),
                   ),
                   child: Slider(
                     value: _playbackSpeed,
@@ -1383,8 +1399,7 @@ class _ModernResultBottomSheet extends StatelessWidget {
   final PronunciationResult result;
   final bool passed;
   final LearningStage stage;
-  final TutorFeedback? aiFeedback;
-  final bool isLoadingAiFeedback;
+  final Future<TutorFeedback?> aiFeedbackFuture;
   final VoidCallback onRetry;
   final VoidCallback onNextStage;
   final VoidCallback onPlayMyVoice;
@@ -1398,8 +1413,7 @@ class _ModernResultBottomSheet extends StatelessWidget {
     required this.result,
     required this.passed,
     required this.stage,
-    required this.aiFeedback,
-    required this.isLoadingAiFeedback,
+    required this.aiFeedbackFuture,
     required this.onRetry,
     required this.onNextStage,
     required this.onPlayMyVoice,
@@ -1575,105 +1589,109 @@ class _ModernResultBottomSheet extends StatelessWidget {
   }
 
   Widget _buildAiFeedbackSection() {
-    if (isLoadingAiFeedback) {
-      return Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: _primaryColor.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: _primaryColor.withValues(alpha: 0.2)),
-        ),
-        child: const Row(
-          children: [
-            SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: _primaryColor,
+    return FutureBuilder<TutorFeedback?>(
+      future: aiFeedbackFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: _primaryColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: _primaryColor.withValues(alpha: 0.2),
               ),
             ),
-            SizedBox(width: 12),
-            Text(
-              'AI 코치가 분석 중...',
-              style: TextStyle(
-                color: _primaryColor,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (aiFeedback != null && aiFeedback!.isSuccess) {
-      return Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: ParchmentTheme.softPapyrus,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: _primaryColor.withValues(alpha: 0.3),
-          ),
-          boxShadow: ParchmentTheme.cardShadow,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Row(
+            child: const Row(
               children: [
-                Icon(Icons.auto_awesome, size: 18, color: _primaryColor),
-                SizedBox(width: 8),
-                Text(
-                  'AI 코치',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
                     color: _primaryColor,
                   ),
                 ),
+                SizedBox(width: 12),
+                Text(
+                  'AI 코치가 분석 중...',
+                  style: TextStyle(color: _primaryColor),
+                ),
               ],
             ),
-            const SizedBox(height: 12),
-            Text(
-              aiFeedback!.encouragement,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: ParchmentTheme.ancientInk,
-              ),
-            ),
-            if (aiFeedback!.detailedFeedback.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(
-                aiFeedback!.detailedFeedback,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: ParchmentTheme.fadedScript,
-                  height: 1.4,
-                ),
-              ),
-            ],
-          ],
-        ),
-      );
-    }
+          );
+        }
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: ParchmentTheme.warmVellum.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Text(
-        passed
-            ? '잘하셨어요! 다음 단계로 넘어가세요.'
-            : '천천히 또박또박 다시 읽어보세요.',
-        style: const TextStyle(
-          fontSize: 14,
-          color: ParchmentTheme.fadedScript,
-        ),
-        textAlign: TextAlign.center,
-      ),
+        final aiFeedback = snapshot.data;
+        if (aiFeedback != null && aiFeedback.isSuccess) {
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: ParchmentTheme.softPapyrus,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: _primaryColor.withValues(alpha: 0.3),
+              ),
+              boxShadow: ParchmentTheme.cardShadow,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.auto_awesome, size: 18, color: _primaryColor),
+                    SizedBox(width: 8),
+                    Text(
+                      'AI 코치',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: _primaryColor,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  aiFeedback.encouragement,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: ParchmentTheme.ancientInk,
+                  ),
+                ),
+                if (aiFeedback.detailedFeedback.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    aiFeedback.detailedFeedback,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: ParchmentTheme.fadedScript,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          );
+        }
+
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: ParchmentTheme.warmVellum.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Text(
+            passed ? '잘하셨어요! 다음 단계로 넘어가세요.' : '천천히 또박또박 다시 읽어보세요.',
+            style: const TextStyle(
+              fontSize: 14,
+              color: ParchmentTheme.fadedScript,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        );
+      },
     );
   }
 
@@ -1702,7 +1720,8 @@ class _ModernResultBottomSheet extends StatelessWidget {
         Expanded(
           flex: 2,
           child: ElevatedButton.icon(
-            onPressed: passed && stage.nextStage != null ? onNextStage : onRetry,
+            onPressed:
+                passed && stage.nextStage != null ? onNextStage : onRetry,
             icon: Icon(
               passed && stage.nextStage != null
                   ? Icons.arrow_forward_rounded
@@ -1715,7 +1734,9 @@ class _ModernResultBottomSheet extends StatelessWidget {
             ),
             style: ElevatedButton.styleFrom(
               backgroundColor: passed ? _successColor : _primaryColor,
-              foregroundColor: passed ? ParchmentTheme.ancientInk : ParchmentTheme.softPapyrus,
+              foregroundColor: passed
+                  ? ParchmentTheme.ancientInk
+                  : ParchmentTheme.softPapyrus,
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14),

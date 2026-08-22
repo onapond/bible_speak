@@ -7,8 +7,11 @@ import '../../services/bible_data_service.dart';
 import '../../services/progress_service.dart';
 import '../../services/review_service.dart';
 import '../../services/daily_quiz_service.dart';
+import '../../services/iap_service.dart';
 import '../../models/verse_progress.dart';
+import '../../models/subscription.dart';
 import '../../styles/parchment_theme.dart';
+import '../../widgets/paywall_dialog.dart';
 import '../practice/verse_practice_redesigned.dart';
 import '../../widgets/common/animated_counter.dart';
 
@@ -213,7 +216,8 @@ class _PracticeTabState extends State<_PracticeTab>
 
     Book? selectedBook;
     if (books.isNotEmpty) {
-      selectedBook = books.firstWhere((b) => b.isFree, orElse: () => books.first);
+      selectedBook =
+          books.firstWhere((b) => b.isFree, orElse: () => books.first);
     }
 
     if (mounted) {
@@ -325,7 +329,8 @@ class _PracticeTabState extends State<_PracticeTab>
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3)),
+        border: Border.all(
+            color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3)),
         boxShadow: ParchmentTheme.cardShadow,
       ),
       child: DropdownButtonHideUnderline(
@@ -333,8 +338,10 @@ class _PracticeTabState extends State<_PracticeTab>
           value: _selectedBook,
           isExpanded: true,
           dropdownColor: _cardColor,
-          icon: const Icon(Icons.keyboard_arrow_down, color: ParchmentTheme.fadedScript),
-          style: const TextStyle(color: ParchmentTheme.ancientInk, fontSize: 16),
+          icon: const Icon(Icons.keyboard_arrow_down,
+              color: ParchmentTheme.fadedScript),
+          style:
+              const TextStyle(color: ParchmentTheme.ancientInk, fontSize: 16),
           items: _books.map((book) {
             return DropdownMenuItem<Book>(
               value: book,
@@ -353,7 +360,9 @@ class _PracticeTabState extends State<_PracticeTab>
                       child: Text(
                         book.nameKo[0],
                         style: TextStyle(
-                          color: book.testament == 'OT' ? ParchmentTheme.manuscriptGold : ParchmentTheme.info,
+                          color: book.testament == 'OT'
+                              ? ParchmentTheme.manuscriptGold
+                              : ParchmentTheme.info,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -371,7 +380,8 @@ class _PracticeTabState extends State<_PracticeTab>
                   ),
                   if (book.isFree)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
                         color: ParchmentTheme.success.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(4),
@@ -414,7 +424,8 @@ class _PracticeTabState extends State<_PracticeTab>
       children: [
         Row(
           children: [
-            const Icon(Icons.layers, color: ParchmentTheme.fadedScript, size: 18),
+            const Icon(Icons.layers,
+                color: ParchmentTheme.fadedScript, size: 18),
             const SizedBox(width: 8),
             const Text(
               '장 선택',
@@ -456,58 +467,61 @@ class _PracticeTabState extends State<_PracticeTab>
               return KeyedSubtree(
                 key: ValueKey('chapter_$chapter'),
                 child: GestureDetector(
-                onTap: () async {
-                  setState(() => _selectedChapter = chapter);
-                  await _loadVerseProgress();
-                },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  width: 64,
-                  margin: const EdgeInsets.only(right: 8),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? chipColor.withValues(alpha: 0.15)
-                        : _cardColor,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isSelected ? chipColor : ParchmentTheme.warmVellum,
-                      width: isSelected ? 2 : 1,
-                    ),
-                    boxShadow: isSelected ? ParchmentTheme.cardShadow : null,
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        '$chapter',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: isSelected ? chipColor : ParchmentTheme.fadedScript,
-                        ),
+                  onTap: () async {
+                    setState(() => _selectedChapter = chapter);
+                    await _loadVerseProgress();
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: 64,
+                    margin: const EdgeInsets.only(right: 8),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? chipColor.withValues(alpha: 0.15)
+                          : _cardColor,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color:
+                            isSelected ? chipColor : ParchmentTheme.warmVellum,
+                        width: isSelected ? 2 : 1,
                       ),
-                      const SizedBox(height: 4),
-                      if (progress != null && progress.progressPercent > 0)
+                      boxShadow: isSelected ? ParchmentTheme.cardShadow : null,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
                         Text(
-                          '${progress.progressPercent}%',
+                          '$chapter',
                           style: TextStyle(
-                            fontSize: 12,
-                            color: chipColor,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        )
-                      else
-                        const Text(
-                          '미시작',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: ParchmentTheme.weatheredGray,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: isSelected
+                                ? chipColor
+                                : ParchmentTheme.fadedScript,
                           ),
                         ),
-                    ],
+                        const SizedBox(height: 4),
+                        if (progress != null && progress.progressPercent > 0)
+                          Text(
+                            '${progress.progressPercent}%',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: chipColor,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          )
+                        else
+                          const Text(
+                            '미시작',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: ParchmentTheme.weatheredGray,
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
               );
             },
           ),
@@ -568,8 +582,10 @@ class _PracticeTabState extends State<_PracticeTab>
             borderRadius: BorderRadius.circular(8),
             child: LinearProgressIndicator(
               value: progressRate,
-              backgroundColor: ParchmentTheme.softPapyrus.withValues(alpha: 0.3),
-              valueColor: const AlwaysStoppedAnimation<Color>(ParchmentTheme.softPapyrus),
+              backgroundColor:
+                  ParchmentTheme.softPapyrus.withValues(alpha: 0.3),
+              valueColor: const AlwaysStoppedAnimation<Color>(
+                  ParchmentTheme.softPapyrus),
               minHeight: 8,
             ),
           ),
@@ -590,8 +606,10 @@ class _PracticeTabState extends State<_PracticeTab>
             child: CircularProgressIndicator(
               value: progress,
               strokeWidth: 5,
-              backgroundColor: ParchmentTheme.softPapyrus.withValues(alpha: 0.3),
-              valueColor: const AlwaysStoppedAnimation<Color>(ParchmentTheme.softPapyrus),
+              backgroundColor:
+                  ParchmentTheme.softPapyrus.withValues(alpha: 0.3),
+              valueColor: const AlwaysStoppedAnimation<Color>(
+                  ParchmentTheme.softPapyrus),
             ),
           ),
           Center(
@@ -620,7 +638,8 @@ class _PracticeTabState extends State<_PracticeTab>
             decoration: BoxDecoration(
               color: _cardColor,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3)),
+              border: Border.all(
+                  color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3)),
               boxShadow: ParchmentTheme.cardShadow,
             ),
             child: Row(
@@ -665,9 +684,8 @@ class _PracticeTabState extends State<_PracticeTab>
         final verse = index + 1;
         final progress = _verseProgress[verse];
         final isCompleted = progress?.isCompleted ?? false;
-        final isInProgress = progress != null &&
-            !isCompleted &&
-            progress.stages.isNotEmpty;
+        final isInProgress =
+            progress != null && !isCompleted && progress.stages.isNotEmpty;
         final nextVerse = _getNextVerse();
         final isNext = verse == nextVerse;
 
@@ -746,7 +764,8 @@ class _PracticeTabState extends State<_PracticeTab>
         color: _cardColor,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         border: Border(
-          top: BorderSide(color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3)),
+          top: BorderSide(
+              color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3)),
         ),
         boxShadow: [
           BoxShadow(
@@ -783,9 +802,7 @@ class _PracticeTabState extends State<_PracticeTab>
                 Icon(isCompleted ? Icons.replay : Icons.play_arrow),
                 const SizedBox(width: 8),
                 Text(
-                  isCompleted
-                      ? '다시 학습하기'
-                      : '${nextVerse}절부터 학습 시작',
+                  isCompleted ? '다시 학습하기' : '${nextVerse}절부터 학습 시작',
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -799,10 +816,30 @@ class _PracticeTabState extends State<_PracticeTab>
     );
   }
 
-  void _startPractice(int verse) {
+  Future<void> _startPractice(int verse) async {
     if (_selectedBook == null) return;
 
-    Navigator.push(
+    final iap = IAPService();
+    await iap.init();
+    final canLearn = await iap.canLearnVerse(
+      _selectedBook!.id,
+      _selectedChapter,
+    );
+    if (!canLearn) {
+      if (!mounted) return;
+      final reason = FreeTierLimits.isChapterFree(
+        _selectedBook!.id,
+        _selectedChapter,
+      )
+          ? PaywallReason.dailyLimitReached
+          : PaywallReason.premiumContent;
+      await PaywallDialog.show(context, reason: reason);
+      return;
+    }
+
+    if (!mounted) return;
+
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => VersePracticeRedesigned(
@@ -811,10 +848,12 @@ class _PracticeTabState extends State<_PracticeTab>
           initialVerse: verse,
         ),
       ),
-    ).then((_) {
-      _loadChapterProgress();
-      _loadVerseProgress();
-    });
+    );
+
+    await Future.wait([
+      _loadChapterProgress(),
+      _loadVerseProgress(),
+    ]);
   }
 }
 
@@ -928,7 +967,8 @@ class _ReviewTabState extends State<_ReviewTab>
             decoration: BoxDecoration(
               color: _cardColor,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3)),
+              border: Border.all(
+                  color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3)),
               boxShadow: ParchmentTheme.cardShadow,
             ),
             child: Column(
@@ -979,7 +1019,8 @@ class _ReviewTabState extends State<_ReviewTab>
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3)),
+        border: Border.all(
+            color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3)),
         boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Column(
@@ -1040,7 +1081,8 @@ class _ReviewTabState extends State<_ReviewTab>
             decoration: BoxDecoration(
               color: _cardColor,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3)),
+              border: Border.all(
+                  color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3)),
               boxShadow: ParchmentTheme.cardShadow,
             ),
             child: Column(
@@ -1088,7 +1130,8 @@ class _ReviewTabState extends State<_ReviewTab>
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: const Text('다시 시작', style: TextStyle(fontWeight: FontWeight.bold)),
+              child: const Text('다시 시작',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
             ),
           ),
         ],
@@ -1173,9 +1216,8 @@ class _ReviewTabState extends State<_ReviewTab>
               onTap: _showAnswer ? null : _showAnswerCard,
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 300),
-                child: _showAnswer
-                    ? _buildAnswerSide(item)
-                    : _buildQuestionSide(),
+                child:
+                    _showAnswer ? _buildAnswerSide(item) : _buildQuestionSide(),
               ),
             ),
           ),
@@ -1245,7 +1287,8 @@ class _ReviewTabState extends State<_ReviewTab>
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3)),
+        border: Border.all(
+            color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3)),
         boxShadow: ParchmentTheme.cardShadow,
       ),
       child: SingleChildScrollView(
@@ -1355,8 +1398,7 @@ class _QuizTab extends StatefulWidget {
   State<_QuizTab> createState() => _QuizTabState();
 }
 
-class _QuizTabState extends State<_QuizTab>
-    with AutomaticKeepAliveClientMixin {
+class _QuizTabState extends State<_QuizTab> with AutomaticKeepAliveClientMixin {
   static const _cardColor = ParchmentTheme.softPapyrus;
   static const _accentColor = ParchmentTheme.manuscriptGold;
 
@@ -1553,7 +1595,8 @@ class _QuizTabState extends State<_QuizTab>
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3)),
+        border: Border.all(
+            color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3)),
         boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Row(
@@ -1624,7 +1667,8 @@ class _QuizTabState extends State<_QuizTab>
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3)),
+        border: Border.all(
+            color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3)),
         boxShadow: ParchmentTheme.cardShadow,
       ),
       child: Column(
@@ -1736,7 +1780,8 @@ class _QuizTabState extends State<_QuizTab>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: _accentColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
@@ -1766,7 +1811,9 @@ class _QuizTabState extends State<_QuizTab>
                     decoration: BoxDecoration(
                       color: ParchmentTheme.warmVellum.withValues(alpha: 0.5),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3)),
+                      border: Border.all(
+                          color: ParchmentTheme.manuscriptGold
+                              .withValues(alpha: 0.3)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1807,10 +1854,13 @@ class _QuizTabState extends State<_QuizTab>
                             : _cardColor,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: isSelected ? _accentColor : ParchmentTheme.warmVellum,
+                          color: isSelected
+                              ? _accentColor
+                              : ParchmentTheme.warmVellum,
                           width: isSelected ? 2 : 1,
                         ),
-                        boxShadow: isSelected ? ParchmentTheme.cardShadow : null,
+                        boxShadow:
+                            isSelected ? ParchmentTheme.cardShadow : null,
                       ),
                       child: Row(
                         children: [
@@ -1819,7 +1869,9 @@ class _QuizTabState extends State<_QuizTab>
                             height: 24,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: isSelected ? _accentColor : ParchmentTheme.warmVellum,
+                              color: isSelected
+                                  ? _accentColor
+                                  : ParchmentTheme.warmVellum,
                               border: Border.all(
                                 color: isSelected
                                     ? _accentColor
@@ -1946,9 +1998,13 @@ class _QuizTabState extends State<_QuizTab>
               child: ElevatedButton(
                 onPressed: hasAnswer ? _nextQuestion : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: hasAnswer ? Colors.transparent : ParchmentTheme.warmVellum,
+                  backgroundColor: hasAnswer
+                      ? Colors.transparent
+                      : ParchmentTheme.warmVellum,
                   shadowColor: Colors.transparent,
-                  foregroundColor: hasAnswer ? ParchmentTheme.softPapyrus : ParchmentTheme.weatheredGray,
+                  foregroundColor: hasAnswer
+                      ? ParchmentTheme.softPapyrus
+                      : ParchmentTheme.weatheredGray,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -1980,13 +2036,18 @@ class _QuizTabState extends State<_QuizTab>
             decoration: BoxDecoration(
               color: _cardColor,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3)),
+              border: Border.all(
+                  color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3)),
               boxShadow: ParchmentTheme.cardShadow,
             ),
             child: Column(
               children: [
                 Text(
-                  result.isPerfect ? '🎉' : result.accuracy >= 0.8 ? '👍' : '💪',
+                  result.isPerfect
+                      ? '🎉'
+                      : result.accuracy >= 0.8
+                          ? '👍'
+                          : '💪',
                   style: const TextStyle(fontSize: 64),
                 ),
                 const SizedBox(height: 16),
@@ -2014,7 +2075,8 @@ class _QuizTabState extends State<_QuizTab>
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.toll, color: ParchmentTheme.manuscriptGold, size: 28),
+                    const Icon(Icons.toll,
+                        color: ParchmentTheme.manuscriptGold, size: 28),
                     const SizedBox(width: 8),
                     AnimatedCounter(
                       value: result.totalEarned,
@@ -2029,7 +2091,8 @@ class _QuizTabState extends State<_QuizTab>
                 if (result.bonusEarned > 0) ...[
                   const SizedBox(height: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                     decoration: BoxDecoration(
                       color: ParchmentTheme.info.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(12),

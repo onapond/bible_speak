@@ -3,8 +3,11 @@ import '../../domain/models/bible/bible_models.dart';
 import '../../services/auth_service.dart';
 import '../../services/bible_data_service.dart';
 import '../../services/progress_service.dart';
+import '../../services/iap_service.dart';
 import '../../models/verse_progress.dart';
+import '../../models/subscription.dart';
 import '../../styles/parchment_theme.dart';
+import '../../widgets/paywall_dialog.dart';
 import '../practice/verse_practice_redesigned.dart';
 
 /// 통합 암송 연습 설정 화면
@@ -66,7 +69,8 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
       );
     } else if (books.isNotEmpty) {
       // 기본값: 무료 책 중 첫 번째 또는 전체 첫 번째
-      selectedBook = books.firstWhere((b) => b.isFree, orElse: () => books.first);
+      selectedBook =
+          books.firstWhere((b) => b.isFree, orElse: () => books.first);
     }
 
     if (mounted) {
@@ -232,7 +236,8 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
       decoration: BoxDecoration(
         color: _cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3)),
+        border: Border.all(
+            color: ParchmentTheme.manuscriptGold.withValues(alpha: 0.3)),
         boxShadow: ParchmentTheme.cardShadow,
       ),
       child: DropdownButtonHideUnderline(
@@ -240,8 +245,10 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
           value: _selectedBook,
           isExpanded: true,
           dropdownColor: _cardColor,
-          icon: const Icon(Icons.keyboard_arrow_down, color: ParchmentTheme.fadedScript),
-          style: const TextStyle(color: ParchmentTheme.ancientInk, fontSize: 16),
+          icon: const Icon(Icons.keyboard_arrow_down,
+              color: ParchmentTheme.fadedScript),
+          style:
+              const TextStyle(color: ParchmentTheme.ancientInk, fontSize: 16),
           items: _books.map((book) {
             return DropdownMenuItem<Book>(
               value: book,
@@ -280,7 +287,8 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
                   ),
                   if (book.isFree)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
                         color: ParchmentTheme.success.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(4),
@@ -323,7 +331,8 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
       children: [
         Row(
           children: [
-            const Icon(Icons.layers, color: ParchmentTheme.fadedScript, size: 18),
+            const Icon(Icons.layers,
+                color: ParchmentTheme.fadedScript, size: 18),
             const SizedBox(width: 8),
             const Text(
               '장 선택',
@@ -366,60 +375,63 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
               return KeyedSubtree(
                 key: ValueKey('chapter_$chapter'),
                 child: GestureDetector(
-                onTap: () async {
-                  setState(() => _selectedChapter = chapter);
-                  await _loadVerseProgress();
-                },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  width: 64,
-                  margin: const EdgeInsets.only(right: 8),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? chipColor.withValues(alpha: 0.15)
-                        : _cardColor,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
+                  onTap: () async {
+                    setState(() => _selectedChapter = chapter);
+                    await _loadVerseProgress();
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: 64,
+                    margin: const EdgeInsets.only(right: 8),
+                    decoration: BoxDecoration(
                       color: isSelected
-                          ? chipColor
-                          : ParchmentTheme.manuscriptGold.withValues(alpha: 0.2),
-                      width: isSelected ? 2 : 1,
-                    ),
-                    boxShadow: isSelected ? ParchmentTheme.cardShadow : null,
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        '$chapter',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: isSelected ? chipColor : ParchmentTheme.fadedScript,
-                        ),
+                          ? chipColor.withValues(alpha: 0.15)
+                          : _cardColor,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isSelected
+                            ? chipColor
+                            : ParchmentTheme.manuscriptGold
+                                .withValues(alpha: 0.2),
+                        width: isSelected ? 2 : 1,
                       ),
-                      const SizedBox(height: 4),
-                      if (progress != null && progress.progressPercent > 0)
+                      boxShadow: isSelected ? ParchmentTheme.cardShadow : null,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
                         Text(
-                          '${progress.progressPercent}%',
+                          '$chapter',
                           style: TextStyle(
-                            fontSize: 10,
-                            color: chipColor,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        )
-                      else
-                        const Text(
-                          '미시작',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: ParchmentTheme.weatheredGray,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: isSelected
+                                ? chipColor
+                                : ParchmentTheme.fadedScript,
                           ),
                         ),
-                    ],
+                        const SizedBox(height: 4),
+                        if (progress != null && progress.progressPercent > 0)
+                          Text(
+                            '${progress.progressPercent}%',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: chipColor,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          )
+                        else
+                          const Text(
+                            '미시작',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: ParchmentTheme.weatheredGray,
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
               );
             },
           ),
@@ -474,8 +486,10 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
             borderRadius: BorderRadius.circular(8),
             child: LinearProgressIndicator(
               value: progressRate,
-              backgroundColor: ParchmentTheme.softPapyrus.withValues(alpha: 0.3),
-              valueColor: const AlwaysStoppedAnimation<Color>(ParchmentTheme.success),
+              backgroundColor:
+                  ParchmentTheme.softPapyrus.withValues(alpha: 0.3),
+              valueColor:
+                  const AlwaysStoppedAnimation<Color>(ParchmentTheme.success),
               minHeight: 8,
             ),
           ),
@@ -496,8 +510,10 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
             child: CircularProgressIndicator(
               value: progress,
               strokeWidth: 5,
-              backgroundColor: ParchmentTheme.softPapyrus.withValues(alpha: 0.3),
-              valueColor: const AlwaysStoppedAnimation<Color>(ParchmentTheme.success),
+              backgroundColor:
+                  ParchmentTheme.softPapyrus.withValues(alpha: 0.3),
+              valueColor:
+                  const AlwaysStoppedAnimation<Color>(ParchmentTheme.success),
             ),
           ),
           Center(
@@ -576,9 +592,8 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
         final verse = index + 1;
         final progress = _verseProgress[verse];
         final isCompleted = progress?.isCompleted ?? false;
-        final isInProgress = progress != null &&
-            !isCompleted &&
-            progress.stages.isNotEmpty;
+        final isInProgress =
+            progress != null && !isCompleted && progress.stages.isNotEmpty;
         final nextVerse = _getNextVerse();
         final isNext = verse == nextVerse;
 
@@ -696,9 +711,7 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
                 Icon(isCompleted ? Icons.replay : Icons.play_arrow),
                 const SizedBox(width: 8),
                 Text(
-                  isCompleted
-                      ? '다시 학습하기'
-                      : '${nextVerse}절부터 학습 시작',
+                  isCompleted ? '다시 학습하기' : '${nextVerse}절부터 학습 시작',
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -712,10 +725,30 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
     );
   }
 
-  void _startPractice(int verse) {
+  Future<void> _startPractice(int verse) async {
     if (_selectedBook == null) return;
 
-    Navigator.push(
+    final iap = IAPService();
+    await iap.init();
+    final canLearn = await iap.canLearnVerse(
+      _selectedBook!.id,
+      _selectedChapter,
+    );
+    if (!canLearn) {
+      if (!mounted) return;
+      final reason = FreeTierLimits.isChapterFree(
+        _selectedBook!.id,
+        _selectedChapter,
+      )
+          ? PaywallReason.dailyLimitReached
+          : PaywallReason.premiumContent;
+      await PaywallDialog.show(context, reason: reason);
+      return;
+    }
+
+    if (!mounted) return;
+
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => VersePracticeRedesigned(
@@ -724,10 +757,12 @@ class _PracticeSetupScreenState extends State<PracticeSetupScreen> {
           initialVerse: verse,
         ),
       ),
-    ).then((_) {
-      // 돌아오면 진행률 새로고침
-      _loadChapterProgress();
-      _loadVerseProgress();
-    });
+    );
+
+    // 돌아오면 진행률 새로고침
+    await Future.wait([
+      _loadChapterProgress(),
+      _loadVerseProgress(),
+    ]);
   }
 }

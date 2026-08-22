@@ -1,10 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:http/http.dart' as http;
-
 import '../../config/app_config.dart';
+import '../api/authenticated_api_client.dart';
 import 'audio_loader.dart';
 
 /// Azure Pronunciation Assessment 서비스 (최적화 버전)
@@ -13,20 +10,13 @@ import 'audio_loader.dart';
 /// - 오프라인 감지
 /// - 상세한 오류 메시지
 class AzurePronunciationService {
-  // Azure Speech 설정
-  String get _subscriptionKey => AppConfig.azureSpeechKey;
-  String get _region => AppConfig.azureSpeechRegion;
-
-  String get _endpoint =>
-      'https://$_region.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1';
-
   // 재시도 설정 (최적화)
   static const int _maxRetries = 2;
   static const Duration _timeout = Duration(seconds: 15);
   static const Duration _retryDelay = Duration(seconds: 1);
 
   /// API 키 설정 확인
-  bool get isConfigured => _subscriptionKey.isNotEmpty && _subscriptionKey != 'YOUR_AZURE_SPEECH_KEY_HERE';
+  bool get isConfigured => true;
 
   /// 발음 평가 실행
   Future<PronunciationResult> evaluate({
@@ -37,8 +27,7 @@ class AzurePronunciationService {
     // 설정 확인
     if (!isConfigured) {
       return PronunciationResult.error(
-        '발음 평가 기능을 사용하려면 Azure Speech API 키를 설정하세요.\n'
-        '.env 파일에 AZURE_SPEECH_KEY를 입력해주세요.',
+        '발음 평가 서버가 설정되지 않았습니다.',
       );
     }
 
@@ -53,12 +42,9 @@ class AzurePronunciationService {
       return PronunciationResult.error('녹음이 너무 짧습니다. 다시 녹음해주세요.');
     }
 
-    if (audioBytes.length > 10 * 1024 * 1024) {
+    if (audioBytes.length > 7 * 1024 * 1024) {
       return PronunciationResult.error('녹음이 너무 깁니다. 구절을 나눠서 녹음해주세요.');
     }
-
-    // 웹 여부 확인 (Blob URL이면 웹)
-    final isWebAudio = kIsWeb || audioFilePath.startsWith('blob:');
 
     // 재시도 로직
     Exception? lastException;
@@ -69,7 +55,6 @@ class AzurePronunciationService {
           audioBytes: audioBytes,
           referenceText: referenceText,
           language: language,
-          isWebAudio: isWebAudio,
         );
       } on TimeoutException {
         lastException = Exception('서버 응답 시간 초과');
@@ -88,8 +73,7 @@ class AzurePronunciationService {
             '인터넷 연결을 확인해주세요.\n네트워크에 연결되어 있지 않습니다.',
           );
         }
-        if (e.toString().contains('API 키') ||
-            e.toString().contains('인식 결과')) {
+        if (e.toString().contains('API 키') || e.toString().contains('인식 결과')) {
           return PronunciationResult.error(e.toString());
         }
         lastException = Exception('발음 평가 오류: $e');
@@ -110,52 +94,24 @@ class AzurePronunciationService {
     required List<int> audioBytes,
     required String referenceText,
     required String language,
-    bool isWebAudio = false,
   }) async {
-    // Pronunciation Assessment 설정
-    final pronunciationConfig = {
-      'ReferenceText': referenceText,
-      'GradingSystem': 'HundredMark',
-      'Granularity': 'Phoneme',
-      'EnableMiscue': true,
-      'EnableProsodyAssessment': true,
-    };
-
-    final configBase64 = base64Encode(utf8.encode(jsonEncode(pronunciationConfig)));
-
-    // 오디오 형식: 웹과 모바일 모두 WAV 사용 (Azure 호환)
-    const contentType = 'audio/wav';
-
-    // API 호출
-    print('🎯 Azure API 호출 시작');
-    print('📍 엔드포인트: $_endpoint');
-    print('📊 오디오 크기: ${audioBytes.length} bytes');
-    print('📝 참조 텍스트: $referenceText');
-    print('🎵 오디오 형식: $contentType');
-
-    final response = await http.post(
-      Uri.parse('$_endpoint?language=$language&format=detailed'),
-      headers: {
-        'Ocp-Apim-Subscription-Key': _subscriptionKey,
-        'Content-Type': contentType,
-        'Pronunciation-Assessment': configBase64,
-        'Accept': 'application/json',
+    final response = await AuthenticatedApiClient.postJson(
+      Uri.parse(AppConfig.pronunciationAssessmentUrl),
+      {
+        'audioBase64': base64Encode(audioBytes),
+        'referenceText': referenceText,
+        'language': language,
       },
-      body: audioBytes,
     ).timeout(_timeout);
-
-    print('📬 응답 상태: ${response.statusCode}');
-    print('📄 응답 내용: ${response.body.substring(0, response.body.length > 500 ? 500 : response.body.length)}');
 
     // 응답 처리
     if (response.statusCode == 200) {
       final jsonResponse = jsonDecode(response.body);
-      print('✅ JSON 파싱 성공');
       return _parseResponse(jsonResponse, referenceText);
     } else if (response.statusCode == 401) {
-      throw Exception('API 키가 유효하지 않습니다. Azure Portal에서 키를 확인해주세요.');
+      throw Exception('로그인이 만료되었습니다. 다시 로그인해주세요.');
     } else if (response.statusCode == 403) {
-      throw Exception('API 키의 권한이 부족합니다.');
+      throw Exception('발음 평가 권한이 없습니다.');
     } else if (response.statusCode == 429) {
       throw Exception('요청이 너무 많습니다. 잠시 후 다시 시도해주세요.');
     } else if (response.statusCode >= 500) {
@@ -173,7 +129,8 @@ class AzurePronunciationService {
   }
 
   /// API 응답 파싱
-  PronunciationResult _parseResponse(Map<String, dynamic> json, String referenceText) {
+  PronunciationResult _parseResponse(
+      Map<String, dynamic> json, String referenceText) {
     // RecognitionStatus 확인
     final status = json['RecognitionStatus'];
     if (status == 'NoMatch') {
@@ -204,42 +161,49 @@ class AzurePronunciationService {
     final best = nBest[0] as Map<String, dynamic>;
 
     // PronunciationAssessment 객체가 있으면 사용, 없으면 best에서 직접 가져옴
-    final assessment = best['PronunciationAssessment'] as Map<String, dynamic>? ?? best;
+    final assessment =
+        best['PronunciationAssessment'] as Map<String, dynamic>? ?? best;
 
     // 전체 점수 (PronunciationAssessment 또는 best에서 가져옴)
     final accuracyScore = (assessment['AccuracyScore'] as num?)?.toDouble() ??
-                          (best['AccuracyScore'] as num?)?.toDouble() ?? 0;
+        (best['AccuracyScore'] as num?)?.toDouble() ??
+        0;
     final fluencyScore = (assessment['FluencyScore'] as num?)?.toDouble() ??
-                         (best['FluencyScore'] as num?)?.toDouble() ?? 0;
-    final completenessScore = (assessment['CompletenessScore'] as num?)?.toDouble() ??
-                              (best['CompletenessScore'] as num?)?.toDouble() ?? 0;
+        (best['FluencyScore'] as num?)?.toDouble() ??
+        0;
+    final completenessScore =
+        (assessment['CompletenessScore'] as num?)?.toDouble() ??
+            (best['CompletenessScore'] as num?)?.toDouble() ??
+            0;
     final prosodyScore = (assessment['ProsodyScore'] as num?)?.toDouble() ??
-                         (best['ProsodyScore'] as num?)?.toDouble() ?? 0;
-    final pronScore = (assessment['PronScore'] as num?)?.toDouble() ??
-                      (best['PronScore'] as num?)?.toDouble() ?? accuracyScore;
-
+        (best['ProsodyScore'] as num?)?.toDouble() ??
+        0;
     // 단어별 결과
     final words = <WordPronunciation>[];
     final wordsJson = best['Words'] as List? ?? [];
 
     for (final wordJson in wordsJson) {
-      final wordAssessment = wordJson['PronunciationAssessment'] as Map<String, dynamic>?;
+      final wordAssessment =
+          wordJson['PronunciationAssessment'] as Map<String, dynamic>?;
 
       // 음소별 결과
       final phonemes = <PhonemePronunciation>[];
       final phonemesJson = wordJson['Phonemes'] as List? ?? [];
 
       for (final phonemeJson in phonemesJson) {
-        final phonemeAssessment = phonemeJson['PronunciationAssessment'] as Map<String, dynamic>?;
+        final phonemeAssessment =
+            phonemeJson['PronunciationAssessment'] as Map<String, dynamic>?;
         phonemes.add(PhonemePronunciation(
           phoneme: phonemeJson['Phoneme'] ?? '',
-          accuracyScore: (phonemeAssessment?['AccuracyScore'] as num?)?.toDouble() ?? 0,
+          accuracyScore:
+              (phonemeAssessment?['AccuracyScore'] as num?)?.toDouble() ?? 0,
         ));
       }
 
       words.add(WordPronunciation(
         word: wordJson['Word'] ?? '',
-        accuracyScore: (wordAssessment?['AccuracyScore'] as num?)?.toDouble() ?? 0,
+        accuracyScore:
+            (wordAssessment?['AccuracyScore'] as num?)?.toDouble() ?? 0,
         errorType: wordAssessment?['ErrorType'] ?? 'None',
         phonemes: phonemes,
       ));
@@ -249,18 +213,20 @@ class AzurePronunciationService {
     // 유창성/운율이 0이면 정확도로 대체
     final effectiveFluency = fluencyScore > 0 ? fluencyScore : accuracyScore;
     final effectiveProsody = prosodyScore > 0 ? prosodyScore : accuracyScore;
-    final effectiveCompleteness = completenessScore > 0 ? completenessScore : accuracyScore;
+    final effectiveCompleteness =
+        completenessScore > 0 ? completenessScore : accuracyScore;
 
     // 가중 평균: 정확도 80%, 나머지 20%
     final weightedScore = (accuracyScore * 0.8) +
-                          (effectiveFluency * 0.07) +
-                          (effectiveCompleteness * 0.07) +
-                          (effectiveProsody * 0.06);
+        (effectiveFluency * 0.07) +
+        (effectiveCompleteness * 0.07) +
+        (effectiveProsody * 0.06);
 
     // 최종 점수 (페널티 없음)
     final finalScore = weightedScore.clamp(0.0, 100.0);
 
-    print('📊 점수 상세: Acc=$accuracyScore, Flu=$fluencyScore, Comp=$completenessScore, Pro=$prosodyScore');
+    print(
+        '📊 점수 상세: Acc=$accuracyScore, Flu=$fluencyScore, Comp=$completenessScore, Pro=$prosodyScore');
     print('📊 최종 점수: $finalScore');
 
     return PronunciationResult(
@@ -278,20 +244,16 @@ class AzurePronunciationService {
 
   /// 연결 테스트
   Future<bool> testConnection() async {
-    if (!isConfigured) return false;
-
     try {
-      // 간단한 GET 요청으로 연결 확인 (실제로는 토큰 발급 엔드포인트)
-      final tokenUrl = 'https://$_region.api.cognitive.microsoft.com/sts/v1.0/issueToken';
-      final response = await http.post(
-        Uri.parse(tokenUrl),
-        headers: {
-          'Ocp-Apim-Subscription-Key': _subscriptionKey,
-          'Content-Length': '0',
+      final response = await AuthenticatedApiClient.postJson(
+        Uri.parse(AppConfig.pronunciationAssessmentUrl),
+        const {
+          'audioBase64': '',
+          'referenceText': 'test',
+          'language': 'en-US',
         },
       ).timeout(const Duration(seconds: 10));
-
-      return response.statusCode == 200;
+      return response.statusCode != 401 && response.statusCode != 503;
     } catch (e) {
       return false;
     }
@@ -336,16 +298,19 @@ class PronunciationResult {
   }
 
   /// 틀린 단어 목록
-  List<WordPronunciation> get incorrectWords =>
-      words.where((w) => w.accuracyScore < 60 || w.errorType != 'None').toList();
+  List<WordPronunciation> get incorrectWords => words
+      .where((w) => w.accuracyScore < 60 || w.errorType != 'None')
+      .toList();
 
   /// 잘한 단어 목록
-  List<WordPronunciation> get correctWords =>
-      words.where((w) => w.accuracyScore >= 80 && w.errorType == 'None').toList();
+  List<WordPronunciation> get correctWords => words
+      .where((w) => w.accuracyScore >= 80 && w.errorType == 'None')
+      .toList();
 
   /// 개선 필요 단어 (60-80점)
-  List<WordPronunciation> get needsImprovementWords =>
-      words.where((w) => w.accuracyScore >= 60 && w.accuracyScore < 80).toList();
+  List<WordPronunciation> get needsImprovementWords => words
+      .where((w) => w.accuracyScore >= 60 && w.accuracyScore < 80)
+      .toList();
 
   /// 가장 취약한 음소 찾기
   List<PhonemePronunciation> get weakestPhonemes {

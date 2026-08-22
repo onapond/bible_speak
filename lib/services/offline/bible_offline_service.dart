@@ -42,7 +42,9 @@ class BibleOfflineService extends ChangeNotifier {
       debugPrint('BibleOfflineService initialized');
     } catch (e) {
       debugPrint('BibleOfflineService init error: $e');
-      _isInitialized = true;
+      _textBox = null;
+      _metaBox = null;
+      rethrow;
     }
   }
 
@@ -151,8 +153,8 @@ class BibleOfflineService extends ChangeNotifier {
 
         // Hive에 저장
         await _textBox!.put('${bookId}_$ch', chapterData);
-        _updateProgress(bookId, downloadedVerses / totalVerses,
-            '${book.nameKo} $ch장 완료');
+        _updateProgress(
+            bookId, downloadedVerses / totalVerses, '${book.nameKo} $ch장 완료');
       }
 
       // 4. 메타데이터 저장

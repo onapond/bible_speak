@@ -1,18 +1,13 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:http/http.dart' as http;
 
 import '../config/app_config.dart';
+import 'api/authenticated_api_client.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// ESV API 서비스
 /// - 성경 텍스트 동적 로딩
 /// - 로컬 캐싱 지원
 class EsvService {
-  static const String _baseUrl = 'https://api.esv.org/v3/passage/text/';
-
-  String get _apiKey => AppConfig.esvApiKey;
-
   /// 성경 구절 가져오기 (캐싱 포함)
   Future<List<VerseText>> getChapter({
     required String book,
@@ -39,45 +34,19 @@ class EsvService {
 
   /// ESV API에서 구절 가져오기
   Future<List<VerseText>> _fetchFromApi(String book, int chapter) async {
-    if (_apiKey.isEmpty) {
-      print('❌ ESV API 키가 비어있습니다. 웹 빌드 시 build_web.ps1 스크립트를 사용하세요.');
-      throw Exception('ESV API 키가 설정되지 않았습니다. (웹: --dart-define 필요, 모바일: .env 파일 필요)');
-    }
-
-    print('🔑 ESV API 키 확인됨 (${_apiKey.substring(0, 8)}...)');
-
     final query = '$book $chapter';
-    final url = Uri.parse('$_baseUrl').replace(queryParameters: {
-      'q': query,
-      'include-passage-references': 'false',
-      'include-verse-numbers': 'true',
-      'include-first-verse-numbers': 'true',
-      'include-footnotes': 'false',
-      'include-headings': 'false',
-      'include-short-copyright': 'false',
-      'indent-paragraphs': '0',
-      'indent-poetry': 'false',
-      'indent-declares': '0',
-      'indent-psalm-doxology': '0',
-    });
-
-    // 웹에서는 짧은 타임아웃, 모바일은 여유있게
-    final timeout = kIsWeb ? const Duration(seconds: 10) : const Duration(seconds: 20);
-    final response = await http.get(
-      url,
-      headers: {'Authorization': 'Token $_apiKey'},
-    ).timeout(timeout);
+    final url = Uri.parse(AppConfig.getEsvTextUrl(query));
+    final response = await AuthenticatedApiClient.get(url)
+        .timeout(const Duration(seconds: 20));
 
     if (response.statusCode == 200) {
       final json = jsonDecode(response.body);
       final text = json['passages']?.first ?? '';
       return _parseVerses(text);
     } else if (response.statusCode == 401) {
-      print('❌ ESV API 인증 실패 - API 키가 유효하지 않습니다.');
-      throw Exception('ESV API 인증 실패: API 키를 확인해주세요.');
+      throw Exception('로그인이 만료되었습니다. 다시 로그인해주세요.');
     } else if (response.statusCode == 403) {
-      print('❌ ESV API 접근 거부 - API 키 권한을 확인해주세요.');
-      throw Exception('ESV API 접근 거부: API 키 권한을 확인해주세요.');
+      throw Exception('성경 본문에 접근할 권한이 없습니다.');
     } else {
       print('❌ ESV API 오류: ${response.statusCode} - ${response.body}');
       throw Exception('ESV API 오류: ${response.statusCode}');
@@ -94,8 +63,8 @@ class EsvService {
 
     for (final match in matches) {
       final verseNum = int.parse(match.group(1)!);
-      final verseText = match.group(2)!.trim()
-          .replaceAll(RegExp(r'\s+'), ' '); // 여러 공백을 하나로
+      final verseText =
+          match.group(2)!.trim().replaceAll(RegExp(r'\s+'), ' '); // 여러 공백을 하나로
 
       if (verseText.isNotEmpty) {
         verses.add(VerseText(verse: verseNum, english: verseText));
@@ -164,10 +133,10 @@ class VerseText {
   }
 
   Map<String, dynamic> toJson() => {
-    'verse': verse,
-    'english': english,
-    'korean': korean,
-  };
+        'verse': verse,
+        'english': english,
+        'korean': korean,
+      };
 
   VerseText copyWith({String? korean}) {
     return VerseText(

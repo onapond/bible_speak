@@ -5,10 +5,10 @@ import 'dart:typed_data';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 
 import '../config/app_config.dart';
+import 'api/authenticated_api_client.dart';
 
 /// TTS 서비스 (최적화 버전)
 /// - ESV API 오디오 (성경 구절 전용)
@@ -41,17 +41,6 @@ class TTSService {
   bool get isPlaying => _isPlaying;
   double get playbackRate => _playbackRate;
 
-  // API 키
-  String get _esvApiKey => AppConfig.esvApiKey;
-  String get _elevenLabsApiKey => AppConfig.elevenLabsApiKey;
-
-  // ESV API 설정
-  static const String _esvBaseUrl = 'https://api.esv.org/v3/passage/audio/';
-
-  // ElevenLabs 설정
-  static const String _elevenLabsVoiceId = '21m00Tcm4TlvDq8ikWAM';
-  static const String _elevenLabsModel = 'eleven_multilingual_v2';
-
   /// 재생 속도 변경 (0.5 ~ 2.0)
   Future<void> setPlaybackRate(double rate) async {
     if (rate < 0.5 || rate > 2.0) return;
@@ -67,10 +56,6 @@ class TTSService {
   }) async {
     final reference = '$book+$chapter:$verse';
 
-    if (!kIsWeb && _esvApiKey.isEmpty) {
-      throw Exception('ESV API 키가 설정되지 않았습니다.');
-    }
-
     try {
       _isPlaying = true;
 
@@ -78,8 +63,7 @@ class TTSService {
         // 웹에서는 프록시를 통해 오디오 재생
         await _playFromProxyWeb(reference);
       } else {
-        final audioUrl = '$_esvBaseUrl?q=$reference';
-        await _playFromUrlWithCache(audioUrl, reference);
+        await _playFromUrlWithCache(reference, reference);
       }
     } catch (e) {
       _isPlaying = false;
@@ -111,7 +95,7 @@ class TTSService {
         print('🌐 웹 오디오 프록시 요청: $proxyUrl');
 
         // 웹 오디오는 10초 타임아웃 (사용자 이탈 방지)
-        final response = await http.get(
+        final response = await AuthenticatedApiClient.get(
           Uri.parse(proxyUrl),
         ).timeout(const Duration(seconds: 10));
 
@@ -200,7 +184,7 @@ class TTSService {
     try {
       final proxyUrl = AppConfig.getEsvAudioUrl(reference);
       print('🔄 웹 프리로드 시작: $reference');
-      final response = await http.get(
+      final response = await AuthenticatedApiClient.get(
         Uri.parse(proxyUrl),
       ).timeout(const Duration(seconds: 15));
 
@@ -245,8 +229,7 @@ class TTSService {
     _preloadQueue[cacheKey] = completer;
 
     try {
-      final audioUrl = '$_esvBaseUrl?q=$reference';
-      await _downloadAndCache(audioUrl, cacheKey);
+      await _downloadAndCache(reference, cacheKey);
       completer.complete(cacheFile.path);
     } catch (e) {
       completer.complete(null);
@@ -272,9 +255,8 @@ class TTSService {
       final cacheFile = await _getCacheFile(reference);
 
       if (!await cacheFile.exists()) {
-        final audioUrl = '$_esvBaseUrl?q=$reference';
         try {
-          await _downloadAndCache(audioUrl, reference);
+          await _downloadAndCache(reference, reference);
         } catch (e) {
           // 프리로드 실패는 무시
         }
@@ -283,14 +265,13 @@ class TTSService {
   }
 
   /// URL에서 다운로드 후 캐시 (재시도 포함)
-  Future<void> _downloadAndCache(String url, String cacheKey) async {
+  Future<void> _downloadAndCache(String reference, String cacheKey) async {
     Exception? lastException;
 
     for (int attempt = 1; attempt <= _maxRetries; attempt++) {
       try {
-        final response = await http.get(
-          Uri.parse(url),
-          headers: {'Authorization': 'Token $_esvApiKey'},
+        final response = await AuthenticatedApiClient.get(
+          Uri.parse(AppConfig.getEsvAudioUrl(reference)),
         ).timeout(const Duration(seconds: 30));
 
         if (response.statusCode == 200) {
@@ -329,7 +310,7 @@ class TTSService {
   }
 
   /// 모바일 캐싱 재생
-  Future<void> _playFromUrlWithCache(String url, String cacheKey) async {
+  Future<void> _playFromUrlWithCache(String reference, String cacheKey) async {
     try {
       final cacheFile = await _getCacheFile(cacheKey);
 
@@ -348,7 +329,7 @@ class TTSService {
       }
 
       // 다운로드 및 캐시
-      await _downloadAndCache(url, cacheKey);
+      await _downloadAndCache(reference, cacheKey);
 
       // 캐시 크기 체크 (비동기로 정리)
       _checkCacheSize();
@@ -367,10 +348,6 @@ class TTSService {
 
   /// ElevenLabs TTS
   Future<void> speakWithElevenLabs(String text) async {
-    if (_elevenLabsApiKey.isEmpty) {
-      throw Exception('ElevenLabs API 키가 설정되지 않았습니다.');
-    }
-
     try {
       final audioBytes = await _fetchFromElevenLabs(text);
 
@@ -389,26 +366,15 @@ class TTSService {
 
   /// ElevenLabs API 호출 (재시도 포함)
   Future<List<int>> _fetchFromElevenLabs(String text) async {
-    final url = Uri.parse('https://api.elevenlabs.io/v1/text-to-speech/$_elevenLabsVoiceId');
     Exception? lastException;
 
     for (int attempt = 1; attempt <= _maxRetries; attempt++) {
       try {
-        final response = await http.post(
-          url,
-          headers: {
-            'xi-api-key': _elevenLabsApiKey,
-            'Content-Type': 'application/json',
-          },
-          body: jsonEncode({
-            'text': text,
-            'model_id': _elevenLabsModel,
-            'voice_settings': {
-              'stability': 0.8,
-              'similarity_boost': 0.8,
-            },
-          }),
-        ).timeout(kIsWeb ? const Duration(seconds: 12) : const Duration(seconds: 25));
+        final response = await AuthenticatedApiClient.postJson(
+          Uri.parse(AppConfig.elevenLabsTtsUrl),
+          {'text': text},
+        ).timeout(
+            kIsWeb ? const Duration(seconds: 12) : const Duration(seconds: 25));
 
         if (response.statusCode == 200) {
           return response.bodyBytes;
@@ -502,7 +468,8 @@ class TTSService {
         files.sort((a, b) => a.value.compareTo(b.value));
 
         int deletedBytes = 0;
-        final targetDelete = totalBytes - (_maxCacheSizeMB * 1024 * 1024 * 0.8).toInt();
+        final targetDelete =
+            totalBytes - (_maxCacheSizeMB * 1024 * 1024 * 0.8).toInt();
 
         for (final entry in files) {
           if (deletedBytes >= targetDelete) break;

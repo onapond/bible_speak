@@ -1,9 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:http/http.dart' as http;
-
 import '../../config/app_config.dart';
+import '../api/authenticated_api_client.dart';
 import '../pronunciation/azure_pronunciation_service.dart';
 
 /// AI 튜터 피드백 결과
@@ -84,19 +83,6 @@ class TutorCoordinator {
 
   final AzurePronunciationService _azureService = AzurePronunciationService();
 
-  // API 키
-  String get _geminiApiKey => AppConfig.geminiApiKey;
-  String get _elevenLabsApiKey => AppConfig.elevenLabsApiKey;
-
-  // Gemini 설정
-  static const String _geminiModel = 'gemini-1.5-flash';
-  static const String _geminiBaseUrl =
-      'https://generativelanguage.googleapis.com/v1beta/models';
-
-  // ElevenLabs 설정 (한국어 음성)
-  static const String _elevenLabsVoiceId = 'jBpfuIE2acCO8z3wKNLl'; // 한국어 여성 음성
-  static const String _elevenLabsModel = 'eleven_multilingual_v2';
-
   // 단계별 통과 기준
   static const Map<int, double> _stagePassThresholds = {
     1: 70.0, // Stage 1: 듣고 따라하기
@@ -144,7 +130,7 @@ class TutorCoordinator {
 
       // 5. (옵션) ElevenLabs 음성 피드백
       String? audioUrl;
-      if (generateAudioFeedback && _elevenLabsApiKey.isNotEmpty) {
+      if (generateAudioFeedback) {
         audioUrl = await _generateAudioFeedback(geminiResponse.encouragement);
       }
 
@@ -168,44 +154,20 @@ class TutorCoordinator {
     required PronunciationResult pronunciationResult,
     required int currentStage,
   }) async {
-    if (_geminiApiKey.isEmpty || _geminiApiKey == 'YOUR_GEMINI_API_KEY_HERE') {
-      return _getLocalFeedback(pronunciationResult);
-    }
-
     try {
       final prompt = _buildGeminiPrompt(
         pronunciationResult: pronunciationResult,
         currentStage: currentStage,
       );
 
-      final url = '$_geminiBaseUrl/$_geminiModel:generateContent?key=$_geminiApiKey';
-
-      final requestBody = {
-        'contents': [
-          {
-            'parts': [
-              {'text': prompt}
-            ]
-          }
-        ],
-        'generationConfig': {
-          'temperature': 0.7,
-          'maxOutputTokens': 300,
-        },
-      };
-
-      final response = await http
-          .post(
-            Uri.parse(url),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode(requestBody),
-          )
-          .timeout(const Duration(seconds: 15));
+      final response = await AuthenticatedApiClient.postJson(
+        Uri.parse(AppConfig.geminiFeedbackUrl),
+        {'prompt': prompt},
+      ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         final jsonResponse = jsonDecode(response.body);
-        final text =
-            jsonResponse['candidates']?[0]?['content']?['parts']?[0]?['text'];
+        final text = jsonResponse['text'];
 
         if (text != null) {
           return _parseGeminiResponse(text.trim());
@@ -267,20 +229,23 @@ Rules:
     String tip = '';
 
     // [격려] 추출
-    final encouragementMatch = RegExp(r'\[격려\]\s*(.+?)(?=\[|$)', dotAll: true).firstMatch(text);
+    final encouragementMatch =
+        RegExp(r'\[격려\]\s*(.+?)(?=\[|$)', dotAll: true).firstMatch(text);
     if (encouragementMatch != null) {
       encouragement = encouragementMatch.group(1)?.trim() ?? '';
     }
 
     // [팁] 추출 (새 형식)
-    final tipMatch = RegExp(r'\[팁\]\s*(.+?)(?=\[|$)', dotAll: true).firstMatch(text);
+    final tipMatch =
+        RegExp(r'\[팁\]\s*(.+?)(?=\[|$)', dotAll: true).firstMatch(text);
     if (tipMatch != null) {
       tip = tipMatch.group(1)?.trim() ?? '';
     }
 
     // [발음팁] 형식도 지원 (하위 호환)
     if (tip.isEmpty) {
-      final oldTipMatch = RegExp(r'\[발음팁\]\s*(.+?)(?=\[|$)', dotAll: true).firstMatch(text);
+      final oldTipMatch =
+          RegExp(r'\[발음팁\]\s*(.+?)(?=\[|$)', dotAll: true).firstMatch(text);
       if (oldTipMatch != null) {
         tip = oldTipMatch.group(1)?.trim() ?? '';
       }
@@ -288,7 +253,8 @@ Rules:
 
     // [피드백] 형식도 지원 (하위 호환)
     if (tip.isEmpty) {
-      final feedbackMatch = RegExp(r'\[피드백\]\s*(.+?)(?=\[|$)', dotAll: true).firstMatch(text);
+      final feedbackMatch =
+          RegExp(r'\[피드백\]\s*(.+?)(?=\[|$)', dotAll: true).firstMatch(text);
       if (feedbackMatch != null) {
         tip = feedbackMatch.group(1)?.trim() ?? '';
       }
@@ -329,7 +295,8 @@ Rules:
     } else if (score >= 70) {
       encouragement = '잘하고 있어요! 꾸준한 연습이 실력을 만들어요. 💪';
       if (result.incorrectWords.isNotEmpty) {
-        final words = result.incorrectWords.take(2).map((w) => w.word).join(', ');
+        final words =
+            result.incorrectWords.take(2).map((w) => w.word).join(', ');
         detailedFeedback = '"$words"에 집중해서 다시 들어보고 따라해보세요.';
       } else {
         detailedFeedback = '속도를 조금 늦추고 또박또박 발음해보세요.';
@@ -395,27 +362,10 @@ Rules:
 
   /// ElevenLabs 음성 피드백 생성
   Future<String?> _generateAudioFeedback(String text) async {
-    if (_elevenLabsApiKey.isEmpty) return null;
-
     try {
-      final url = Uri.parse(
-        'https://api.elevenlabs.io/v1/text-to-speech/$_elevenLabsVoiceId',
-      );
-
-      final response = await http.post(
-        url,
-        headers: {
-          'xi-api-key': _elevenLabsApiKey,
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'text': text,
-          'model_id': _elevenLabsModel,
-          'voice_settings': {
-            'stability': 0.7,
-            'similarity_boost': 0.8,
-          },
-        }),
+      final response = await AuthenticatedApiClient.postJson(
+        Uri.parse(AppConfig.elevenLabsTtsUrl),
+        {'text': text},
       ).timeout(const Duration(seconds: 20));
 
       if (response.statusCode == 200) {

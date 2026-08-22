@@ -1,8 +1,8 @@
 /// 사용자 역할 정의
 enum UserRole {
-  admin,   // 전체 관리자
-  leader,  // 그룹 리더
-  member,  // 일반 멤버
+  admin, // 전체 관리자
+  leader, // 그룹 리더
+  member, // 일반 멤버
 }
 
 /// 사용자 모델
@@ -13,7 +13,10 @@ class UserModel {
   final String groupId;
   final UserRole role;
   final int talants;
-  final List<int> completedVerses;
+
+  /// 완료 구절의 정규 ID (`book:chapter:verse`).
+  /// 기존 숫자 데이터는 `legacy:<verse>`로 읽어 충돌 없이 보존한다.
+  final List<String> completedVerses;
   final DateTime? createdAt;
 
   const UserModel({
@@ -36,7 +39,9 @@ class UserModel {
       groupId: data['groupId'] ?? '',
       role: _parseRole(data['role']),
       talants: data['talants'] ?? 0,
-      completedVerses: List<int>.from(data['completedVerses'] ?? []),
+      completedVerses: ((data['completedVerses'] as List?) ?? const [])
+          .map((value) => value is String ? value : 'legacy:$value')
+          .toList(growable: false),
       createdAt: data['createdAt']?.toDate(),
     );
   }
@@ -73,7 +78,7 @@ class UserModel {
     String? groupId,
     UserRole? role,
     int? talants,
-    List<int>? completedVerses,
+    List<String>? completedVerses,
   }) {
     return UserModel(
       uid: uid,

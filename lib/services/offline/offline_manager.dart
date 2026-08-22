@@ -34,14 +34,20 @@ class OfflineManager extends ChangeNotifier {
     if (_isInitialized) return;
 
     try {
+      Future<void> initializeSafely(Future<void> operation) async {
+        try {
+          await operation.timeout(const Duration(seconds: 2));
+        } catch (error) {
+          print('⚠️ 일부 오프라인 서비스 초기화 실패: $error');
+        }
+      }
+
       // 병렬 초기화 (타임아웃 적용)
-      await Future.wait([
-        connectivity.initialize().timeout(const Duration(seconds: 2)),
-        cache.initialize().timeout(const Duration(seconds: 2)),
-        syncQueue.initialize().timeout(const Duration(seconds: 2)),
-      ]).catchError((e) {
-        print('⚠️ 일부 오프라인 서비스 초기화 실패: $e');
-      });
+      await Future.wait<void>([
+        initializeSafely(connectivity.initialize()),
+        initializeSafely(cache.initialize()),
+        initializeSafely(syncQueue.initialize()),
+      ]);
 
       // 연결 상태 변경 리스닝
       connectivity.addListener(_onConnectivityChanged);

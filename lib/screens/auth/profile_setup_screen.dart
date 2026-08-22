@@ -156,7 +156,8 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       decoration: BoxDecoration(
         color: ParchmentTheme.success.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: ParchmentTheme.success.withValues(alpha: 0.5)),
+        border:
+            Border.all(color: ParchmentTheme.success.withValues(alpha: 0.5)),
       ),
       child: Row(
         children: [
@@ -220,6 +221,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
           const SizedBox(height: 16),
           TextField(
             controller: _nameController,
+            onChanged: (_) => setState(() {}),
             style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
               hintText: '예: 김철수, 은혜, 믿음이',
@@ -230,7 +232,8 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             ),
           ),
         ],
@@ -239,7 +242,8 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
   }
 
   Widget _buildSubmitButton() {
-    final canSubmit = _nameController.text.trim().isNotEmpty && _selectedGroupId != null;
+    final canSubmit =
+        _nameController.text.trim().isNotEmpty && _selectedGroupId != null;
 
     return ElevatedButton(
       onPressed: _isSubmitting || !canSubmit ? null : _submit,

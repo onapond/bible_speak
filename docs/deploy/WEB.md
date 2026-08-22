@@ -2,156 +2,123 @@
 
 ## 개요
 
-Bible Speak 앱은 Flutter Web을 지원하며, Firebase Hosting을 통해 배포됩니다.
+Bible Speak 웹앱은 Firebase Hosting에 배포되고, 외부 유료 API는 인증된
+Firebase Functions를 통해 호출합니다.
 
-**배포 URL:** https://bible-speak.web.app
-
-## 아키텍처
-
-```
-┌─────────────────────┐     ┌──────────────────────┐     ┌─────────────────┐
-│   Flutter Web App   │────▶│  Cloudflare Worker   │────▶│    ESV API      │
-│ (Firebase Hosting)  │     │   (Audio Proxy)      │     │  (Audio Data)   │
-└─────────────────────┘     └──────────────────────┘     └─────────────────┘
+```text
+Flutter Web ── Firebase ID token ──▶ Firebase Functions ──▶ ESV/Azure/Gemini/ElevenLabs
 ```
 
-### 왜 프록시가 필요한가?
+Cloudflare, Render, Vercel의 과거 익명 프록시는 폐기되었습니다. 해당 배포가
+남아 있다면 저장소의 tombstone 버전으로 재배포하거나 프로젝트를 비활성화해야
+합니다.
 
-ESV API는 브라우저에서 직접 호출 시 CORS(Cross-Origin Resource Sharing) 정책으로 인해 차단됩니다.
-Cloudflare Worker가 프록시 역할을 하여 CORS 헤더를 추가합니다.
+## 최초 서버 설정
 
-## 구성 요소
-
-### 1. Flutter Web App
-- **위치:** Firebase Hosting
-- **URL:** https://bible-speak.web.app
-- **빌드:** `flutter build web --release`
-- **배포:** `firebase deploy --only hosting`
-
-### 2. Cloudflare Worker (Audio Proxy)
-- **위치:** Cloudflare Workers
-- **URL:** https://bible-speak-proxy.tlsdygksdev.workers.dev
-- **역할:** ESV Audio API CORS 프록시
-
-## 배포 방법
-
-### Flutter Web 배포
-
-**보안 빌드 (권장)**: API 키를 `--dart-define`으로 주입
+API 키는 Flutter의 `.env` 또는 `--dart-define`에 넣지 않습니다. 노출된 과거
+키를 각 공급자 콘솔에서 폐기한 뒤 새 값을 Functions Secret에 저장합니다.
 
 ```bash
-# Windows (PowerShell)
-.\build_web.ps1
+firebase functions:secrets:set ESV_API_KEY
+firebase functions:secrets:set GEMINI_API_KEY
+firebase functions:secrets:set AZURE_SPEECH_KEY
+firebase functions:secrets:set ELEVENLABS_API_KEY
+firebase functions:secrets:set APPLE_APP_ID
+firebase functions:secrets:set APPLE_IAP_KEY_ID
+firebase functions:secrets:set APPLE_IAP_ISSUER_ID
+firebase functions:secrets:set APPLE_IAP_PRIVATE_KEY
+firebase deploy --only functions --project bible-speak
+```
 
-# Mac/Linux
+Azure 리전은 기본적으로 `koreacentral`, Gemini 모델은 기본적으로
+`gemini-2.5-flash`를 사용합니다. 다른 값이 필요하면 서버 런타임 환경의
+`AZURE_SPEECH_REGION`, `GEMINI_MODEL`을 설정합니다.
+
+## 인앱 구독 서버 검증 설정
+
+클라이언트는 결제 이벤트만으로 프리미엄을 활성화하지 않습니다.
+`verifySubscriptionPurchase`가 Google Play Developer API 또는 App Store Server
+API에서 상품 ID, 활성 상태, 만료일, 취소·환불 여부를 검증한 뒤 Firestore를
+갱신합니다. 구매 원본 데이터는 Firestore에 저장하지 않고 해시된 소유권 키만
+사용하며, 같은 구매를 다른 앱 계정에 연결할 수 없습니다.
+
+### Google Play
+
+1. Google Play Android Developer API를 프로젝트에서 활성화합니다.
+2. 배포된 Functions의 런타임 서비스 계정을 Play Console 사용자로 추가합니다.
+3. Bible Speak 앱의 주문·구독 조회에 필요한 권한을 부여합니다.
+4. Play Console 구독 상품 ID를 아래 값과 정확히 일치시킵니다.
+   - `bible_speak_premium_monthly`
+   - `bible_speak_premium_yearly`
+
+### App Store
+
+1. App Store Connect의 앱 숫자 ID를 `APPLE_APP_ID`에 저장합니다.
+2. Users and Access → Integrations → In-App Purchase에서 키를 생성합니다.
+3. Key ID, Issuer ID, `.p8` 키 원문을 각각 `APPLE_IAP_KEY_ID`,
+   `APPLE_IAP_ISSUER_ID`, `APPLE_IAP_PRIVATE_KEY`에 저장합니다.
+4. App Store Connect 구독 상품 ID를 Android와 동일한 두 값으로 설정합니다.
+
+StoreKit 2 거래는 Apple 서명과 인증서 체인을 직접 검증합니다. iOS 13/14의
+StoreKit 1 영수증은 영수증에서 거래 ID만 추출한 뒤, 인증된 App Store Server
+API에서 최신 구독 거래를 다시 조회합니다. 저장소의 `functions/certs`에는 Apple
+공식 PKI 루트 인증서만 포함되며 개인 키는 포함되지 않습니다.
+
+### Firestore Rules
+
+현재 저장소에는 운영 Firestore Rules가 포함되어 있지 않으므로 Firebase
+Console의 배포 규칙을 별도로 확인해야 합니다. 앱 클라이언트가 아래 경로와
+필드를 직접 쓰지 못하게 하고, Admin SDK를 사용하는 Functions만 갱신할 수 있게
+설정합니다.
+
+- `purchaseClaims/{claimId}`
+- `internalApiUsage/{userId}/days/{date}`
+- `users/{userId}/subscription/current`
+- `users/{userId}`의 `isPremium`, `subscriptionExpiry`
+
+## 웹 빌드와 배포
+
+```bash
+flutter pub get
 ./build_web.sh
-
-# Firebase 배포
 firebase deploy --only hosting --project bible-speak
 ```
 
-빌드 스크립트가 `.env` 파일에서 API 키를 읽어 빌드 시 주입합니다.
+Windows에서는 다음 스크립트를 사용합니다.
 
-### Cloudflare Worker 배포
-
-1. https://dash.cloudflare.com 접속
-2. Workers & Pages > bible-speak-proxy 선택
-3. Quick Edit 클릭
-4. `cloudflare-worker/worker.js` 코드 붙여넣기
-5. Save and Deploy 클릭
-
-## 환경 설정
-
-### AppConfig (lib/config/app_config.dart)
-
-`--dart-define`을 통해 빌드 시점에 API 키가 주입됩니다:
-
-```dart
-class AppConfig {
-  // 빌드 시점에 --dart-define으로 주입
-  static const String _envEsvApiKey = String.fromEnvironment('ESV_API_KEY');
-  static const String _envAzureSpeechKey = String.fromEnvironment('AZURE_SPEECH_KEY');
-  // ...
-
-  // 웹: --dart-define 값 사용
-  // 모바일: flutter_dotenv로 .env 파일 로드
-  static String get esvApiKey => kIsWeb ? _envEsvApiKey : dotenv.env['ESV_API_KEY'] ?? '';
-}
+```powershell
+.\build_web.ps1
+firebase deploy --only hosting --project bible-speak
 ```
 
-### API 키 관리
+기본 Functions 프로젝트와 다른 서버를 사용할 때만 공개 환경 변수
+`API_BASE_URL`을 지정합니다. 공급자 비밀키는 어떤 클라이언트 빌드 명령에도
+전달하지 않습니다.
 
-| API | 웹 | 모바일 |
-|-----|-----|--------|
-| ESV API | `--dart-define` (빌드 시) | `.env` 파일 (런타임) |
-| Azure Speech | `--dart-define` (빌드 시) | `.env` 파일 (런타임) |
-| Gemini | `--dart-define` (빌드 시) | `.env` 파일 (런타임) |
-| ElevenLabs | `--dart-define` (빌드 시) | `.env` 파일 (런타임) |
+## 인증 및 제한
 
-### 빌드 스크립트
+- ESV 본문·오디오, Azure 발음 평가, Gemini 피드백, ElevenLabs TTS 요청은
+  Firebase 로그인 ID 토큰이 필요합니다.
+- Functions는 사용자별 KST 일일 호출 제한을 적용합니다.
+- 클라이언트 요청 본문과 텍스트 길이, 오디오 크기를 서버에서 검증합니다.
 
-| 파일 | 플랫폼 | 설명 |
-|------|--------|------|
-| `build_web.ps1` | Windows | `.env` 읽어서 `--dart-define` 주입 |
-| `build_web.sh` | Mac/Linux | `.env` 읽어서 `--dart-define` 주입 |
+## 배포 전 확인
 
-> ⚠️ **보안 주의:** API 키가 빌드된 JS 파일에 포함됩니다. 프로덕션 환경에서는 백엔드 프록시를 통해 API 키를 숨기는 것을 권장합니다.
-
-## 웹 제한 사항
-
-| 기능 | 웹 지원 | 비고 |
-|------|---------|------|
-| 성경 텍스트 로딩 | ✅ | Firestore 사용 |
-| 오디오 재생 | ✅ | Cloudflare Worker 프록시 필요 |
-| 녹음 | ✅ | Web Audio API 사용 |
-| 발음 평가 | ✅ | Azure Speech API |
-| 로컬 캐시 | ❌ | 웹에서 미지원 |
-
-## 트러블슈팅
-
-### CORS 오류
-```
-Access to fetch at '...' has been blocked by CORS policy
-```
-→ Cloudflare Worker가 올바르게 배포되었는지 확인
-
-### .env 로드 실패
-```
-📌 ESV_API_KEY: null...
-```
-→ 웹에서는 정상. AppConfig가 하드코딩된 값을 사용함
-
-### 오디오 재생 안 됨
-1. Cloudflare Worker URL 확인
-2. Worker 코드에 CORS 헤더 확인
-3. 브라우저 콘솔에서 오류 확인
-
-## 웹 녹음 기능
-
-웹에서 녹음은 Web Audio API를 사용합니다:
-
-| 항목 | 모바일 | 웹 |
-|------|--------|-----|
-| 오디오 포맷 | WAV (PCM 16-bit) | WebM (opus) |
-| 샘플링 레이트 | 16kHz | 16kHz |
-| 결과 형태 | 파일 경로 | Blob URL |
-
-### 웹 녹음 흐름
-
-1. `RecordingService.startRecording()` - opus/webm 포맷으로 녹음 시작
-2. `RecordingService.stopRecording()` - Blob URL 반환
-3. `AudioLoader.load(blobUrl)` - HTTP GET으로 바이트 데이터 추출
-4. `AzurePronunciationService.evaluate()` - `audio/webm; codecs=opus` 헤더로 전송
+1. 과거에 커밋된 모든 공급자 키가 폐기되었는지 확인합니다.
+2. `cd functions && npm test`를 실행합니다.
+3. `node --check functions/index.js`로 문법을 검사합니다.
+4. 로그인 후 본문, 오디오, 녹음 평가, AI 피드백을 각각 확인합니다.
+5. 로그아웃 상태에서 프록시 요청이 `401`을 반환하는지 확인합니다.
+6. Play License Tester와 App Store Sandbox 계정으로 월간·연간 구매 및 복원을
+   각각 확인하고, 만료·취소 영수증이 프리미엄을 활성화하지 않는지 확인합니다.
+7. Firestore Rules에서 결제·사용량 서버 전용 경로의 클라이언트 쓰기가 거부되는지
+   Rules Playground 또는 Emulator로 확인합니다.
 
 ## 관련 파일
 
-| 파일 | 설명 |
-|------|------|
-| `lib/config/app_config.dart` | 웹/모바일 설정 분기 |
-| `lib/services/recording_service.dart` | 웹/모바일 녹음 서비스 |
-| `lib/services/pronunciation/audio_loader.dart` | 플랫폼별 오디오 로딩 |
-| `cloudflare-worker/worker.js` | Cloudflare Worker 코드 |
-| `build_web.ps1` | Windows 빌드 스크립트 |
-| `build_web.sh` | Mac/Linux 빌드 스크립트 |
-| `firebase.json` | Firebase Hosting 설정 |
-| `.firebaserc` | Firebase 프로젝트 설정 |
+- `lib/config/app_config.dart`: 공개 서버 URL만 보유
+- `lib/services/api/authenticated_api_client.dart`: Firebase ID 토큰 첨부
+- `functions/index.js`: 인증 프록시와 알림 함수
+- `functions/purchase_verification.js`: Play/App Store 구독 서버 검증
+- `build_web.sh`, `build_web.ps1`: 웹 빌드
+- `firebase.json`: Hosting/Functions 설정

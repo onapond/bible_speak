@@ -3,7 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../models/daily_goal.dart';
 import '../../services/daily_goal_service.dart';
 import '../../styles/parchment_theme.dart';
-import 'onboarding_screen.dart';
 
 /// 목표 설정 색상 팔레트 (Warm Parchment Light Theme)
 class _GoalColors {
@@ -221,9 +220,11 @@ class _GoalSetupScreenState extends State<GoalSetupScreen>
                         separatorBuilder: (_, __) => const SizedBox(height: 16),
                         itemBuilder: (context, index) {
                           final presetData = _presets[index];
-                          final isSelected = _selectedPreset == presetData.preset;
+                          final isSelected =
+                              _selectedPreset == presetData.preset;
 
-                          return _buildPresetCard(presetData, isSelected, index);
+                          return _buildPresetCard(
+                              presetData, isSelected, index);
                         },
                       ),
                     ),
@@ -240,14 +241,16 @@ class _GoalSetupScreenState extends State<GoalSetupScreen>
                           Icon(
                             Icons.info_outline,
                             size: 16,
-                            color: _GoalColors.weatheredGray.withValues(alpha: 0.7),
+                            color: _GoalColors.weatheredGray
+                                .withValues(alpha: 0.7),
                           ),
                           const SizedBox(width: 8),
                           Text(
                             '설정은 마이페이지에서 언제든 변경 가능해요',
                             style: TextStyle(
                               fontSize: 13,
-                              color: _GoalColors.weatheredGray.withValues(alpha: 0.7),
+                              color: _GoalColors.weatheredGray
+                                  .withValues(alpha: 0.7),
                             ),
                           ),
                         ],
@@ -283,9 +286,8 @@ class _GoalSetupScreenState extends State<GoalSetupScreen>
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: isSelected
-                ? _GoalColors.warmVellum
-                : _GoalColors.softPapyrus,
+            color:
+                isSelected ? _GoalColors.warmVellum : _GoalColors.softPapyrus,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: isSelected
@@ -358,7 +360,9 @@ class _GoalSetupScreenState extends State<GoalSetupScreen>
                       child: Icon(
                         preset.icon,
                         size: 28,
-                        color: isSelected ? _GoalColors.manuscriptGold : preset.color,
+                        color: isSelected
+                            ? _GoalColors.manuscriptGold
+                            : preset.color,
                       ),
                     ),
                   ),
@@ -473,7 +477,8 @@ class _GoalSetupScreenState extends State<GoalSetupScreen>
         label,
         style: TextStyle(
           fontSize: 12,
-          color: isSelected ? _GoalColors.manuscriptGold : _GoalColors.fadedScript,
+          color:
+              isSelected ? _GoalColors.manuscriptGold : _GoalColors.fadedScript,
           fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
         ),
       ),

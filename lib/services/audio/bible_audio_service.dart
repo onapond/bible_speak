@@ -11,6 +11,7 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 
 import '../../config/app_config.dart';
+import '../api/authenticated_api_client.dart';
 import '../bible_data_service.dart';
 
 /// 오디오 소스 타입
@@ -52,9 +53,6 @@ class BibleAudioService {
   static const int _maxRetries = 3;
   static const Duration _retryDelay = Duration(seconds: 1);
 
-  // API 키
-  String get _esvApiKey => AppConfig.esvApiKey;
-
   // Firebase Storage 경로 패턴
   // bible_audio/{bookId}/{chapter}/{verse}.mp3
   String _getStoragePath(String bookId, int chapter, int verse) =>
@@ -63,9 +61,6 @@ class BibleAudioService {
   // 전체 챕터 오디오 경로
   String _getChapterStoragePath(String bookId, int chapter) =>
       'bible_audio/$bookId/$chapter/chapter.mp3';
-
-  // ESV API
-  static const String _esvBaseUrl = 'https://api.esv.org/v3/passage/audio/';
 
   // 이벤트 스트림
   final _stateController = StreamController<AudioPlaybackState>.broadcast();
@@ -167,10 +162,6 @@ class BibleAudioService {
       }
 
       // 3. ESV API 폴백
-      if (!kIsWeb && _esvApiKey.isEmpty) {
-        throw Exception('ESV API 키가 설정되지 않았습니다.');
-      }
-
       final bookNameEn = await BibleDataService.instance.getBookNameEn(bookId);
       final reference = '$bookNameEn+$chapter:$verse';
 
@@ -178,8 +169,7 @@ class BibleAudioService {
         // 웹에서는 프록시를 통해 오디오 재생
         await _playFromProxyWeb(reference);
       } else {
-        final audioUrl = '$_esvBaseUrl?q=$reference';
-        await _downloadEsvAndCache(audioUrl, bookId, chapter, verse);
+        await _downloadEsvAndCache(reference, bookId, chapter, verse);
         final cacheFile = await _getCacheFile(bookId, chapter, verse);
         await _playFile(cacheFile);
       }
@@ -246,12 +236,9 @@ class BibleAudioService {
       }
 
       // ESV API 폴백
-      if (_esvApiKey.isNotEmpty) {
-        final bookNameEn = await BibleDataService.instance.getBookNameEn(bookId);
-        final reference = '$bookNameEn+$chapter:$verse';
-        final audioUrl = '$_esvBaseUrl?q=$reference';
-        await _downloadEsvAndCache(audioUrl, bookId, chapter, verse);
-      }
+      final bookNameEn = await BibleDataService.instance.getBookNameEn(bookId);
+      final reference = '$bookNameEn+$chapter:$verse';
+      await _downloadEsvAndCache(reference, bookId, chapter, verse);
     } catch (e) {
       // 프리로드 실패는 무시
     }
@@ -279,7 +266,7 @@ class BibleAudioService {
 
   /// ESV API 다운로드 후 캐시 (재시도 포함)
   Future<void> _downloadEsvAndCache(
-    String url,
+    String reference,
     String bookId,
     int chapter,
     int verse,
@@ -288,9 +275,8 @@ class BibleAudioService {
 
     for (int attempt = 1; attempt <= _maxRetries; attempt++) {
       try {
-        final response = await http.get(
-          Uri.parse(url),
-          headers: {'Authorization': 'Token $_esvApiKey'},
+        final response = await AuthenticatedApiClient.get(
+          Uri.parse(AppConfig.getEsvAudioUrl(reference)),
         ).timeout(const Duration(seconds: 30));
 
         if (response.statusCode == 200) {
@@ -333,7 +319,7 @@ class BibleAudioService {
     final proxyUrl = AppConfig.getEsvAudioUrl(reference);
     print('🌐 웹 오디오 프록시 요청: $proxyUrl');
 
-    final response = await http.get(
+    final response = await AuthenticatedApiClient.get(
       Uri.parse(proxyUrl),
     ).timeout(const Duration(seconds: 30));
 

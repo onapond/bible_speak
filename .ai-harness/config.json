@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "runtimeDir": ".ai-harness/runtime",
+  "context": {
+    "maxChars": 4000,
+    "logTailLines": 80
+  },
+  "coordination": {
+    "singleWriter": true,
+    "staleLockHours": 12,
+    "maxRepairAttempts": 2
+  },
+  "toolchain": {
+    "flutter": "3.47.1",
+    "dart": "3.13.1",
+    "functionsNodeMajor": 20,
+    "defaultStandardTarget": "ios"
+  },
+  "validation": {
+    "uiWarningBaseline": 276
+  },
+  "gates": {
+    "commit": "standard",
+    "push": "standard",
+    "deploy": "full"
+  },
+  "budgets": {
+    "policy": "soft-observe-only",
+    "codex": {
+      "mainModel": "inherit-user-selection",
+      "maxParallelSubagents": 2,
+      "supportModel": "gpt-5.6-terra",
+      "supportReasoning": "medium"
+    },
+    "claude": {
+      "account": "Max 20x",
+      "roles": {
+        "explore": {"model": "haiku", "effort": "low", "maxTurns": 5},
+        "review": {"model": "sonnet", "effort": "medium", "maxTurns": 8},
+        "implement": {"model": "sonnet", "effort": "medium", "maxTurns": 16},
+        "architecture": {"model": "opus", "effort": "high", "maxTurns": 10}
+      }
+    }
+  }
+}

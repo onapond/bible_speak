@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "project": "Bible Speak",
+  "milestone": "native-mobile-foundation",
+  "updatedAt": "2026-08-23",
+  "tasks": [
+    {
+      "id": "HARNESS-001",
+      "title": "Codex와 Claude Code 공통 개발 하네스",
+      "status": "done",
+      "owner": "codex",
+      "reviewer": "claude",
+      "budget": "M",
+      "allowedPaths": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".ai-harness/**",
+        ".codex/**",
+        ".claude/**",
+        "bin/**",
+        "tool/**"
+      ],
+      "acceptance": [
+        "공유 계획과 단일 작성자 lease",
+        "변경 범위 기반 검증 lane",
+        "commit/push/deploy gate",
+        "두 CLI 사용량 원장"
+      ],
+      "validationLane": "standard",
+      "target": "none"
+    },
+    {
+      "id": "TOOLCHAIN-001",
+      "title": "Mac Flutter·Node·Firebase 툴체인 영구 설치 및 버전 고정",
+      "status": "ready",
+      "owner": null,
+      "reviewer": "claude",
+      "budget": "S",
+      "allowedPaths": [
+        ".tool-versions",
+        "mise.toml",
+        "android/**",
+        "ios/**",
+        "functions/package.json",
+        "codemagic.yaml",
+        "docs/**"
+      ],
+      "acceptance": [
+        "Flutter 3.47.1이 임시 폴더 밖에서 해석됨",
+        "Node major가 Functions runtime과 일치",
+        "doctor에 blocking 오류 없음"
+      ],
+      "validationLane": "standard",
+      "target": "ios"
+    },
+    {
+      "id": "NATIVE-001",
+      "title": "iOS·Android 네이티브 빌드 기반 복구",
+      "status": "backlog",
+      "owner": null,
+      "reviewer": "claude",
+      "budget": "M",
+      "allowedPaths": [
+        "ios/**",
+        "android/**",
+        "pubspec.yaml",
+        "pubspec.lock"
+      ],
+      "acceptance": [
+        "fresh checkout iOS simulator build",
+        "fresh checkout Android debug build",
+        "실기기 smoke test 절차 기록"
+      ],
+      "validationLane": "full",
+      "target": "ios"
+    },
+    {
+      "id": "QUALITY-001",
+      "title": "암송 핵심 흐름 회귀 테스트 확충",
+      "status": "backlog",
+      "owner": null,
+      "reviewer": "claude",
+      "budget": "L",
+      "allowedPaths": [
+        "lib/**",
+        "test/**",
+        "integration_test/**",
+        "functions/**"
+      ],
+      "acceptance": [
+        "사용자별 진행도 분리 테스트",
+        "보상·완료 구절 식별 테스트",
+        "로그인 복귀 및 오프라인 초기화 테스트"
+      ],
+      "validationLane": "standard",
+      "target": "ios"
+    }
+  ]
+}

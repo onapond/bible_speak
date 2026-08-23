@@ -1,0 +1,22 @@
+{
+  "hooks": {
+    "SessionStart": [{
+      "matcher": "startup|resume|clear|compact",
+      "hooks": [{
+        "type": "command",
+        "command": "python3 \"$(git rev-parse --show-toplevel)/tool/agent_harness.py\" hook session-start --agent claude",
+        "timeout": 10,
+        "statusMessage": "Loading compact project handoff"
+      }]
+    }],
+    "PreToolUse": [{
+      "matcher": "Bash|apply_patch|Edit|Write",
+      "hooks": [{
+        "type": "command",
+        "command": "python3 \"$(git rev-parse --show-toplevel)/tool/agent_harness.py\" hook pre-tool-use --agent claude",
+        "timeout": 10,
+        "statusMessage": "Checking verification gate"
+      }]
+    }]
+  }
+}

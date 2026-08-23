@@ -67,7 +67,12 @@ ios/*.p12
 .claude/*
 !.claude/hooks/
 !.claude/skills/
+!.claude/settings.json
+!.claude/agents/
 .claude/skills/ui-ux-pro-max/
+
+# Shared AI harness runtime (plans/config remain tracked)
+.ai-harness/runtime/
 
 # Firebase
 .firebase/

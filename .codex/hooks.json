@@ -1,0 +1,24 @@
+{
+  "description": "Bible Speak deterministic planning and verification gates.",
+  "hooks": {
+    "SessionStart": [{
+      "matcher": "startup|resume|clear|compact",
+      "hooks": [{
+        "type": "command",
+        "command": "python3 \"$(git rev-parse --show-toplevel)/tool/agent_harness.py\" hook session-start --agent codex",
+        "timeout": 10,
+        "statusMessage": "Loading compact project handoff",
+        "additionalContextLimit": 4000
+      }]
+    }],
+    "PreToolUse": [{
+      "matcher": "Bash|apply_patch|Edit|Write",
+      "hooks": [{
+        "type": "command",
+        "command": "python3 \"$(git rev-parse --show-toplevel)/tool/agent_harness.py\" hook pre-tool-use --agent codex",
+        "timeout": 10,
+        "statusMessage": "Checking verification gate"
+      }]
+    }]
+  }
+}

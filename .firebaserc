@@ -1,5 +1,6 @@
 {
   "projects": {
-    "default": "bible-speak"
+    "dev": "bible-speak-dev",
+    "prod": "bible-speak"
   }
 }

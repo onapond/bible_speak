@@ -1,0 +1,51 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function owns(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    // Privileged billing and quota records are writable only through Admin SDK.
+    match /purchaseClaims/{document=**} {
+      allow read, write: if false;
+    }
+
+    match /internalApiUsage/{document=**} {
+      allow read, write: if false;
+    }
+
+    // Profiles are visible to authenticated social features. A user can only
+    // change their own profile and nested learning data.
+    match /users/{userId} {
+      allow read: if signedIn();
+      allow create, update, delete: if owns(userId);
+
+      match /{document=**} {
+        allow read: if signedIn();
+        allow write: if owns(userId);
+      }
+    }
+
+    // Bible content and server-managed global records are read-only clients.
+    match /bible/{document=**} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    match /global/{document=**} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    // Shared learning and social collections remain available to signed-in
+    // users. Collection-specific ownership tightening is tracked separately.
+    match /{document=**} {
+      allow read, write: if signedIn();
+    }
+  }
+}

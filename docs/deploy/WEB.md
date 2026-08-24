@@ -66,10 +66,9 @@ API에서 최신 구독 거래를 다시 조회합니다. 저장소의 `function
 
 ### Firestore Rules
 
-현재 저장소에는 운영 Firestore Rules가 포함되어 있지 않으므로 Firebase
-Console의 배포 규칙을 별도로 확인해야 합니다. 앱 클라이언트가 아래 경로와
-필드를 직접 쓰지 못하게 하고, Admin SDK를 사용하는 Functions만 갱신할 수 있게
-설정합니다.
+`firestore.rules`가 개발·운영의 공통 규칙 원본입니다. 공개 읽기·쓰기를 금지하고,
+결제·사용량 경로는 Admin SDK만 접근하며 사용자 쓰기는 본인 문서로 제한합니다.
+규칙은 개발 프로젝트에서 Emulator/실앱 회귀 검증 후 운영으로 승격합니다.
 
 - `purchaseClaims/{claimId}`
 - `internalApiUsage/{userId}/days/{date}`
@@ -80,15 +79,22 @@ Console의 배포 규칙을 별도로 확인해야 합니다. 앱 클라이언�
 
 ```bash
 flutter pub get
-./build_web.sh
-firebase deploy --only hosting --project bible-speak
+./build_web.sh development
+./scripts/deploy_environment.sh development hosting
 ```
 
 Windows에서는 다음 스크립트를 사용합니다.
 
 ```powershell
-.\build_web.ps1
-firebase deploy --only hosting --project bible-speak
+.\build_web.ps1 -Environment development
+```
+
+운영 빌드·배포는 `master`에서만 가능합니다.
+
+```bash
+./build_web.sh production
+BIBLE_SPEAK_PROD_CONFIRM=bible-speak \
+  ./scripts/deploy_environment.sh production hosting
 ```
 
 기본 Functions 프로젝트와 다른 서버를 사용할 때만 공개 환경 변수
@@ -122,3 +128,6 @@ firebase deploy --only hosting --project bible-speak
 - `functions/purchase_verification.js`: Play/App Store 구독 서버 검증
 - `build_web.sh`, `build_web.ps1`: 웹 빌드
 - `firebase.json`: Hosting/Functions 설정
+- `.firebaserc`: 명시적 `dev`/`prod` 프로젝트 별칭
+- `firestore.rules`: 버전 관리되는 공통 보안 규칙
+- `scripts/deploy_environment.sh`: 브랜치·빌드·프로젝트 배포 가드

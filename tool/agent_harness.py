@@ -95,8 +95,8 @@ def changed_files():
 def route_files(files):
     routes = set()
     for name in files:
-        if name in {"AGENTS.md", "CLAUDE.md", ".gitignore", "codemagic.yaml"} or name.startswith(
-                (".ai-harness/", ".codex/", ".claude/", "bin/", "tool/")): routes.add("harness")
+        if name in {"AGENTS.md", "CLAUDE.md", ".gitignore", "codemagic.yaml", "firestore.rules"} or name.startswith(
+                (".ai-harness/", ".codex/", ".claude/", ".github/workflows/", "bin/", "tool/")): routes.add("harness")
         elif name.startswith("docs/") or name.endswith(".md"): routes.add("docs")
         elif name.startswith("functions/"): routes.add("functions")
         elif name.startswith(("cloudflare-worker/", "render-proxy/", "vercel-proxy/")) or name.endswith((".js", ".mjs", ".cjs")):
@@ -281,7 +281,7 @@ def gate(required):
 def command_parts(command):
     git_push = re.search(r"\bgit\b[^\n;&|]*\bpush\b[^\n;&|]*", command)
     git_commit = re.search(r"\bgit\b[^\n;&|]*\bcommit\b[^\n;&|]*", command)
-    deploy = re.search(r"\b(firebase\b[^\n;&|]*\bdeploy|vercel\b[^\n;&|]*--prod|netlify\b[^\n;&|]*\bdeploy|npm\b[^\n;&|]*\b(?:run\s+)?deploy\b)", command)
+    deploy = re.search(r"\b(firebase\b[^\n;&|]*\bdeploy|vercel\b[^\n;&|]*--prod|netlify\b[^\n;&|]*\bdeploy|npm\b[^\n;&|]*\b(?:run\s+)?deploy\b)|(?:\./)?scripts/deploy_environment\.sh\b", command)
     release_build = re.search(r"(flutter\b[^\n;&|]*\bbuild\b[^\n;&|]*--release|(?:\./)?build_web\.(?:sh|ps1))", command)
     return git_push, git_commit, deploy, release_build
 

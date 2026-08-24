@@ -14,9 +14,10 @@
 
 ## 배포 상태
 
-| 플랫폼 | 상태 | URL/파일 |
-|--------|------|----------|
-| **Web** | 배포 완료 | https://bible-speak.web.app |
+| 환경/플랫폼 | 상태 | URL/파일 |
+|---------------|------|----------|
+| **Development Web** | 분리 구성 | https://bible-speak-dev.web.app |
+| **Production Web** | 배포 완료 | https://bible-speak.web.app |
 | **Android** | 빌드 완료 | `build/app/outputs/bundle/release/app-release.aab` |
 | **iOS** | 대기 중 | TestFlight (macOS 필요) |
 
@@ -38,6 +39,17 @@
 
 ## 빠른 시작
 
+### 브랜치와 환경
+
+| 브랜치 | Firebase | 용도 |
+|--------|----------|------|
+| `codex/*`, `claude/*` | 개발 빌드만 | 개별 AI 작업 |
+| `develop` | `bible-speak-dev` | 통합 개발·자동 개발 배포 |
+| `master` | `bible-speak` | 검증된 운영 릴리스만 |
+
+기본 Firebase 프로젝트는 의도적으로 설정하지 않았습니다. 모든 배포는 환경을
+명시해야 하며, 잘못된 브랜치와 프로젝트 조합은 스크립트가 차단합니다.
+
 ### 1. 의존성 설치
 ```bash
 flutter pub get
@@ -48,32 +60,33 @@ flutter pub get
 외부 API 키는 앱에 넣지 않고 Firebase Functions Secret으로 설정합니다.
 
 ```bash
-firebase functions:secrets:set ESV_API_KEY
-firebase functions:secrets:set GEMINI_API_KEY
-firebase functions:secrets:set AZURE_SPEECH_KEY
-firebase functions:secrets:set ELEVENLABS_API_KEY
-firebase functions:secrets:set APPLE_APP_ID
-firebase functions:secrets:set APPLE_IAP_KEY_ID
-firebase functions:secrets:set APPLE_IAP_ISSUER_ID
-firebase functions:secrets:set APPLE_IAP_PRIVATE_KEY
-firebase deploy --only functions
+firebase functions:secrets:set ESV_API_KEY --project prod
+firebase functions:secrets:set GEMINI_API_KEY --project prod
+firebase functions:secrets:set AZURE_SPEECH_KEY --project prod
+firebase functions:secrets:set ELEVENLABS_API_KEY --project prod
 ```
 
 이미 저장소에 노출된 키는 반드시 공급자 콘솔에서 폐기하고 새 키로 교체해야 합니다.
 Google Play 구독 검증을 위해 Functions 런타임 서비스 계정에 Play Console의
 앱 조회 권한도 부여해야 합니다. 세부 절차는 `docs/deploy/WEB.md`를 확인합니다.
 
-### 3. 웹 빌드
-```powershell
-powershell -ExecutionPolicy Bypass -File build_web.ps1
+### 3. 개발 웹 빌드
+
+```bash
+./build_web.sh development
 ```
 
 기본 Functions 주소가 아닌 경우 공개 설정인 `API_BASE_URL`만 환경 변수로 지정합니다.
 
-### 4. 배포
+### 4. 개발 배포
+
 ```bash
-firebase deploy --only hosting
+./scripts/deploy_environment.sh development hosting
 ```
+
+운영 배포는 `master`의 `v*` 태그, 깨끗한 작업 트리, 전체 검증 및 명시적
+확인이 모두 필요합니다. 자세한 승격 절차는 `docs/deploy/ENVIRONMENTS.md`를
+참조합니다.
 
 ---
 
@@ -82,8 +95,8 @@ firebase deploy --only hosting
 | 파일 | 설명 |
 |------|------|
 | `CLAUDE.md` | Claude Code 개발 규칙 |
-| `ARCHITECTURE.md` | 아키텍처 결정 및 코딩 규칙 |
-| `DEPLOYMENT_CHECKLIST.md` | 스토어 배포 체크리스트 |
+| `docs/deploy/ENVIRONMENTS.md` | 개발·운영 브랜치와 Firebase 승격 절차 |
+| `docs/deploy/CHECKLIST.md` | 스토어 배포 체크리스트 |
 | `docs/PROJECT_STATUS.md` | 프로젝트 현재 상태 |
 | `docs/PROGRESS.md` | 개발 히스토리 |
 | `docs/BUG_FIXES.md` | 버그 수정 이력 |
@@ -115,7 +128,9 @@ firebase deploy --only hosting
 ## 관련 링크
 
 - 웹앱: https://bible-speak.web.app
+- 개발 웹앱: https://bible-speak-dev.web.app
 - Firebase Console: https://console.firebase.google.com/project/bible-speak
+- 개발 Firebase Console: https://console.firebase.google.com/project/bible-speak-dev
 - GitHub: https://github.com/onapond/bible_speak
 
 ---

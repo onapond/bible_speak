@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "Bible Speak",
   "milestone": "native-mobile-foundation",
-  "updatedAt": "2026-08-23",
+  "updatedAt": "2026-08-24",
   "tasks": [
     {
       "id": "HARNESS-001",
@@ -52,6 +52,39 @@
       ],
       "validationLane": "standard",
       "target": "ios"
+    },
+    {
+      "id": "RELEASE-001",
+      "title": "개발·운영 브랜치와 Firebase 배포 환경 분리",
+      "status": "in_progress",
+      "owner": "codex",
+      "reviewer": "claude",
+      "budget": "M",
+      "allowedPaths": [
+        ".ai-harness/**",
+        ".firebaserc",
+        "firebase.json",
+        "firestore.rules",
+        ".github/**",
+        "bin/**",
+        "tool/**",
+        "scripts/**",
+        "codemagic.yaml",
+        "lib/config/**",
+        "lib/firebase_options*.dart",
+        "lib/main.dart",
+        "test/config/**",
+        "README.md",
+        "docs/**"
+      ],
+      "acceptance": [
+        "develop은 개발 통합, master는 운영 릴리스 브랜치로 고정",
+        "Firebase dev/prod 프로젝트 및 배포 명령이 명시적으로 분리",
+        "잘못된 브랜치·대상 조합의 배포 차단",
+        "개발과 운영 CI/CD 및 승격 절차 문서화"
+      ],
+      "validationLane": "standard",
+      "target": "web"
     },
     {
       "id": "NATIVE-001",

@@ -1,7 +1,7 @@
 workflows:
-  # iOS TestFlight 배포
+  # 개발 iOS TestFlight 배포
   ios-testflight:
-    name: iOS TestFlight
+    name: iOS Development TestFlight
     max_build_duration: 60
     instance_type: mac_mini_m1
 
@@ -19,7 +19,7 @@ workflows:
       events:
         - push
       branch_patterns:
-        - pattern: master
+        - pattern: develop
           include: true
 
     scripts:
@@ -40,6 +40,7 @@ workflows:
       - name: Build iOS IPA
         script: |
           flutter build ipa --release \
+            --dart-define=APP_ENV=development \
             --build-name=1.0.0 \
             --build-number=$PROJECT_BUILD_NUMBER
 
@@ -55,9 +56,9 @@ workflows:
         beta_groups:
           - Internal Testers
 
-  # Android Play Store 배포
+  # 개발 Android Play Store Internal 배포
   android-playstore:
-    name: Android Play Store
+    name: Android Development Internal
     max_build_duration: 60
     instance_type: mac_mini_m1
 
@@ -74,7 +75,7 @@ workflows:
       events:
         - push
       branch_patterns:
-        - pattern: master
+        - pattern: develop
           include: true
 
     scripts:
@@ -87,6 +88,7 @@ workflows:
       - name: Build AAB
         script: |
           flutter build appbundle --release \
+            --dart-define=APP_ENV=development \
             --build-name=1.0.0 \
             --build-number=$PROJECT_BUILD_NUMBER
 

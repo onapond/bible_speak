@@ -2,6 +2,12 @@ import 'package:bible_speak/config/app_config.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('defaults local builds to the isolated development project', () {
+    expect(AppConfig.environmentName, 'development');
+    expect(AppConfig.firebaseProjectId, AppConfig.developmentProjectId);
+    expect(AppConfig.apiBaseUrl, contains('bible-speak-dev'));
+  });
+
   test('builds authenticated proxy URLs without provider credentials', () {
     final audio = Uri.parse(AppConfig.getEsvAudioUrl('John 3:16'));
     final text = Uri.parse(AppConfig.getEsvTextUrl('Ephesians 2'));

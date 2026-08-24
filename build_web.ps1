@@ -1,27 +1,38 @@
-# Web build script - English comments only to avoid encoding issues
+param(
+    [ValidateSet("development", "production")]
+    [string]$Environment = "development"
+)
 
-$ts = Get-Date -Format "yyyyMMddHHmmss"
-Write-Host "Build: $ts"
+$ErrorActionPreference = "Stop"
+$branch = (git branch --show-current).Trim()
 
-flutter build web --release --pwa-strategy=offline-first `
-    --dart-define="API_BASE_URL=$(if ($env:API_BASE_URL) { $env:API_BASE_URL } else { 'https://asia-northeast3-bible-speak.cloudfunctions.net' })"
-
-# version.json
-$vj = @{ version = $ts; buildDate = (Get-Date -Format "yyyy-MM-dd HH:mm:ss") } | ConvertTo-Json
-[IO.File]::WriteAllText("build/web/version.json", $vj, [Text.Encoding]::UTF8)
-
-# Inject timestamp into index.html
-$idx = "build/web/index.html"
-$c = [IO.File]::ReadAllText($idx, [Text.Encoding]::UTF8)
-$c = $c -replace "BUILD_TIMESTAMP", $ts
-[IO.File]::WriteAllText($idx, $c, [Text.Encoding]::UTF8)
-
-# Append custom service worker
-$sw = "build/web/flutter_service_worker.js"
-$csw = "web/custom_service_worker.js"
-if ((Test-Path $sw) -and (Test-Path $csw)) {
-    $custom = [IO.File]::ReadAllText($csw, [Text.Encoding]::UTF8)
-    [IO.File]::AppendAllText($sw, "`n`n$custom", [Text.Encoding]::UTF8)
+if ($Environment -eq "development") {
+    if ($branch -eq "master") { throw "Development builds are blocked on master." }
+    $projectId = "bible-speak-dev"
+} else {
+    if ($branch -ne "master") { throw "Production builds are allowed only on master." }
+    $projectId = "bible-speak"
 }
 
-Write-Host "Done! Deploy: firebase deploy --only hosting"
+$apiUrl = if ($env:API_BASE_URL) {
+    $env:API_BASE_URL
+} else {
+    "https://asia-northeast3-$projectId.cloudfunctions.net"
+}
+
+$buildId = Get-Date -Format "yyyyMMddHHmmss"
+$commitSha = (git rev-parse HEAD).Trim()
+
+flutter build web --release `
+    --dart-define="APP_ENV=$Environment" `
+    --dart-define="API_BASE_URL=$apiUrl"
+
+$metadata = @{
+    environment = $Environment
+    projectId = $projectId
+    commit = $commitSha
+    buildId = $buildId
+} | ConvertTo-Json
+[IO.File]::WriteAllText("build/web/environment.json", $metadata, [Text.Encoding]::UTF8)
+
+Write-Host "Built web environment=$Environment project=$projectId commit=$commitSha"

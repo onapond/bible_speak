@@ -14,6 +14,10 @@ class HarnessTest(unittest.TestCase):
     def test_unknown_never_skips(self):
         self.assertEqual(harness.route_files(["strange.xyz"]), {"unknown"})
 
+    def test_environment_files_are_routed(self):
+        self.assertEqual(harness.route_files([".github/workflows/verify.yml"]), {"harness"})
+        self.assertEqual(harness.route_files(["firestore.rules"]), {"harness"})
+
     def test_force_push_blocked(self):
         self.assertIn("push", harness.command_gate("git push --force origin main"))
         self.assertIn("push", harness.command_gate("git -C repo push -f origin main"))
@@ -21,6 +25,7 @@ class HarnessTest(unittest.TestCase):
 
     def test_deploy_wrappers_require_full(self):
         self.assertEqual(harness.required_lane("npm --prefix functions run deploy"), "full")
+        self.assertEqual(harness.required_lane("./scripts/deploy_environment.sh dev hosting"), "full")
         self.assertEqual(harness.required_lane("git push origin master"), "full")
 
     def test_scope_normalization(self):
@@ -29,6 +34,7 @@ class HarnessTest(unittest.TestCase):
 
     def test_compound_build_deploy_is_blocked(self):
         self.assertIn("separate", harness.command_gate("./build_web.sh && firebase deploy --only hosting"))
+        self.assertIn("separate", harness.command_gate("./build_web.sh dev && ./scripts/deploy_environment.sh dev hosting"))
 
     def test_usage(self):
         self.assertEqual(harness.observed_tokens({"usage": {"input_tokens": 10, "output_tokens": 5}}), 15)

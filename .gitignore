@@ -79,6 +79,9 @@ ios/*.p12
 firebase-debug.log
 firebase-debug.*.log
 
+# Google GitHub Actions creates a short-lived credential file in the workspace.
+gha-creds-*.json
+
 # Node modules (Firebase Functions, Cloudflare Worker)
 **/node_modules/
 

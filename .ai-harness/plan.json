@@ -62,6 +62,7 @@
       "budget": "M",
       "allowedPaths": [
         ".ai-harness/**",
+        ".gitignore",
         ".firebaserc",
         "firebase.json",
         "firestore.rules",

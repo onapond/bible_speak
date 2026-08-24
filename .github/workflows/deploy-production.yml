@@ -41,7 +41,7 @@ jobs:
       - uses: google-github-actions/auth@v3
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-      - run: flutter pub get
+      - run: flutter pub get --enforce-lockfile
       - run: npm --prefix functions ci
       - name: Run the full harness and deploy only to production
         env:

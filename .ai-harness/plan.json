@@ -72,6 +72,7 @@
         "scripts/**",
         "codemagic.yaml",
         "analysis_options.yaml",
+        "pubspec.lock",
         "ios/Podfile",
         "ios/Flutter/Debug.xcconfig",
         "ios/Flutter/Release.xcconfig",

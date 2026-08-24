@@ -80,7 +80,7 @@ API에서 최신 구독 거래를 다시 조회합니다. 저장소의 `function
 ```bash
 flutter pub get
 ./build_web.sh development
-./scripts/deploy_environment.sh development hosting
+./scripts/deploy_environment.sh development web
 ```
 
 Windows에서는 다음 스크립트를 사용합니다.
@@ -92,10 +92,13 @@ Windows에서는 다음 스크립트를 사용합니다.
 운영 빌드·배포는 `master`에서만 가능합니다.
 
 ```bash
-./build_web.sh production
 BIBLE_SPEAK_PROD_CONFIRM=bible-speak \
-  ./scripts/deploy_environment.sh production hosting
+  ./scripts/deploy_environment.sh production web
 ```
+
+배포 래퍼는 하네스의 웹 대상 전체 검증을 실행하고, 현재 브랜치에 맞는 웹 산출물과
+메타데이터를 새로 만든 뒤 배포합니다. Android와 iOS는 각 대상의 릴리스 작업에서
+별도로 전체 검증합니다.
 
 기본 Functions 프로젝트와 다른 서버를 사용할 때만 공개 환경 변수
 `API_BASE_URL`을 지정합니다. 공급자 비밀키는 어떤 클라이언트 빌드 명령에도

@@ -81,8 +81,11 @@ Google Play 구독 검증을 위해 Functions 런타임 서비스 계정에 Play
 ### 4. 개발 배포
 
 ```bash
-./scripts/deploy_environment.sh development hosting
+./scripts/deploy_environment.sh development web
 ```
+
+`web` 배포는 하네스 전체 검증과 환경별 웹 빌드를 다시 수행한 뒤 개발 Hosting과
+Firestore Rules를 함께 배포합니다.
 
 운영 배포는 `master`의 `v*` 태그, 깨끗한 작업 트리, 전체 검증 및 명시적
 확인이 모두 필요합니다. 자세한 승격 절차는 `docs/deploy/ENVIRONMENTS.md`를

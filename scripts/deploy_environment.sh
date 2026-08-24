@@ -5,7 +5,7 @@ ROOT=$(git rev-parse --show-toplevel)
 ENVIRONMENT=${1:-}
 TARGET=${2:-hosting}
 CHECK_ONLY=${3:-}
-BRANCH=$(git -C "$ROOT" branch --show-current)
+BRANCH=${GITHUB_REF_NAME:-$(git -C "$ROOT" branch --show-current)}
 
 case "$ENVIRONMENT" in
   development|dev)
@@ -21,12 +21,13 @@ case "$ENVIRONMENT" in
     PROJECT_ALIAS=prod
     ;;
   *)
-    echo "Usage: ./scripts/deploy_environment.sh development|production hosting|functions|firestore|all [--check]" >&2
+    echo "Usage: ./scripts/deploy_environment.sh development|production web|hosting|functions|firestore|all [--check]" >&2
     exit 2
     ;;
 esac
 
 case "$TARGET" in
+  web) FIREBASE_TARGET=hosting,firestore:rules ;;
   hosting) FIREBASE_TARGET=hosting ;;
   functions) FIREBASE_TARGET=functions ;;
   firestore) FIREBASE_TARGET=firestore:rules ;;
@@ -49,15 +50,6 @@ fi
 
 node -e "const c=require(process.argv[1]);if(c.projects?.[process.argv[2]]!==process.argv[3]){throw Error('Firebase alias mismatch')}" "$ROOT/.firebaserc" "$PROJECT_ALIAS" "$PROJECT_ID"
 
-if [[ "$FIREBASE_TARGET" == *hosting* ]]; then
-  METADATA="$ROOT/build/web/environment.json"
-  if [ ! -f "$METADATA" ]; then
-    echo "Missing build/web/environment.json. Run ./build_web.sh $ENVIRONMENT first." >&2
-    exit 4
-  fi
-  node -e "const m=require(process.argv[1]);if(m.environment!==process.argv[2]||m.projectId!==process.argv[3]||m.commit!==process.argv[4]){throw Error('Build metadata does not match deployment environment or HEAD')}" "$METADATA" "$ENVIRONMENT" "$PROJECT_ID" "$(git -C "$ROOT" rev-parse HEAD)"
-fi
-
 if [ "$ENVIRONMENT" = "production" ]; then
   if ! git -C "$ROOT" describe --exact-match --match 'v*' HEAD >/dev/null 2>&1; then
     echo "Production deployment requires a v* release tag on HEAD." >&2
@@ -76,6 +68,16 @@ fi
 
 cd "$ROOT"
 ./bin/harness verify --lane full --target web
+
+if [[ "$FIREBASE_TARGET" == *hosting* ]]; then
+  METADATA="$ROOT/build/web/environment.json"
+  if [ ! -f "$METADATA" ]; then
+    echo "Full verification did not produce build/web/environment.json." >&2
+    exit 4
+  fi
+  node -e "const m=require(process.argv[1]);if(m.environment!==process.argv[2]||m.projectId!==process.argv[3]||m.commit!==process.argv[4]){throw Error('Build metadata does not match deployment environment or HEAD')}" "$METADATA" "$ENVIRONMENT" "$PROJECT_ID" "$(git -C "$ROOT" rev-parse HEAD)"
+fi
+
 npx --yes firebase-tools@15.28.1 deploy \
   --project "$PROJECT_ID" \
   --only "$FIREBASE_TARGET"

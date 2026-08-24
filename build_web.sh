@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT=$(git rev-parse --show-toplevel)
 ENVIRONMENT=${1:-development}
-BRANCH=$(git -C "$ROOT" branch --show-current)
+BRANCH=${GITHUB_REF_NAME:-$(git -C "$ROOT" branch --show-current)}
 
 case "$ENVIRONMENT" in
   development|dev)
@@ -33,7 +33,15 @@ BUILD_ID=$(date -u +%Y%m%d%H%M%S)
 COMMIT_SHA=$(git -C "$ROOT" rev-parse HEAD)
 
 cd "$ROOT"
-flutter build web --release \
+if [ -n "${FLUTTER_BIN:-}" ] && [ -x "$FLUTTER_BIN" ]; then
+  FLUTTER_CMD=$FLUTTER_BIN
+elif [ -n "${FLUTTER_ROOT:-}" ] && [ -x "$FLUTTER_ROOT/bin/flutter" ]; then
+  FLUTTER_CMD=$FLUTTER_ROOT/bin/flutter
+else
+  FLUTTER_CMD=flutter
+fi
+
+"$FLUTTER_CMD" build web --release \
   --dart-define=APP_ENV="$ENVIRONMENT" \
   --dart-define=API_BASE_URL="$API_URL"
 

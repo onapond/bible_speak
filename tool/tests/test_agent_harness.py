@@ -17,6 +17,8 @@ class HarnessTest(unittest.TestCase):
     def test_environment_files_are_routed(self):
         self.assertEqual(harness.route_files([".github/workflows/verify.yml"]), {"harness"})
         self.assertEqual(harness.route_files(["firestore.rules"]), {"harness"})
+        self.assertEqual(harness.route_files(["analysis_options.yaml"]), {"flutter", "ui", "ios", "android", "web"})
+        self.assertEqual(harness.route_files(["macos/Podfile"]), {"flutter"})
 
     def test_force_push_blocked(self):
         self.assertIn("push", harness.command_gate("git push --force origin main"))
@@ -27,6 +29,21 @@ class HarnessTest(unittest.TestCase):
         self.assertEqual(harness.required_lane("npm --prefix functions run deploy"), "full")
         self.assertEqual(harness.required_lane("./scripts/deploy_environment.sh dev hosting"), "full")
         self.assertEqual(harness.required_lane("git push origin master"), "full")
+
+    def test_full_web_build_uses_environment_wrapper(self):
+        source = Path(harness.__file__).read_text()
+        self.assertIn('str(ROOT / "build_web.sh")', source)
+        self.assertIn('"production" if git("branch", "--show-current")', source)
+
+    def test_full_gate_only_tracks_web_artifact_for_web_target(self):
+        source = Path(harness.__file__).read_text()
+        self.assertIn('effective == "full" and selected == "web"', source)
+        self.assertIn('record.get("target") == "web"', source)
+
+    def test_analysis_does_not_trigger_flutter_platform_migrations(self):
+        source = Path(harness.__file__).read_text()
+        self.assertIn('"dart-analyze", [str(dart), "analyze"', source)
+        self.assertNotIn('"flutter-analyze", [str(flutter), "analyze"', source)
 
     def test_scope_normalization(self):
         self.assertTrue(harness.path_allowed(".codex/hooks.json", [".codex/**"]))

@@ -39,8 +39,8 @@ codex/* 또는 claude/*
 # 개별 작업 브랜치 또는 develop에서 개발 빌드
 ./build_web.sh development
 
-# develop의 검증된 커밋만 개발 Hosting에 배포
-./scripts/deploy_environment.sh development hosting
+# develop의 검증된 커밋만 개발 Hosting과 Rules에 배포
+./scripts/deploy_environment.sh development web
 
 # Firestore 규칙만 개발 환경에 배포
 ./scripts/deploy_environment.sh development firestore
@@ -52,20 +52,22 @@ codex/* 또는 claude/*
 2. 작업 트리가 깨끗하다.
 3. HEAD에 `v*` 릴리스 태그가 있다.
 4. `./bin/harness verify --lane full --target web`이 통과한다.
-5. 빌드 메타데이터의 환경·Firebase 프로젝트·커밋이 HEAD와 일치한다.
+5. 전체 검증이 해당 환경의 웹 빌드와 메타데이터를 생성하고, 프로젝트·커밋이
+   HEAD와 일치한다.
 6. `BIBLE_SPEAK_PROD_CONFIRM=bible-speak`가 명시되어 있다.
 
 ```bash
-./build_web.sh production
 BIBLE_SPEAK_PROD_CONFIRM=bible-speak \
-  ./scripts/deploy_environment.sh production hosting
+  ./scripts/deploy_environment.sh production web
 ```
 
 ## GitHub 자동화
 
 - `Environment Contract`: `develop`과 `master`의 하네스, Functions, Flutter 검증.
-- `Deploy Development`: `develop` 검증 성공 커밋만 개발 Hosting과 규칙에 배포.
-- `Deploy Production`: `master`에서 수동 실행하고 `DEPLOY bible-speak` 입력 필요.
+- `Deploy Development`: 전체 하네스의 웹 대상 검증을 통과한 `develop` 커밋만
+  개발 Hosting과 규칙에 배포.
+- `Deploy Production`: `master`의 `v*` 태그에서 수동 실행하고
+  `DEPLOY bible-speak` 입력 후 동일한 웹 대상 전체 하네스를 통과해야 배포.
 - GitHub의 `development`와 `production` Environment에는 서로 다른 Firebase
   서비스 계정 Secret이 저장되어 있다.
 

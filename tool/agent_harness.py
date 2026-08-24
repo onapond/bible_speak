@@ -104,8 +104,9 @@ def route_files(files):
         elif name.endswith((".sh", ".bash")): routes.add("shell")
         elif name.startswith("ios/"): routes.update(("flutter", "ios"))
         elif name.startswith("android/"): routes.update(("flutter", "android"))
+        elif name.startswith("macos/"): routes.add("flutter")
         elif name.startswith("web/") or name.startswith("build_web"): routes.update(("flutter", "web"))
-        elif name in {"pubspec.yaml", "pubspec.lock", "firebase.json", ".firebaserc"} or name.startswith("assets/"):
+        elif name in {"pubspec.yaml", "pubspec.lock", "analysis_options.yaml", "firebase.json", ".firebaserc"} or name.startswith("assets/"):
             routes.update(("flutter", "ui", "ios", "android", "web"))
         elif name.startswith(("lib/", "test/", "integration_test/")) or name.endswith(".dart"):
             routes.add("flutter")
@@ -184,7 +185,8 @@ def check(folder, check_id, command, cwd=ROOT, timeout=1800):
 def verify(lane, target=None):
     files, fp = changed_files(), fingerprint(); routes = route_files(files)
     effective = "standard" if lane == "fast" and "unknown" in routes else lane
-    if effective == "full": routes.update(("flutter", "functions", "ui", "ios", "android", "web"))
+    selected = target or config()["toolchain"]["defaultStandardTarget"]
+    if effective == "full": routes.update(("flutter", "functions", "ui", selected))
     head = git("rev-parse", "--short", "HEAD").strip()
     run_id = f"{head}-{fp[:8]}-{effective}-{int(time.time())}"
     folder = runtime() / "runs" / run_id; folder.mkdir(parents=True)
@@ -213,7 +215,7 @@ def verify(lane, target=None):
             checks.append({"id": "flutter-toolchain", "status": "pass" if ok else "fail", "exit": 0 if ok else 1, "durationMs": 0, "log": "", "summary": "" if ok else version})
             darts = [name for name in files if name.endswith(".dart") and (ROOT / name).exists()]
             if darts: checks.append(check(folder, "dart-format", [str(dart), "format", "--output=none", "--set-exit-if-changed", *darts]))
-            checks.append(check(folder, "flutter-analyze", [str(flutter), "analyze", "--no-pub", "--no-fatal-infos"]))
+            checks.append(check(folder, "dart-analyze", [str(dart), "analyze"]))
             checks.append(check(folder, "flutter-test", [str(flutter), "test", "--no-pub", "--test-randomize-ordering-seed=0", "--concurrency=1", "--reporter", "compact"]))
             if "ui" in routes:
                 ui = check(folder, "ui-check", [str(dart), "run", "scripts/ui_check.dart", "--summary"])
@@ -225,16 +227,19 @@ def verify(lane, target=None):
                         ui.update({"status": "fail", "exit": 1,
                                    "summary": f"UI warnings {match.group(1)} exceed baseline {baseline}"})
                 checks.append(ui)
-            selected = target or expected["defaultStandardTarget"]
             builds = {"ios": [str(flutter), "build", "ios", "--simulator", "--debug", "--no-pub"],
                       "android": [str(flutter), "build", "apk", "--debug", "--no-pub"],
                       "web": [str(flutter), "build", "web", "--release", "--no-pub"]}
-            if effective in {"standard", "full"} and builds.get(selected):
+            if effective == "standard" and builds.get(selected):
                 checks.append(check(folder, selected + "-compile", builds[selected], timeout=3600))
             if effective == "full":
-                checks += [check(folder, "android-release", [str(flutter), "build", "appbundle", "--release", "--no-pub"], timeout=3600),
-                           check(folder, "ios-release", [str(flutter), "build", "ios", "--release", "--no-codesign", "--no-pub"], timeout=3600),
-                           check(folder, "web-release", [str(flutter), "build", "web", "--release", "--no-pub"], timeout=3600)]
+                release_builds = {
+                    "android": [str(flutter), "build", "appbundle", "--release", "--no-pub"],
+                    "ios": [str(flutter), "build", "ios", "--release", "--no-codesign", "--no-pub"],
+                    "web": [str(ROOT / "build_web.sh"),
+                            "production" if git("branch", "--show-current").strip() == "master" else "development"],
+                }
+                checks.append(check(folder, selected + "-release", release_builds[selected], timeout=3600))
     if "functions" in routes:
         node = first(["node", "--version"]); major = re.search(r"v(\d+)", node)
         ok = bool(major and int(major.group(1)) == expected["functionsNodeMajor"]) or effective == "fast"
@@ -256,7 +261,8 @@ def verify(lane, target=None):
               "laneEffective": effective, "target": locals().get("selected", target), "head": head, "fingerprint": fp,
               "changedFiles": files, "routes": sorted(routes), "checks": checks,
               "failureSignature": failure_signature, "failureAttempt": failure_attempt,
-              "artifacts": {"web": directory_digest(ROOT / "build/web")} if effective == "full" else {}}
+              "artifacts": {"web": directory_digest(ROOT / "build/web")}
+              if effective == "full" and selected == "web" else {}}
     write(folder / "run.json", record); write(runtime() / "latest_validation.json", record)
     passed = sum(item["status"] == "pass" for item in checks)
     print(f"{status.upper()} run={run_id} checks={passed}/{len(checks)} logs={folder.relative_to(ROOT)}")
@@ -273,7 +279,7 @@ def gate(required):
         return False, f"validation failed or stale; run ./bin/harness verify --lane {required}"
     actual = record.get("laneEffective", "fast")
     if RANK.get(actual, 0) < RANK[required]: return False, f"{required} required; run verify --lane {required}"
-    if required == "full" and record.get("artifacts", {}).get("web") != directory_digest(ROOT / "build/web"):
+    if required == "full" and record.get("target") == "web" and record.get("artifacts", {}).get("web") != directory_digest(ROOT / "build/web"):
         return False, "release artifact changed after validation; run verify --lane full"
     return True, "current"
 

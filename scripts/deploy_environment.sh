@@ -48,7 +48,7 @@ if [ -n "$(git -C "$ROOT" status --porcelain)" ]; then
   exit 3
 fi
 
-node -e "const c=require(process.argv[1]);if(c.projects?.[process.argv[2]]!==process.argv[3]){throw Error('Firebase alias mismatch')}" "$ROOT/.firebaserc" "$PROJECT_ALIAS" "$PROJECT_ID"
+node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));if(c.projects?.[process.argv[2]]!==process.argv[3]){throw Error('Firebase alias mismatch')}" "$ROOT/.firebaserc" "$PROJECT_ALIAS" "$PROJECT_ID"
 
 if [ "$ENVIRONMENT" = "production" ]; then
   if ! git -C "$ROOT" describe --exact-match --match 'v*' HEAD >/dev/null 2>&1; then

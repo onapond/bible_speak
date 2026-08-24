@@ -30,6 +30,11 @@ class HarnessTest(unittest.TestCase):
         self.assertEqual(harness.required_lane("./scripts/deploy_environment.sh dev hosting"), "full")
         self.assertEqual(harness.required_lane("git push origin master"), "full")
 
+    def test_deploy_wrapper_parses_firebaserc_as_json(self):
+        source = (Path(harness.__file__).parents[1] / "scripts" / "deploy_environment.sh").read_text()
+        self.assertIn("JSON.parse(fs.readFileSync", source)
+        self.assertNotIn("c=require(process.argv[1])", source)
+
     def test_full_web_build_uses_environment_wrapper(self):
         source = Path(harness.__file__).read_text()
         self.assertIn('str(ROOT / "build_web.sh")', source)

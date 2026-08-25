@@ -173,6 +173,7 @@ def metadata():
         "flutter": expected["flutter"],
         "node": expected["node"],
         "npm:firebase-tools": expected["firebase"],
+        "java": expected["java"],
     }
     mismatches = [f"{name}={tools.get(name)!r}, expected {version!r}"
                   for name, version in pinned.items() if tools.get(name) != version]
@@ -204,6 +205,12 @@ def doctor(strict=False):
         errors.append("Firebase CLI missing; run mise install")
     elif expected["firebase"] not in firebase:
         errors.append(f"expected Firebase CLI {expected['firebase']}, found {firebase}")
+    java_path = tool_bin("java")
+    java = first([str(java_path or "java"), "-version"])
+    print(f"{'OK' if java_path else 'WARN'} java={java_path or 'missing'} version={java}")
+    java_major = re.search(r'version "(\d+)', java)
+    if not java_path or not java_major or int(java_major.group(1)) < expected["emulatorsJavaMajor"]:
+        errors.append(f"Firebase Emulator expects Java {expected['emulatorsJavaMajor']}+, found {java}")
     for name in ("git", "python3", "npm", "xcodebuild", "pod", "claude", "codex"):
         path = tool_bin(name)
         print(f"{'OK' if path else 'WARN'} {name}={path or 'missing'}")
@@ -217,7 +224,7 @@ def check(folder, check_id, command, cwd=ROOT, timeout=1800):
     log = folder / "logs" / f"{check_id}.log"; log.parent.mkdir(parents=True, exist_ok=True)
     env = os.environ.copy(); env.update({"CI": "true", "FLUTTER_SUPPRESS_ANALYTICS": "true", "NO_COLOR": "1"})
     managed_dirs = []
-    for name in ("node", "flutter", "firebase"):
+    for name in ("node", "flutter", "firebase", "java"):
         if path := mise_tool_bin(name): managed_dirs.append(str(path.parent))
     if managed_dirs: env["PATH"] = os.pathsep.join([*dict.fromkeys(managed_dirs), env.get("PATH", "")])
     started = time.monotonic()
@@ -233,10 +240,19 @@ def check(folder, check_id, command, cwd=ROOT, timeout=1800):
             "log": str(log.relative_to(ROOT)), "summary": summary}
 
 
+def validation_target(explicit=None):
+    if explicit: return explicit
+    held = lock()
+    if held:
+        selected = task(read(PLAN), held["taskId"]).get("target")
+        if selected in {"ios", "android", "web"}: return selected
+    return config()["toolchain"]["defaultStandardTarget"]
+
+
 def verify(lane, target=None):
     files, fp = changed_files(), fingerprint(); routes = route_files(files)
     effective = "standard" if lane == "fast" and "unknown" in routes else lane
-    selected = target or config()["toolchain"]["defaultStandardTarget"]
+    selected = validation_target(target)
     if effective == "full": routes.update(("flutter", "functions", "ui", selected))
     head = git("rev-parse", "--short", "HEAD").strip()
     run_id = f"{head}-{fp[:8]}-{effective}-{int(time.time())}"
@@ -298,7 +314,8 @@ def verify(lane, target=None):
         checks.append({"id": "node-runtime", "status": "pass" if ok else "fail", "exit": 0 if ok else 1, "durationMs": 0, "log": "", "summary": "" if ok else node})
         for path in sorted((ROOT / "functions").glob("*.js")): checks.append(check(folder, "node-" + path.stem, [str(node_path or "node"), "--check", str(path)]))
         npm_path = tool_bin("npm")
-        checks.append(check(folder, "functions-test", [str(npm_path or "npm"), "test", "--", "--runInBand", "--ci", "--colors=false"], cwd=ROOT / "functions"))
+        checks.append(check(folder, "functions-unit", [str(npm_path or "npm"), "run", "test:unit", "--", "--runInBand", "--ci", "--colors=false"], cwd=ROOT / "functions"))
+        checks.append(check(folder, "functions-rules", [str(npm_path or "npm"), "run", "test:rules"], cwd=ROOT / "functions"))
     status = "pass" if all(item["status"] == "pass" for item in checks) else "fail"
     failure_signature = None
     failure_attempt = 0

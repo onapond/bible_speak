@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 import tomllib
 import unittest
+from unittest.mock import patch
 
 path = Path(__file__).resolve().parents[1] / "agent_harness.py"
 spec = importlib.util.spec_from_file_location("agent_harness", path)
@@ -32,6 +33,7 @@ class HarnessTest(unittest.TestCase):
         self.assertEqual(tools["flutter"], config["flutter"])
         self.assertEqual(tools["node"], config["node"])
         self.assertEqual(tools["npm:firebase-tools"], config["firebase"])
+        self.assertEqual(tools["java"], config["java"])
 
     def test_force_push_blocked(self):
         self.assertIn("push", harness.command_gate("git push --force origin main"))
@@ -58,10 +60,23 @@ class HarnessTest(unittest.TestCase):
         self.assertIn('effective == "full" and selected == "web"', source)
         self.assertIn('record.get("target") == "web"', source)
 
+    def test_active_task_target_is_the_default_validation_target(self):
+        plan = {"tasks": [{"id": "DATA-RULES-001", "target": "web"}]}
+        with patch.object(harness, "lock", return_value={"taskId": "DATA-RULES-001"}), \
+                patch.object(harness, "read", return_value=plan):
+            self.assertEqual(harness.validation_target(), "web")
+            self.assertEqual(harness.validation_target("android"), "android")
+
     def test_analysis_does_not_trigger_flutter_platform_migrations(self):
         source = Path(harness.__file__).read_text()
         self.assertIn('"dart-analyze", [str(dart), "analyze"', source)
         self.assertNotIn('"flutter-analyze", [str(flutter), "analyze"', source)
+
+    def test_functions_unit_and_rules_commands_are_separate(self):
+        source = Path(harness.__file__).read_text()
+        self.assertIn('"functions-unit"', source)
+        self.assertIn('"functions-rules"', source)
+        self.assertNotIn('"functions-test"', source)
 
     def test_scope_normalization(self):
         self.assertTrue(harness.path_allowed(".codex/hooks.json", [".codex/**"]))

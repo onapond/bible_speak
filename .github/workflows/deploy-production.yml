@@ -28,9 +28,13 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: functions/package-lock.json
       - uses: subosito/flutter-action@v2
@@ -41,6 +45,7 @@ jobs:
       - uses: google-github-actions/auth@v3
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+      - run: npm install --global firebase-tools@15.28.1
       - run: flutter pub get --enforce-lockfile
       - run: npm --prefix functions ci
       - name: Run the full harness and deploy only to production

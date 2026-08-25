@@ -10,6 +10,15 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == userId;
     }
 
+    function isLegacySharedCollection(collection) {
+      return collection != 'purchaseClaims'
+        && collection != 'internalApiUsage'
+        && collection != 'users'
+        && collection != 'bible'
+        && collection != 'global'
+        && collection != 'reviews';
+    }
+
     // Privileged billing and quota records are writable only through Admin SDK.
     match /purchaseClaims/{document=**} {
       allow read, write: if false;
@@ -42,10 +51,22 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Review documents are private to the userId stored on the document.
+    // Both sides of an update are checked so ownership cannot be transferred.
+    match /reviews/{reviewId} {
+      allow read: if owns(resource.data.userId);
+      allow create: if owns(request.resource.data.userId);
+      allow update: if owns(resource.data.userId)
+        && owns(request.resource.data.userId);
+      allow delete: if owns(resource.data.userId);
+    }
+
     // Shared learning and social collections remain available to signed-in
-    // users. Collection-specific ownership tightening is tracked separately.
-    match /{document=**} {
-      allow read, write: if signedIn();
+    // users. Explicitly protected collections are excluded because Firestore
+    // grants a request when any overlapping match allows it.
+    match /{collection}/{document=**} {
+      allow read, write: if signedIn()
+        && isLegacySharedCollection(collection);
     }
   }
 }

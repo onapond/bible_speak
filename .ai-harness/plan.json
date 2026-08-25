@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "Bible Speak",
   "milestone": "native-mobile-foundation",
-  "updatedAt": "2026-08-24",
+  "updatedAt": "2026-08-25",
   "tasks": [
     {
       "id": "HARNESS-001",
@@ -115,6 +115,66 @@
       ],
       "validationLane": "full",
       "target": "ios"
+    },
+    {
+      "id": "DATA-PORTABILITY-001",
+      "title": "Firestore 전환 경계와 복습 저장소 포트 도입",
+      "status": "review",
+      "owner": "codex",
+      "reviewer": "claude",
+      "budget": "M",
+      "allowedPaths": [
+        ".ai-harness/**",
+        "firebase.json",
+        "firestore.indexes.json",
+        "tool/agent_harness.py",
+        "tool/tests/test_agent_harness.py",
+        "lib/models/review_item.dart",
+        "lib/data/repositories/**",
+        "lib/services/review_service.dart",
+        "lib/services/data_preloader_service.dart",
+        "lib/screens/home/main_menu_screen.dart",
+        "lib/screens/practice/verse_practice_screen.dart",
+        "lib/screens/practice/verse_practice_redesigned.dart",
+        "lib/screens/review/review_screen.dart",
+        "lib/screens/study/learning_center_screen.dart",
+        "test/**",
+        "docs/architecture/**"
+      ],
+      "acceptance": [
+        "복습 서비스가 Firestore 구현 대신 저장소 계약에 의존",
+        "복습 도메인 모델에 Firebase 타입 의존성 없음",
+        "가짜 저장소 기반 계약·서비스 회귀 테스트 통과",
+        "복습 복합 인덱스와 동시 생성 중복 방지 규칙이 버전 관리됨",
+        "Firestore와 관계형 DB 병행 전환 원칙 및 후속 순서 문서화"
+      ],
+      "validationLane": "standard",
+      "target": "none"
+    },
+    {
+      "id": "DATA-RULES-001",
+      "title": "사용자 데이터 Firestore 규칙 회귀검증 및 단계적 강화",
+      "status": "backlog",
+      "owner": null,
+      "reviewer": "claude",
+      "budget": "M",
+      "allowedPaths": [
+        "firestore.rules",
+        "firebase.json",
+        "firestore.indexes.json",
+        "functions/**",
+        "test/**",
+        "scripts/**",
+        "docs/**"
+      ],
+      "acceptance": [
+        "reviews 소유자와 비소유자 read/create/update/delete 규칙 테스트",
+        "개발 Auth 초기화 후 development 환경 규칙 smoke test",
+        "운영 라이브 규칙 snapshot 및 rollback 절차 기록",
+        "명시적 운영 승인 전 production 규칙 미배포"
+      ],
+      "validationLane": "full",
+      "target": "web"
     },
     {
       "id": "QUALITY-001",

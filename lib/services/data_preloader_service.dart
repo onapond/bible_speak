@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import 'review_service.dart';
+import '../data/repositories/review_service_factory.dart';
 import 'daily_quiz_service.dart';
 import 'daily_goal_service.dart';
 import 'stats_service.dart';
@@ -12,12 +12,13 @@ import 'social/morning_manna_service.dart';
 /// - 백그라운드에서 데이터 새로고침
 /// - 캐시 상태 관리
 class DataPreloaderService {
-  static final DataPreloaderService _instance = DataPreloaderService._internal();
+  static final DataPreloaderService _instance =
+      DataPreloaderService._internal();
   factory DataPreloaderService() => _instance;
   DataPreloaderService._internal();
 
   // 서비스 인스턴스
-  final _reviewService = ReviewService();
+  final _reviewService = createReviewService();
   final _quizService = DailyQuizService();
   final _dailyGoalService = DailyGoalService();
   final _statsService = StatsService();

@@ -17,6 +17,7 @@ class HarnessTest(unittest.TestCase):
     def test_environment_files_are_routed(self):
         self.assertEqual(harness.route_files([".github/workflows/verify.yml"]), {"harness"})
         self.assertEqual(harness.route_files(["firestore.rules"]), {"harness"})
+        self.assertEqual(harness.route_files(["firestore.indexes.json"]), {"harness"})
         self.assertEqual(harness.route_files(["analysis_options.yaml"]), {"flutter", "ui", "ios", "android", "web"})
         self.assertEqual(harness.route_files(["macos/Podfile"]), {"flutter"})
 

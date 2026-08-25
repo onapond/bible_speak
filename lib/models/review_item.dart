@@ -1,17 +1,20 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 /// 복습 품질 등급 (SM-2 알고리즘)
 enum ReviewQuality {
   /// 완전히 잊음 (0)
   forgot,
+
   /// 힌트 필요 (1)
   needHint,
+
   /// 어렵게 기억 (2)
   hard,
+
   /// 보통 (3)
   normal,
+
   /// 쉬움 (4)
   easy,
+
   /// 완벽 (5)
   perfect,
 }
@@ -19,7 +22,7 @@ enum ReviewQuality {
 /// 복습 아이템 모델 (SM-2 알고리즘 기반)
 class ReviewItem {
   final String id;
-  final String odId;
+  final String userId;
   final String verseReference; // e.g., "John 3:16"
   final String book;
   final int chapter;
@@ -40,7 +43,7 @@ class ReviewItem {
 
   const ReviewItem({
     required this.id,
-    required this.odId,
+    required this.userId,
     required this.verseReference,
     required this.book,
     required this.chapter,
@@ -55,45 +58,6 @@ class ReviewItem {
     this.correctCount = 0,
     required this.createdAt,
   });
-
-  factory ReviewItem.fromFirestore(String docId, Map<String, dynamic> data) {
-    return ReviewItem(
-      id: docId,
-      odId: data['userId'] ?? '',
-      verseReference: data['verseReference'] ?? '',
-      book: data['book'] ?? '',
-      chapter: data['chapter'] ?? 1,
-      verse: data['verse'] ?? 1,
-      verseText: data['verseText'] ?? '',
-      easinessFactor: (data['easinessFactor'] ?? 2.5).toDouble(),
-      interval: data['interval'] ?? 1,
-      repetitions: data['repetitions'] ?? 0,
-      nextReviewDate: (data['nextReviewDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      lastReviewDate: (data['lastReviewDate'] as Timestamp?)?.toDate(),
-      totalReviews: data['totalReviews'] ?? 0,
-      correctCount: data['correctCount'] ?? 0,
-      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-    );
-  }
-
-  Map<String, dynamic> toFirestore() => {
-        'userId': odId,
-        'verseReference': verseReference,
-        'book': book,
-        'chapter': chapter,
-        'verse': verse,
-        'verseText': verseText,
-        'easinessFactor': easinessFactor,
-        'interval': interval,
-        'repetitions': repetitions,
-        'nextReviewDate': Timestamp.fromDate(nextReviewDate),
-        'lastReviewDate': lastReviewDate != null
-            ? Timestamp.fromDate(lastReviewDate!)
-            : null,
-        'totalReviews': totalReviews,
-        'correctCount': correctCount,
-        'createdAt': Timestamp.fromDate(createdAt),
-      };
 
   /// 복습 필요 여부
   bool get isDue {
@@ -158,9 +122,9 @@ class ReviewItem {
   }
 
   /// 복습 결과 적용 (SM-2 알고리즘)
-  ReviewItem applyReview(ReviewQuality quality) {
+  ReviewItem applyReview(ReviewQuality quality, {DateTime? reviewedAt}) {
     final q = quality.index; // 0-5
-    final now = DateTime.now();
+    final now = reviewedAt ?? DateTime.now();
 
     // 새로운 값 계산
     double newEF = easinessFactor;
@@ -188,12 +152,12 @@ class ReviewItem {
     if (newEF < 1.3) newEF = 1.3;
 
     // 다음 복습 날짜 계산
-    final nextDate = DateTime(now.year, now.month, now.day)
-        .add(Duration(days: newInterval));
+    final nextDate =
+        DateTime(now.year, now.month, now.day).add(Duration(days: newInterval));
 
     return ReviewItem(
       id: id,
-      odId: odId,
+      userId: userId,
       verseReference: verseReference,
       book: book,
       chapter: chapter,
@@ -221,7 +185,7 @@ class ReviewItem {
   }) {
     return ReviewItem(
       id: id,
-      odId: odId,
+      userId: userId,
       verseReference: verseReference,
       book: book,
       chapter: chapter,

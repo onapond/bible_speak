@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/review_item.dart';
-import '../../services/review_service.dart';
+import '../../data/repositories/review_service_factory.dart';
 import '../../styles/parchment_theme.dart';
 import '../../widgets/ux_widgets.dart';
 
@@ -17,7 +17,7 @@ class _ReviewScreenState extends State<ReviewScreen> {
   static const _cardColor = ParchmentTheme.softPapyrus;
   static const _accentColor = ParchmentTheme.manuscriptGold;
 
-  final ReviewService _reviewService = ReviewService();
+  final ReviewService _reviewService = createReviewService();
 
   List<ReviewItem> _dueItems = [];
   ReviewStats _stats = const ReviewStats();
@@ -197,7 +197,8 @@ class _ReviewScreenState extends State<ReviewScreen> {
               // Body content
               Expanded(
                 child: _isLoading
-                    ? const Center(child: CircularProgressIndicator(color: _accentColor))
+                    ? const Center(
+                        child: CircularProgressIndicator(color: _accentColor))
                     : _dueItems.isEmpty
                         ? _buildEmptyState()
                         : _currentIndex >= _dueItems.length

@@ -95,7 +95,7 @@ def changed_files():
 def route_files(files):
     routes = set()
     for name in files:
-        if name in {"AGENTS.md", "CLAUDE.md", ".gitignore", "codemagic.yaml", "firestore.rules"} or name.startswith(
+        if name in {"AGENTS.md", "CLAUDE.md", ".gitignore", "codemagic.yaml", "firestore.rules", "firestore.indexes.json"} or name.startswith(
                 (".ai-harness/", ".codex/", ".claude/", ".github/workflows/", "bin/", "tool/")): routes.add("harness")
         elif name.startswith("docs/") or name.endswith(".md"): routes.add("docs")
         elif name.startswith("functions/"): routes.add("functions")

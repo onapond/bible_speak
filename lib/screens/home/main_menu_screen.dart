@@ -6,7 +6,7 @@ import '../../services/social/group_challenge_service.dart';
 import '../../services/social/streak_service.dart';
 import '../../services/social/morning_manna_service.dart';
 import '../../services/social/nudge_service.dart';
-import '../../services/review_service.dart';
+import '../../data/repositories/review_service_factory.dart';
 import '../../services/daily_quiz_service.dart';
 import '../../services/daily_goal_service.dart';
 import '../../services/stats_service.dart';
@@ -48,7 +48,7 @@ class _MainMenuScreenState extends ConsumerState<MainMenuScreen> {
   final _streakService = StreakService();
   final _morningMannaService = MorningMannaService();
   final _nudgeService = NudgeService();
-  final _reviewService = ReviewService();
+  final _reviewService = createReviewService();
   final _quizService = DailyQuizService();
   final _dailyGoalService = DailyGoalService();
   final _statsService = StatsService();

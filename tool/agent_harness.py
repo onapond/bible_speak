@@ -95,8 +95,12 @@ def changed_files():
 def route_files(files):
     routes = set()
     for name in files:
-        if name in {"AGENTS.md", "CLAUDE.md", ".gitignore", "codemagic.yaml", "firestore.rules", "firestore.indexes.json"} or name.startswith(
-                (".ai-harness/", ".codex/", ".claude/", ".github/workflows/", "bin/", "tool/")): routes.add("harness")
+        if name in {
+            "AGENTS.md", "CLAUDE.md", ".gitignore", "codemagic.yaml", "firestore.rules",
+            "firestore.indexes.json", "mise.toml", ".tool-versions",
+        } or name.startswith(
+                (".ai-harness/", ".codex/", ".claude/", ".github/workflows/", "bin/", "tool/")):
+            routes.add("harness")
         elif name.startswith("docs/") or name.endswith(".md"): routes.add("docs")
         elif name.startswith("functions/"): routes.add("functions")
         elif name.startswith(("cloudflare-worker/", "render-proxy/", "vercel-proxy/")) or name.endswith((".js", ".mjs", ".cjs")):
@@ -115,10 +119,31 @@ def route_files(files):
     return routes or {"harness"}
 
 
+def mise_tool_bin(name):
+    executable = shutil.which("mise")
+    if not executable or not (ROOT / "mise.toml").is_file(): return None
+    try:
+        result = subprocess.run([executable, "which", name], cwd=ROOT, text=True,
+                                capture_output=True, timeout=20)
+    except (OSError, subprocess.TimeoutExpired): return None
+    if result.returncode: return None
+    candidate = Path(result.stdout.strip())
+    return candidate if candidate.is_file() and os.access(candidate, os.X_OK) else None
+
+
+def tool_bin(name):
+    if managed := mise_tool_bin(name): return managed
+    if name in {"npm", "npx"} and (node := mise_tool_bin("node")):
+        sibling = node.parent / name
+        if sibling.is_file(): return sibling
+    return Path(found) if (found := shutil.which(name)) else None
+
+
 def flutter_bin():
     if os.getenv("FLUTTER_BIN") and Path(os.environ["FLUTTER_BIN"]).is_file(): return Path(os.environ["FLUTTER_BIN"])
     if os.getenv("FLUTTER_ROOT") and (Path(os.environ["FLUTTER_ROOT"]) / "bin/flutter").is_file():
         return Path(os.environ["FLUTTER_ROOT"]) / "bin/flutter"
+    if managed := mise_tool_bin("flutter"): return managed
     if found := shutil.which("flutter"): return Path(found)
     local = ROOT / "android/local.properties"
     if local.exists():
@@ -141,6 +166,17 @@ def metadata():
     for path in (CFG, PLAN, ROOT / ".codex/hooks.json", ROOT / ".claude/settings.json"): read(path)
     for path in (ROOT / ".codex/config.toml", *sorted((ROOT / ".codex/agents").glob("*.toml"))):
         with path.open("rb") as handle: tomllib.load(handle)
+    with (ROOT / "mise.toml").open("rb") as handle:
+        tools = tomllib.load(handle).get("tools", {})
+    expected = config()["toolchain"]
+    pinned = {
+        "flutter": expected["flutter"],
+        "node": expected["node"],
+        "npm:firebase-tools": expected["firebase"],
+    }
+    mismatches = [f"{name}={tools.get(name)!r}, expected {version!r}"
+                  for name, version in pinned.items() if tools.get(name) != version]
+    if mismatches: raise HarnessError("mise toolchain mismatch: " + "; ".join(mismatches))
     if not (ROOT / "CLAUDE.md").read_text().startswith("@AGENTS.md"): raise HarnessError("CLAUDE.md import missing")
     ids = [item["id"] for item in read(PLAN)["tasks"]]
     if len(ids) != len(set(ids)): raise HarnessError("duplicate task ids")
@@ -154,12 +190,23 @@ def doctor(strict=False):
         if expected["flutter"] not in version: errors.append(f"expected Flutter {expected['flutter']}: {version}")
         if str(flutter).startswith(("/tmp/", "/private/tmp/")): warnings.append("Flutter SDK is ephemeral")
     else: errors.append("Flutter missing; set FLUTTER_BIN or FLUTTER_ROOT")
-    node = first(["node", "--version"]); print(f"OK node version={node}")
+    node_path = tool_bin("node")
+    node = first([str(node_path or "node"), "--version"]); print(f"OK node path={node_path or 'missing'} version={node}")
     major = re.search(r"v(\d+)", node)
     if not major or int(major.group(1)) != expected["functionsNodeMajor"]:
-        warnings.append(f"Functions expects Node {expected['functionsNodeMajor']}, found {node}")
-    for name in ("git", "python3", "npm", "xcodebuild", "pod", "firebase", "claude", "codex"):
-        print(f"{'OK' if shutil.which(name) else 'WARN'} {name}={shutil.which(name) or 'missing'}")
+        errors.append(f"Functions expects Node {expected['functionsNodeMajor']}, found {node}")
+    elif node.removeprefix("v") != expected["node"]:
+        errors.append(f"expected Node {expected['node']}, found {node}")
+    firebase_path = tool_bin("firebase")
+    firebase = first([str(firebase_path or "firebase"), "--version"])
+    print(f"{'OK' if firebase_path else 'WARN'} firebase={firebase_path or 'missing'} version={firebase}")
+    if not firebase_path:
+        errors.append("Firebase CLI missing; run mise install")
+    elif expected["firebase"] not in firebase:
+        errors.append(f"expected Firebase CLI {expected['firebase']}, found {firebase}")
+    for name in ("git", "python3", "npm", "xcodebuild", "pod", "claude", "codex"):
+        path = tool_bin(name)
+        print(f"{'OK' if path else 'WARN'} {name}={path or 'missing'}")
     warnings.append("Riverpod codegen is deferred until analyzer dependencies are upgraded")
     for message in errors: print("ERROR " + message)
     for message in warnings: print("WARN " + message)
@@ -169,6 +216,10 @@ def doctor(strict=False):
 def check(folder, check_id, command, cwd=ROOT, timeout=1800):
     log = folder / "logs" / f"{check_id}.log"; log.parent.mkdir(parents=True, exist_ok=True)
     env = os.environ.copy(); env.update({"CI": "true", "FLUTTER_SUPPRESS_ANALYTICS": "true", "NO_COLOR": "1"})
+    managed_dirs = []
+    for name in ("node", "flutter", "firebase"):
+        if path := mise_tool_bin(name): managed_dirs.append(str(path.parent))
+    if managed_dirs: env["PATH"] = os.pathsep.join([*dict.fromkeys(managed_dirs), env.get("PATH", "")])
     started = time.monotonic()
     try:
         result = subprocess.run(command, cwd=cwd, env=env, text=True, stdout=subprocess.PIPE,
@@ -241,11 +292,13 @@ def verify(lane, target=None):
                 }
                 checks.append(check(folder, selected + "-release", release_builds[selected], timeout=3600))
     if "functions" in routes:
-        node = first(["node", "--version"]); major = re.search(r"v(\d+)", node)
+        node_path = tool_bin("node")
+        node = first([str(node_path or "node"), "--version"]); major = re.search(r"v(\d+)", node)
         ok = bool(major and int(major.group(1)) == expected["functionsNodeMajor"]) or effective == "fast"
         checks.append({"id": "node-runtime", "status": "pass" if ok else "fail", "exit": 0 if ok else 1, "durationMs": 0, "log": "", "summary": "" if ok else node})
-        for path in sorted((ROOT / "functions").glob("*.js")): checks.append(check(folder, "node-" + path.stem, ["node", "--check", str(path)]))
-        checks.append(check(folder, "functions-test", ["npm", "test", "--", "--runInBand", "--ci", "--colors=false"], cwd=ROOT / "functions"))
+        for path in sorted((ROOT / "functions").glob("*.js")): checks.append(check(folder, "node-" + path.stem, [str(node_path or "node"), "--check", str(path)]))
+        npm_path = tool_bin("npm")
+        checks.append(check(folder, "functions-test", [str(npm_path or "npm"), "test", "--", "--runInBand", "--ci", "--colors=false"], cwd=ROOT / "functions"))
     status = "pass" if all(item["status"] == "pass" for item in checks) else "fail"
     failure_signature = None
     failure_attempt = 0

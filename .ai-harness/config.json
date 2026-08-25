@@ -13,7 +13,9 @@
   "toolchain": {
     "flutter": "3.47.1",
     "dart": "3.13.1",
+    "node": "20.20.2",
     "functionsNodeMajor": 20,
+    "firebase": "15.28.1",
     "defaultStandardTarget": "ios"
   },
   "validation": {

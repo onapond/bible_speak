@@ -1,5 +1,7 @@
 import importlib.util
+import json
 from pathlib import Path
+import tomllib
 import unittest
 
 path = Path(__file__).resolve().parents[1] / "agent_harness.py"
@@ -18,8 +20,18 @@ class HarnessTest(unittest.TestCase):
         self.assertEqual(harness.route_files([".github/workflows/verify.yml"]), {"harness"})
         self.assertEqual(harness.route_files(["firestore.rules"]), {"harness"})
         self.assertEqual(harness.route_files(["firestore.indexes.json"]), {"harness"})
+        self.assertEqual(harness.route_files(["mise.toml"]), {"harness"})
         self.assertEqual(harness.route_files(["analysis_options.yaml"]), {"flutter", "ui", "ios", "android", "web"})
         self.assertEqual(harness.route_files(["macos/Podfile"]), {"flutter"})
+
+    def test_mise_versions_match_harness_config(self):
+        root = Path(harness.__file__).parents[1]
+        config = json.loads((root / ".ai-harness/config.json").read_text())["toolchain"]
+        with (root / "mise.toml").open("rb") as handle:
+            tools = tomllib.load(handle)["tools"]
+        self.assertEqual(tools["flutter"], config["flutter"])
+        self.assertEqual(tools["node"], config["node"])
+        self.assertEqual(tools["npm:firebase-tools"], config["firebase"])
 
     def test_force_push_blocked(self):
         self.assertIn("push", harness.command_gate("git push --force origin main"))

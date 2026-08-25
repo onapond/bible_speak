@@ -312,7 +312,12 @@ def verify(lane, target=None):
         node = first([str(node_path or "node"), "--version"]); major = re.search(r"v(\d+)", node)
         ok = bool(major and int(major.group(1)) == expected["functionsNodeMajor"]) or effective == "fast"
         checks.append({"id": "node-runtime", "status": "pass" if ok else "fail", "exit": 0 if ok else 1, "durationMs": 0, "log": "", "summary": "" if ok else node})
-        for path in sorted((ROOT / "functions").glob("*.js")): checks.append(check(folder, "node-" + path.stem, [str(node_path or "node"), "--check", str(path)]))
+        function_scripts = {
+            path for pattern in ("*.js", "*.mjs", "*.cjs")
+            for path in (ROOT / "functions").glob(pattern)
+        }
+        for path in sorted(function_scripts):
+            checks.append(check(folder, "node-" + path.stem, [str(node_path or "node"), "--check", str(path)]))
         npm_path = tool_bin("npm")
         checks.append(check(folder, "functions-unit", [str(npm_path or "npm"), "run", "test:unit", "--", "--runInBand", "--ci", "--colors=false"], cwd=ROOT / "functions"))
         checks.append(check(folder, "functions-rules", [str(npm_path or "npm"), "run", "test:rules"], cwd=ROOT / "functions"))

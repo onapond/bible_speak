@@ -77,6 +77,7 @@ class HarnessTest(unittest.TestCase):
         self.assertIn('"functions-unit"', source)
         self.assertIn('"functions-rules"', source)
         self.assertNotIn('"functions-test"', source)
+        self.assertIn('(\"*.js\", \"*.mjs\", \"*.cjs\")', source)
 
     def test_scope_normalization(self):
         self.assertTrue(harness.path_allowed(".codex/hooks.json", [".codex/**"]))

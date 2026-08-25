@@ -1,9 +1,9 @@
 # AI handoff
 
-- Task: TOOLCHAIN-001 — Mac Flutter·Node·Firebase 툴체인 영구 설치 및 버전 고정
+- Task: DATA-RULES-001 — 사용자 데이터 Firestore 규칙 회귀검증 및 단계적 강화
 - From/To: codex -> human
-- State: review
-- Summary: mise로 Flutter 3.47.1, Node 20.20.2, Firebase CLI 15.28.1을 영구 설치·고정하고 하네스가 프로젝트 도구를 우선 해석하도록 보강함
-- Changed: .ai-harness/config.json, docs/dev/AI_HARNESS.md, docs/dev/TOOLCHAIN.md, mise.toml, tool/agent_harness.py, tool/tests/test_agent_harness.py
-- Verification: baa312e-ceb496fc-standard-1787625408 (pass)
-- Next: 보호 브랜치 PR 상태검사 통과 후 develop에 병합하고 DATA-RULES-001을 시작
+- State: ready
+- Summary: Java 21·Node 22 기반 Rules 회귀, reviews 소유권 강화, dev Auth 초기화 및 live smoke, 운영 규칙 read-only snapshot·안전한 rollback 절차를 완료함. production 변경 없음.
+- Changed: docs/deploy/FIRESTORE_RULES.md, docs/deploy/snapshots/production-firestore-20260825T175548+0900.md, docs/deploy/snapshots/production-firestore-20260825T175548+0900.rules
+- Verification: a686ee5-d6726b1b-full-1787648936 (pass)
+- Next: 완료 기록 PR을 develop에 병합한 뒤 DATA-RULES-001을 done 처리하고 NATIVE-001을 claim해 iOS·Android 기반 복구를 시작한다.

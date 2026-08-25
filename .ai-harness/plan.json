@@ -158,7 +158,7 @@
     {
       "id": "DATA-RULES-001",
       "title": "사용자 데이터 Firestore 규칙 회귀검증 및 단계적 강화",
-      "status": "in_progress",
+      "status": "ready",
       "owner": "codex",
       "reviewer": "claude",
       "budget": "M",

@@ -44,7 +44,35 @@ Firebase CLI 15 Emulator에는 Java 21 이상이 필요하며 `mise.toml`이 이
 6. workflow의 `finally` cleanup이 임시 사용자와 테스트 문서를 삭제한다. Actions run의
    수행 시각·commit SHA를 handoff에 기록한다.
 
+Latest live evidence:
+
+- Development deploy: Actions run `32828053739`, commit
+  `a686ee5b3b19054fafbc98ebcce83f653fb17bc4`, completed
+  `2026-08-25T08:46:41Z`
+- Hosted metadata: `environment=development`, `projectId=bible-speak-dev`,
+  `buildId=20260825084531`
+- Auth/Rules smoke: Actions run `32828459302`, same commit, completed
+  `2026-08-25T08:48:00Z`
+- Result: Email/Password owner CRUD passed, Anonymous non-owner
+  read/create/update/delete were denied, and temporary documents and users were removed.
+
 ## Production snapshot and rollback
+
+### Current read-only snapshot
+
+The production `(default)` database was inspected without publishing on
+`2026-08-25T17:55:48+09:00`. The exact source and capture metadata are stored in:
+
+- `snapshots/production-firestore-20260825T175548+0900.rules`
+- `snapshots/production-firestore-20260825T175548+0900.md`
+
+Its SHA-256 is `952e896720400bca9941992f0bba30bcc17c345f1c18ee2e7567dc97294e185b`.
+The live source still has recursive `allow read, write: if true`; the repository source differs
+and has not been deployed to production. The Console showed the active source but failed to load
+version-history metadata, so this snapshot records the missing Ruleset name explicitly rather than
+guessing it.
+
+### Snapshot procedure
 
 운영 변경 전 Firebase Rules REST API의 다음 읽기 전용 순서로 현재 Ruleset을
 snapshot한다.
@@ -53,9 +81,29 @@ snapshot한다.
 2. 해당 `projects/bible-speak/rulesets/{id}`를 GET해 source를 저장한다.
 3. source의 SHA-256, ruleset 이름, 조회 시각을 함께 기록하고 저장소 Rules와 비교한다.
 
-운영 배포는 `master`의 승인된 `v*` 릴리스에서만 수행한다. 장애 시에는 직전 snapshot
-source를 임시 규칙 파일로 복원하고, 동일한 Emulator 테스트와 명시적 운영 확인을
-거친 뒤에만 다음 명령을 실행한다.
+REST metadata가 일시적으로 조회되지 않으면 Firebase Console의 production 프로젝트와
+`(default)` database를 다시 확인한 뒤 Rules 편집기에 표시된 source를 읽기 전용으로
+저장한다. source SHA-256, 조회 시각, Console 오류, Ruleset 이름을 확보하지 못했다는
+사실을 함께 기록한다. 이름을 추정하거나 Publish를 선택하지 않는다.
+
+### Rollback procedure
+
+운영 배포는 `master`의 승인된 `v*` 릴리스에서만 수행한다. 배포 스크립트는
+`firebase.json`이 지정한 저장소의 `firestore.rules`만 읽으며 dirty worktree를 거부한다.
+따라서 별도 임시 파일을 만든 것만으로는 rollback되지 않는다.
+
+장애 시에는 다음 순서로 직전 snapshot을 명시적인 rollback release로 승격한다.
+
+1. `master`에서 rollback 브랜치를 만들고 snapshot SHA-256을 위의 expected digest와
+   대조한다.
+2. 검증한 snapshot source로 저장소의 `firestore.rules`를 교체하고 diff가 snapshot과
+   동일한지 확인한다.
+3. Rules Emulator 회귀 테스트와 full harness를 실행한다.
+4. 보호 브랜치 PR을 검토·병합하고, 병합된 깨끗한 커밋에 승인된 `v*` rollback tag를
+   만든다. 해당 커밋의 `firestore.rules`가 snapshot과 동일한지 다시 확인한다.
+5. `master`를 checkout한 상태에서 `HEAD`가 그 승인 태그의 커밋과 동일하고 worktree가
+   깨끗한지 확인한다. detached tag checkout이 아니라 현재 브랜치가 실제 `master`인
+   상태에서 명시적 운영 확인 후 다음 명령을 실행한다.
 
 ```sh
 BIBLE_SPEAK_PROD_CONFIRM=bible-speak \

@@ -13,7 +13,7 @@ import '../../services/tutor/tutor_coordinator.dart';
 import '../../services/social/group_activity_service.dart';
 import '../../services/social/group_challenge_service.dart';
 import '../../services/social/streak_service.dart';
-import '../../services/review_service.dart';
+import '../../data/repositories/review_service_factory.dart';
 import '../../services/iap_service.dart';
 import '../../services/achievement_service.dart';
 import '../../styles/parchment_theme.dart';
@@ -69,7 +69,7 @@ class _VersePracticeRedesignedState
   final GroupActivityService _activityService = GroupActivityService();
   final GroupChallengeService _challengeService = GroupChallengeService();
   final StreakService _streakService = StreakService();
-  final ReviewService _reviewService = ReviewService();
+  final ReviewService _reviewService = createReviewService();
 
   // Cached book info
   String _bookNameKo = '';

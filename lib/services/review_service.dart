@@ -1,16 +1,21 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import '../data/repositories/review_repository.dart';
 import '../models/review_item.dart';
 
 /// 복습 스케줄 서비스 (Spaced Repetition)
 class ReviewService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final ReviewRepository _repository;
+  final String? Function() _currentUserId;
+  final DateTime Function() _now;
 
-  String? get currentUserId => _auth.currentUser?.uid;
+  ReviewService({
+    required ReviewRepository repository,
+    required String? Function() currentUserId,
+    DateTime Function()? now,
+  })  : _repository = repository,
+        _currentUserId = currentUserId,
+        _now = now ?? DateTime.now;
 
-  CollectionReference<Map<String, dynamic>> get _reviewCollection =>
-      _firestore.collection('reviews');
+  String? get currentUserId => _currentUserId();
 
   /// 복습 아이템 추가 (새로운 구절 학습 시)
   Future<ReviewItem?> addReviewItem({
@@ -20,42 +25,26 @@ class ReviewService {
     required int verse,
     required String verseText,
   }) async {
-    final odId = currentUserId;
-    if (odId == null) return null;
+    final userId = currentUserId;
+    if (userId == null) return null;
 
     try {
-      // 이미 존재하는지 확인
-      final existing = await _reviewCollection
-          .where('userId', isEqualTo: odId)
-          .where('verseReference', isEqualTo: verseReference)
-          .limit(1)
-          .get();
+      final existing = await _repository.findByReference(
+        userId: userId,
+        verseReference: verseReference,
+      );
+      if (existing != null) return existing;
 
-      if (existing.docs.isNotEmpty) {
-        return ReviewItem.fromFirestore(
-          existing.docs.first.id,
-          existing.docs.first.data(),
-        );
-      }
-
-      // 새 아이템 생성
-      final now = DateTime.now();
-      final docRef = _reviewCollection.doc();
-
-      final item = ReviewItem(
-        id: docRef.id,
-        odId: odId,
+      final now = _now();
+      return await _repository.createOrGet(
+        userId: userId,
         verseReference: verseReference,
         book: book,
         chapter: chapter,
         verse: verse,
         verseText: verseText,
-        nextReviewDate: now, // 오늘부터 복습 시작
         createdAt: now,
       );
-
-      await docRef.set(item.toFirestore());
-      return item;
     } catch (e) {
       print('Add review item error: $e');
       return null;
@@ -64,23 +53,17 @@ class ReviewService {
 
   /// 오늘 복습할 아이템 목록
   Future<List<ReviewItem>> getDueItems({int limit = 20}) async {
-    final odId = currentUserId;
-    if (odId == null) return [];
+    final userId = currentUserId;
+    if (userId == null) return [];
 
     try {
-      final now = DateTime.now();
+      final now = _now();
       final today = DateTime(now.year, now.month, now.day, 23, 59, 59);
-
-      final snapshot = await _reviewCollection
-          .where('userId', isEqualTo: odId)
-          .where('nextReviewDate', isLessThanOrEqualTo: Timestamp.fromDate(today))
-          .orderBy('nextReviewDate')
-          .limit(limit)
-          .get();
-
-      return snapshot.docs
-          .map((doc) => ReviewItem.fromFirestore(doc.id, doc.data()))
-          .toList();
+      return await _repository.findDue(
+        userId: userId,
+        dueBefore: today,
+        limit: limit,
+      );
     } catch (e) {
       print('Get due items error: $e');
       return [];
@@ -89,20 +72,13 @@ class ReviewService {
 
   /// 오늘 복습할 아이템 개수
   Future<int> getDueCount() async {
-    final odId = currentUserId;
-    if (odId == null) return 0;
+    final userId = currentUserId;
+    if (userId == null) return 0;
 
     try {
-      final now = DateTime.now();
+      final now = _now();
       final today = DateTime(now.year, now.month, now.day, 23, 59, 59);
-
-      final snapshot = await _reviewCollection
-          .where('userId', isEqualTo: odId)
-          .where('nextReviewDate', isLessThanOrEqualTo: Timestamp.fromDate(today))
-          .count()
-          .get();
-
-      return snapshot.count ?? 0;
+      return await _repository.countDue(userId: userId, dueBefore: today);
     } catch (e) {
       print('Get due count error: $e');
       return 0;
@@ -110,13 +86,14 @@ class ReviewService {
   }
 
   /// 복습 결과 저장 (set + merge로 안전하게)
-  Future<ReviewItem?> submitReview(ReviewItem item, ReviewQuality quality) async {
+  Future<ReviewItem?> submitReview(
+      ReviewItem item, ReviewQuality quality) async {
+    final userId = currentUserId;
+    if (userId == null || item.userId != userId) return null;
+
     try {
-      final updated = item.applyReview(quality);
-      await _reviewCollection.doc(item.id).set(
-        updated.toFirestore(),
-        SetOptions(merge: true),
-      );
+      final updated = item.applyReview(quality, reviewedAt: _now());
+      await _repository.save(userId: userId, item: updated);
       return updated;
     } catch (e) {
       print('Submit review error: $e');
@@ -126,18 +103,11 @@ class ReviewService {
 
   /// 모든 복습 아이템 가져오기
   Future<List<ReviewItem>> getAllItems() async {
-    final odId = currentUserId;
-    if (odId == null) return [];
+    final userId = currentUserId;
+    if (userId == null) return [];
 
     try {
-      final snapshot = await _reviewCollection
-          .where('userId', isEqualTo: odId)
-          .orderBy('nextReviewDate')
-          .get();
-
-      return snapshot.docs
-          .map((doc) => ReviewItem.fromFirestore(doc.id, doc.data()))
-          .toList();
+      return await _repository.findAll(userId: userId);
     } catch (e) {
       print('Get all items error: $e');
       return [];
@@ -146,18 +116,14 @@ class ReviewService {
 
   /// 마스터한 아이템 가져오기
   Future<List<ReviewItem>> getMasteredItems() async {
-    final odId = currentUserId;
-    if (odId == null) return [];
+    final userId = currentUserId;
+    if (userId == null) return [];
 
     try {
-      final snapshot = await _reviewCollection
-          .where('userId', isEqualTo: odId)
-          .where('interval', isGreaterThanOrEqualTo: 30)
-          .get();
-
-      return snapshot.docs
-          .map((doc) => ReviewItem.fromFirestore(doc.id, doc.data()))
-          .toList();
+      return await _repository.findMastered(
+        userId: userId,
+        minimumIntervalDays: 30,
+      );
     } catch (e) {
       print('Get mastered items error: $e');
       return [];
@@ -166,12 +132,17 @@ class ReviewService {
 
   /// 복습 통계
   Future<ReviewStats> getStats() async {
-    final odId = currentUserId;
-    if (odId == null) return const ReviewStats();
+    final userId = currentUserId;
+    if (userId == null) return const ReviewStats();
 
     try {
-      final allItems = await getAllItems();
-      final dueCount = await getDueCount();
+      final now = _now();
+      final today = DateTime(now.year, now.month, now.day, 23, 59, 59);
+      final allItems = await _repository.findAll(userId: userId);
+      final dueCount = await _repository.countDue(
+        userId: userId,
+        dueBefore: today,
+      );
 
       int totalItems = allItems.length;
       int masteredCount = 0;
@@ -206,21 +177,13 @@ class ReviewService {
 
   /// 특정 구절의 복습 아이템 가져오기
   Future<ReviewItem?> getItemByReference(String verseReference) async {
-    final odId = currentUserId;
-    if (odId == null) return null;
+    final userId = currentUserId;
+    if (userId == null) return null;
 
     try {
-      final snapshot = await _reviewCollection
-          .where('userId', isEqualTo: odId)
-          .where('verseReference', isEqualTo: verseReference)
-          .limit(1)
-          .get();
-
-      if (snapshot.docs.isEmpty) return null;
-
-      return ReviewItem.fromFirestore(
-        snapshot.docs.first.id,
-        snapshot.docs.first.data(),
+      return await _repository.findByReference(
+        userId: userId,
+        verseReference: verseReference,
       );
     } catch (e) {
       print('Get item by reference error: $e');
@@ -230,9 +193,11 @@ class ReviewService {
 
   /// 복습 아이템 삭제
   Future<bool> deleteItem(String itemId) async {
+    final userId = currentUserId;
+    if (userId == null) return false;
+
     try {
-      await _reviewCollection.doc(itemId).delete();
-      return true;
+      return await _repository.delete(userId: userId, itemId: itemId);
     } catch (e) {
       print('Delete item error: $e');
       return false;
@@ -241,24 +206,23 @@ class ReviewService {
 
   /// 앞으로 7일간의 복습 예정 수
   Future<Map<String, int>> getUpcomingSchedule() async {
-    final odId = currentUserId;
-    if (odId == null) return {};
+    final userId = currentUserId;
+    if (userId == null) return {};
 
     try {
-      final now = DateTime.now();
+      final now = _now();
       final weekLater = now.add(const Duration(days: 7));
-
-      final snapshot = await _reviewCollection
-          .where('userId', isEqualTo: odId)
-          .where('nextReviewDate', isGreaterThan: Timestamp.fromDate(now))
-          .where('nextReviewDate', isLessThanOrEqualTo: Timestamp.fromDate(weekLater))
-          .get();
+      final items = await _repository.findScheduled(
+        userId: userId,
+        after: now,
+        through: weekLater,
+      );
 
       final schedule = <String, int>{};
 
-      for (final doc in snapshot.docs) {
-        final item = ReviewItem.fromFirestore(doc.id, doc.data());
-        final dateKey = '${item.nextReviewDate.month}/${item.nextReviewDate.day}';
+      for (final item in items) {
+        final dateKey =
+            '${item.nextReviewDate.month}/${item.nextReviewDate.day}';
         schedule[dateKey] = (schedule[dateKey] ?? 0) + 1;
       }
 

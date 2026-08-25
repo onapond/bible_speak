@@ -5,7 +5,7 @@ import '../../models/daily_quiz.dart';
 import '../../services/auth_service.dart';
 import '../../services/bible_data_service.dart';
 import '../../services/progress_service.dart';
-import '../../services/review_service.dart';
+import '../../data/repositories/review_service_factory.dart';
 import '../../services/daily_quiz_service.dart';
 import '../../services/iap_service.dart';
 import '../../models/verse_progress.dart';
@@ -39,7 +39,7 @@ class _LearningCenterScreenState extends State<LearningCenterScreen>
   late TabController _tabController;
 
   // 서비스
-  final ReviewService _reviewService = ReviewService();
+  final ReviewService _reviewService = createReviewService();
   final DailyQuizService _quizService = DailyQuizService();
 
   // 요약 통계
@@ -872,7 +872,7 @@ class _ReviewTabState extends State<_ReviewTab>
   static const _cardColor = ParchmentTheme.softPapyrus;
   static const _accentColor = ParchmentTheme.manuscriptGold;
 
-  final ReviewService _reviewService = ReviewService();
+  final ReviewService _reviewService = createReviewService();
 
   List<ReviewItem> _dueItems = [];
   ReviewStats _stats = const ReviewStats();

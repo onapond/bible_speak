@@ -1,8 +1,5 @@
 import {randomBytes} from 'node:crypto';
 
-import {applicationDefault, initializeApp} from 'firebase-admin/app';
-import {getAuth} from 'firebase-admin/auth';
-
 const expectedProjectId = 'bible-speak-dev';
 const projectId = process.env.FIREBASE_PROJECT_ID;
 const apiKey = process.env.FIREBASE_WEB_API_KEY;
@@ -13,11 +10,6 @@ if (projectId !== expectedProjectId) {
 if (!apiKey) throw new Error('FIREBASE_WEB_API_KEY is required.');
 
 const runId = (process.env.GITHUB_RUN_ID || Date.now().toString()).replace(/[^0-9]/g, '');
-const adminApp = initializeApp({
-  credential: applicationDefault(),
-  projectId,
-});
-const adminAuth = getAuth(adminApp);
 
 async function authRequest(body, operation) {
   const response = await fetch(
@@ -34,6 +26,23 @@ async function authRequest(body, operation) {
   }
   if (!data.localId || !data.idToken) throw new Error(`${operation} returned an incomplete response.`);
   return {uid: data.localId, idToken: data.idToken};
+}
+
+async function deleteAuthUser(user) {
+  const response = await fetch(
+    `https://identitytoolkit.googleapis.com/v1/accounts:delete?key=${encodeURIComponent(apiKey)}`,
+    {
+      method: 'POST',
+      headers: {'content-type': 'application/json'},
+      body: JSON.stringify({idToken: user.idToken}),
+    },
+  );
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(
+      `account delete failed (${response.status}): ${data?.error?.message || 'unknown error'}`,
+    );
+  }
 }
 
 async function firestoreRequest(path, idToken, {method = 'GET', fields, expected = 200} = {}) {
@@ -86,9 +95,9 @@ async function runSmoke() {
       {email: `bible-speak-rules-${runId}@example.invalid`, password},
       'Email/password sign-up',
     );
-    users.push(owner.uid);
+    users.push(owner);
     const other = await authRequest({}, 'Anonymous sign-up');
-    users.push(other.uid);
+    users.push(other);
 
     try {
       await firestoreRequest(`reviews/${documentId}`, owner.idToken, {
@@ -156,11 +165,11 @@ async function runSmoke() {
         cleanupErrors.push(`document ${id}: ${error?.message || 'unknown error'}`);
       }
     }
-    for (const uid of users) {
+    for (const user of users) {
       try {
-        await adminAuth.deleteUser(uid);
+        await deleteAuthUser(user);
       } catch (error) {
-        cleanupErrors.push(`user ${uid}: ${error?.message || 'unknown error'}`);
+        cleanupErrors.push(`user ${user.uid}: ${error?.message || 'unknown error'}`);
       }
     }
   }

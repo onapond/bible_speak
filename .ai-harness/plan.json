@@ -102,8 +102,8 @@
     {
       "id": "NATIVE-001",
       "title": "iOS·Android 네이티브 빌드 기반 복구",
-      "status": "backlog",
-      "owner": null,
+      "status": "in_progress",
+      "owner": "codex",
       "reviewer": "claude",
       "budget": "M",
       "allowedPaths": [

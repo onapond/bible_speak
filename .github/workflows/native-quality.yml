@@ -1,0 +1,66 @@
+name: Native Quality
+
+on:
+  pull_request:
+    branches: [develop, master]
+    paths:
+      - ".github/workflows/native-quality.yml"
+      - "android/**"
+      - "assets/**"
+      - "ios/**"
+      - "lib/**"
+      - "pubspec.yaml"
+      - "pubspec.lock"
+      - "scripts/prepare_native_toolchain.sh"
+      - "test/**"
+      - "tool/agent_harness.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native:
+    name: native-quality
+    runs-on: macos-26
+    timeout-minutes: 45
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.1
+          channel: stable
+          cache: true
+      - name: Verify pinned Apple toolchain
+        run: |
+          test "$(xcodebuild -version | head -n 1)" = "Xcode 26.6"
+          test "$(pod --version)" = "1.17.0"
+          xcrun simctl list runtimes | grep -Eq '^iOS .*com\.apple\.CoreSimulator\.SimRuntime\.iOS-'
+      - name: Configure Flutter and resolve locked dependencies
+        run: |
+          flutter config --jdk-dir="$JAVA_HOME"
+          flutter pub get --enforce-lockfile
+      - name: Build iOS Simulator debug app
+        run: flutter build ios --simulator --debug --no-pub
+      - name: Build Android debug APK
+        run: flutter build apk --debug --no-pub
+      - name: Verify native project files remain stable
+        run: |
+          git diff --exit-code -- \
+            android/gradle.properties \
+            ios/Podfile.lock \
+            ios/Runner.xcodeproj/project.pbxproj \
+            ios/Runner.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved \
+            ios/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme \
+            ios/Runner.xcworkspace/contents.xcworkspacedata \
+            ios/Runner.xcworkspace/xcshareddata/swiftpm/Package.resolved

@@ -249,6 +249,13 @@ def validation_target(explicit=None):
     return config()["toolchain"]["defaultStandardTarget"]
 
 
+def validation_compile_targets(lane, selected):
+    if lane == "standard": return (selected,)
+    if lane == "full" and selected == "ios": return ("ios", "android")
+    if lane == "full" and selected == "android": return ("android",)
+    return ()
+
+
 def verify(lane, target=None):
     files, fp = changed_files(), fingerprint(); routes = route_files(files)
     effective = "standard" if lane == "fast" and "unknown" in routes else lane
@@ -297,8 +304,8 @@ def verify(lane, target=None):
             builds = {"ios": [str(flutter), "build", "ios", "--simulator", "--debug", "--no-pub"],
                       "android": [str(flutter), "build", "apk", "--debug", "--no-pub"],
                       "web": [str(flutter), "build", "web", "--release", "--no-pub"]}
-            if effective == "standard" and builds.get(selected):
-                checks.append(check(folder, selected + "-compile", builds[selected], timeout=3600))
+            for build_target in validation_compile_targets(effective, selected):
+                checks.append(check(folder, build_target + "-compile", builds[build_target], timeout=3600))
             if effective == "full":
                 release_builds = {
                     "android": [str(flutter), "build", "appbundle", "--release", "--no-pub"],

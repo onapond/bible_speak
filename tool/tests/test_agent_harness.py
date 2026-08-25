@@ -67,6 +67,22 @@ class HarnessTest(unittest.TestCase):
             self.assertEqual(harness.validation_target(), "web")
             self.assertEqual(harness.validation_target("android"), "android")
 
+    def test_full_ios_validation_covers_both_native_debug_builds(self):
+        self.assertEqual(harness.validation_compile_targets("full", "ios"), ("ios", "android"))
+        self.assertEqual(harness.validation_compile_targets("full", "android"), ("android",))
+        self.assertEqual(harness.validation_compile_targets("full", "web"), ())
+        self.assertEqual(harness.validation_compile_targets("standard", "web"), ("web",))
+
+    def test_full_native_release_builds_remain_enabled(self):
+        source = Path(harness.__file__).read_text()
+        self.assertIn('"android": [str(flutter), "build", "appbundle", "--release"', source)
+        self.assertIn('"ios": [str(flutter), "build", "ios", "--release", "--no-codesign"', source)
+
+    def test_native_setup_uses_mise_java_for_flutter(self):
+        source = (Path(harness.__file__).parents[1] / "scripts" / "prepare_native_toolchain.sh").read_text()
+        self.assertIn('mise where java', source)
+        self.assertIn('config --jdk-dir="$java_root"', source)
+
     def test_analysis_does_not_trigger_flutter_platform_migrations(self):
         source = Path(harness.__file__).read_text()
         self.assertIn('"dart-analyze", [str(dart), "analyze"', source)

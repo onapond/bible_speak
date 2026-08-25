@@ -88,6 +88,7 @@ async function runSmoke() {
   let owner;
   let ownerDocumentState = 'absent';
   let forgedDocumentState = 'absent';
+  let canDeleteOwner = true;
   let primaryError;
   try {
     const password = `${randomBytes(24).toString('base64url')}aA1!`;
@@ -159,13 +160,20 @@ async function runSmoke() {
       try {
         await firestoreRequest(`reviews/${id}`, owner.idToken, {
           method: 'DELETE',
-          expected: state === 'ambiguous' ? [200, 403, 404] : 200,
+          expected: state === 'ambiguous' ? [200, 404] : 200,
         });
       } catch (error) {
+        canDeleteOwner = false;
         cleanupErrors.push(`document ${id}: ${error?.message || 'unknown error'}`);
       }
     }
     for (const user of users) {
+      if (user.uid === owner?.uid && !canDeleteOwner) {
+        cleanupErrors.push(
+          `user ${user.uid}: preserved because document cleanup did not complete`,
+        );
+        continue;
+      }
       try {
         await deleteAuthUser(user);
       } catch (error) {

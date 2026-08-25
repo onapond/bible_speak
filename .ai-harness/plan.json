@@ -32,7 +32,7 @@
     {
       "id": "TOOLCHAIN-001",
       "title": "Mac Flutter·Node·Firebase 툴체인 영구 설치 및 버전 고정",
-      "status": "review",
+      "status": "done",
       "owner": "codex",
       "reviewer": "claude",
       "budget": "S",
@@ -158,11 +158,15 @@
     {
       "id": "DATA-RULES-001",
       "title": "사용자 데이터 Firestore 규칙 회귀검증 및 단계적 강화",
-      "status": "backlog",
-      "owner": null,
+      "status": "in_progress",
+      "owner": "codex",
       "reviewer": "claude",
       "budget": "M",
       "allowedPaths": [
+        ".ai-harness/**",
+        ".github/workflows/**",
+        "mise.toml",
+        "tool/**",
         "firestore.rules",
         "firebase.json",
         "firestore.indexes.json",
@@ -172,6 +176,7 @@
         "docs/**"
       ],
       "acceptance": [
+        "Firebase Emulator용 Java 21이 로컬·CI에서 고정됨",
         "reviews 소유자와 비소유자 read/create/update/delete 규칙 테스트",
         "개발 Auth 초기화 후 development 환경 규칙 smoke test",
         "운영 라이브 규칙 snapshot 및 rollback 절차 기록",

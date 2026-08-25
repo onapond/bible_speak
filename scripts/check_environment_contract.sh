@@ -20,6 +20,19 @@ const rules = fs.readFileSync('firestore.rules', 'utf8');
 if (/allow\s+read\s*,\s*write\s*:\s*if\s+true/.test(rules)) {
   throw new Error('public Firestore rules are forbidden');
 }
+
+const authWorkflow = fs.readFileSync('.github/workflows/development-auth-smoke.yml', 'utf8');
+for (const required of [
+  "github.ref == 'refs/heads/develop'",
+  'environment: development',
+  'FIREBASE_PROJECT_ID: bible-speak-dev',
+  "inputs.confirmation == 'SMOKE bible-speak-dev'",
+]) {
+  if (!authWorkflow.includes(required)) throw new Error(`development Auth boundary missing: ${required}`);
+}
+if (authWorkflow.includes("refs/heads/master") || authWorkflow.includes('environment: production')) {
+  throw new Error('development Auth workflow must not target production');
+}
 NODE
 
 python3 -m unittest tool.tests.test_agent_harness

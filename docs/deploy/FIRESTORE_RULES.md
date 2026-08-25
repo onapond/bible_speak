@@ -18,16 +18,31 @@ Firebase CLI 15 Emulator에는 Java 21 이상이 필요하며 `mise.toml`이 이
 
 ## Development smoke test
 
-1. `bible-speak-dev`에서 Firebase Authentication을 초기화하고 Email/Password와
-   Anonymous provider만 smoke test 용도로 활성화한다. Google·Apple provider는
-   각 개발 OAuth 설정이 준비된 뒤 별도로 검증한다.
-2. 인증 토큰을 출력하는 `firebase login:list --json`은 사용하지 않는다. 필요하면
+1. Firebase Console의 `bible-speak-dev` Authentication에서 **Get started**를 실행하고
+   Email/Password와 Anonymous provider를 활성화한다. 이 Console 경로는 Blaze 요금제가
+   필요하지 않다. billing-enabled 프로젝트 전용인 Identity Platform
+   `identityPlatform:initializeAuth` API로 대신 초기화하지 않는다.
+2. 변경이 `develop`에 병합되고 development 자동 배포가 성공한 뒤 다음 workflow를
+   실행한다. 이 workflow는 `development` environment secret만 사용하며 프로젝트 ID를
+   `bible-speak-dev`로 고정한다.
+
+   ```sh
+   gh workflow run development-auth-smoke.yml \
+     --ref develop \
+     -f confirmation='SMOKE bible-speak-dev'
+   ```
+
+   workflow는 Email/Password와 Anonymous 실제 sign-up을 수행하므로 provider가 아직
+   비활성화된 경우 실패한다. Google·Apple provider는 각 개발 OAuth 설정이 준비된 뒤
+   별도로 검증한다.
+3. 인증 토큰을 출력하는 `firebase login:list --json`은 사용하지 않는다. 필요하면
    `firebase login --non-interactive`로 로그인하고 일반 `firebase login:list`로
    계정 이메일만 확인한다.
-3. 로컬 Rules 테스트가 통과한 커밋에서만 development Rules를 배포한다.
-4. 임시 development 사용자가 자신의 `reviews` CRUD에 성공하고 다른 사용자의
-   read/create/update/delete가 모두 `PERMISSION_DENIED`인지 확인한다.
-5. 임시 사용자와 테스트 문서를 삭제하고 결과 시각·커밋 SHA를 기록한다.
+4. 로컬 Rules 테스트가 통과한 커밋에서만 development Rules를 배포한다.
+5. workflow는 임시 Email/Password owner와 Anonymous 비소유자를 생성해 자신의
+   `reviews` CRUD 성공 및 다른 사용자의 read/create/update/delete 거부를 확인한다.
+6. workflow의 `finally` cleanup이 임시 사용자와 테스트 문서를 삭제한다. Actions run의
+   수행 시각·commit SHA를 handoff에 기록한다.
 
 ## Production snapshot and rollback
 

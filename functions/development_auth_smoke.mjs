@@ -2,7 +2,6 @@ import {randomBytes} from 'node:crypto';
 
 import {applicationDefault, initializeApp} from 'firebase-admin/app';
 import {getAuth} from 'firebase-admin/auth';
-import {getFirestore} from 'firebase-admin/firestore';
 
 const expectedProjectId = 'bible-speak-dev';
 const projectId = process.env.FIREBASE_PROJECT_ID;
@@ -19,7 +18,6 @@ const adminApp = initializeApp({
   projectId,
 });
 const adminAuth = getAuth(adminApp);
-const adminFirestore = getFirestore(adminApp);
 
 async function authRequest(body, operation) {
   const response = await fetch(
@@ -50,12 +48,15 @@ async function firestoreRequest(path, idToken, {method = 'GET', fields, expected
       body: fields ? JSON.stringify({fields}) : undefined,
     },
   );
-  if (response.status !== expected) {
+  const expectedStatuses = Array.isArray(expected) ? expected : [expected];
+  if (!expectedStatuses.includes(response.status)) {
     const data = await response.json().catch(() => ({}));
-    throw new Error(
-      `${method} ${path} expected ${expected}, got ${response.status}: ` +
+    const error = new Error(
+      `${method} ${path} expected ${expectedStatuses.join(' or ')}, got ${response.status}: ` +
       `${data?.error?.status || data?.error?.message || 'unknown error'}`,
     );
+    error.status = response.status;
+    throw error;
   }
 }
 
@@ -75,9 +76,13 @@ async function runSmoke() {
   const documentId = `rules_smoke_${runId}`;
   const forgedDocumentId = `${documentId}_forged`;
   const cleanupErrors = [];
+  let owner;
+  let ownerDocumentState = 'absent';
+  let forgedDocumentState = 'absent';
+  let primaryError;
   try {
     const password = `${randomBytes(24).toString('base64url')}aA1!`;
-    const owner = await authRequest(
+    owner = await authRequest(
       {email: `bible-speak-rules-${runId}@example.invalid`, password},
       'Email/password sign-up',
     );
@@ -85,10 +90,16 @@ async function runSmoke() {
     const other = await authRequest({}, 'Anonymous sign-up');
     users.push(other.uid);
 
-    await firestoreRequest(`reviews/${documentId}`, owner.idToken, {
-      method: 'PATCH',
-      fields: reviewFields(owner.uid),
-    });
+    try {
+      await firestoreRequest(`reviews/${documentId}`, owner.idToken, {
+        method: 'PATCH',
+        fields: reviewFields(owner.uid),
+      });
+      ownerDocumentState = 'confirmed';
+    } catch (error) {
+      if (!error?.status || error.status >= 500) ownerDocumentState = 'ambiguous';
+      throw error;
+    }
     await firestoreRequest(`reviews/${documentId}`, owner.idToken);
     await firestoreRequest(
       `reviews/${documentId}?updateMask.fieldPaths=stage`,
@@ -97,25 +108,50 @@ async function runSmoke() {
     );
 
     await firestoreRequest(`reviews/${documentId}`, other.idToken, {expected: 403});
-    await firestoreRequest(`reviews/${forgedDocumentId}`, other.idToken, {
-      method: 'PATCH',
-      fields: reviewFields(owner.uid),
-      expected: 403,
-    });
+    try {
+      await firestoreRequest(`reviews/${forgedDocumentId}`, other.idToken, {
+        method: 'PATCH',
+        fields: reviewFields(owner.uid),
+        expected: 403,
+      });
+    } catch (error) {
+      if (error?.status >= 200 && error?.status < 300) {
+        forgedDocumentState = 'confirmed';
+      } else if (!error?.status || error.status >= 500) {
+        forgedDocumentState = 'ambiguous';
+      }
+      throw error;
+    }
     await firestoreRequest(
       `reviews/${documentId}?updateMask.fieldPaths=stage`,
       other.idToken,
       {method: 'PATCH', fields: {stage: {integerValue: '3'}}, expected: 403},
     );
-    await firestoreRequest(`reviews/${documentId}`, other.idToken, {
-      method: 'DELETE',
-      expected: 403,
-    });
+    try {
+      await firestoreRequest(`reviews/${documentId}`, other.idToken, {
+        method: 'DELETE',
+        expected: 403,
+      });
+    } catch (error) {
+      if (error?.status >= 200 && error?.status < 300) ownerDocumentState = 'absent';
+      throw error;
+    }
     await firestoreRequest(`reviews/${documentId}`, owner.idToken, {method: 'DELETE'});
+    ownerDocumentState = 'absent';
+  } catch (error) {
+    primaryError = error;
   } finally {
-    for (const id of [documentId, forgedDocumentId]) {
+    const documents = [
+      [documentId, ownerDocumentState],
+      [forgedDocumentId, forgedDocumentState],
+    ];
+    for (const [id, state] of documents) {
+      if (state === 'absent' || !owner?.idToken) continue;
       try {
-        await adminFirestore.doc(`reviews/${id}`).delete();
+        await firestoreRequest(`reviews/${id}`, owner.idToken, {
+          method: 'DELETE',
+          expected: state === 'ambiguous' ? [200, 403, 404] : 200,
+        });
       } catch (error) {
         cleanupErrors.push(`document ${id}: ${error?.message || 'unknown error'}`);
       }
@@ -127,9 +163,15 @@ async function runSmoke() {
         cleanupErrors.push(`user ${uid}: ${error?.message || 'unknown error'}`);
       }
     }
-    if (cleanupErrors.length) {
-      throw new Error(`Development smoke cleanup failed: ${cleanupErrors.join('; ')}`);
-    }
+  }
+  if (primaryError && cleanupErrors.length) {
+    throw new Error(
+      `${primaryError.message}; cleanup also failed: ${cleanupErrors.join('; ')}`,
+    );
+  }
+  if (primaryError) throw primaryError;
+  if (cleanupErrors.length) {
+    throw new Error(`Development smoke cleanup failed: ${cleanupErrors.join('; ')}`);
   }
 }
 

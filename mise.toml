@@ -1,0 +1,4 @@
+[tools]
+flutter = "3.47.1"
+node = "20.20.2"
+"npm:firebase-tools" = "15.28.1"

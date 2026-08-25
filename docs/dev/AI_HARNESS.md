@@ -37,4 +37,7 @@ Claude defaults: Haiku/5 turns for exploration, Sonnet/8 for review, Sonnet/16 f
 
 Claude reads `.claude/settings.json` automatically in a trusted checkout. Codex project hooks must be reviewed once with `/hooks`. Headless runs must only execute in trusted repositories; external pull requests need an isolated CI sandbox and API-key-based Claude `--bare` configuration.
 
-Known setup warnings are intentionally visible in `doctor`: the current Flutter SDK is under `/private/tmp`, Node 24 does not match Functions Node 20, the Riverpod code generator is not compatible with the locked analyzer on Dart 3.13, and Firebase CLI is absent. Fix these under `TOOLCHAIN-001` before native release work.
+`doctor --strict` resolves the repository-pinned mise toolchain before system tools and treats
+Flutter, Node, or Firebase version drift as blocking. The Riverpod code generator compatibility
+warning remains visible until the locked analyzer dependencies are upgraded. Native compile
+recovery is tracked separately by `NATIVE-001`.

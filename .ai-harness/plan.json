@@ -32,13 +32,16 @@
     {
       "id": "TOOLCHAIN-001",
       "title": "Mac Flutter·Node·Firebase 툴체인 영구 설치 및 버전 고정",
-      "status": "ready",
-      "owner": null,
+      "status": "review",
+      "owner": "codex",
       "reviewer": "claude",
       "budget": "S",
       "allowedPaths": [
+        ".ai-harness/**",
         ".tool-versions",
         "mise.toml",
+        "bin/**",
+        "tool/**",
         "android/**",
         "ios/**",
         "functions/package.json",
@@ -48,10 +51,11 @@
       "acceptance": [
         "Flutter 3.47.1이 임시 폴더 밖에서 해석됨",
         "Node major가 Functions runtime과 일치",
+        "Firebase CLI가 프로젝트 버전으로 고정되어 실행됨",
         "doctor에 blocking 오류 없음"
       ],
       "validationLane": "standard",
-      "target": "ios"
+      "target": "none"
     },
     {
       "id": "RELEASE-001",
@@ -119,7 +123,7 @@
     {
       "id": "DATA-PORTABILITY-001",
       "title": "Firestore 전환 경계와 복습 저장소 포트 도입",
-      "status": "review",
+      "status": "done",
       "owner": "codex",
       "reviewer": "claude",
       "budget": "M",

@@ -1,23 +1,91 @@
 import 'dart:convert';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/word_progress.dart';
 
 /// 단어 학습 진행 서비스 (SRS 지원)
 class WordProgressService {
-  static const String _keyPrefix = 'word_progress_';
+  static const String _legacyKeyPrefix = 'word_progress_';
+  static const String _scopedKeyRoot = 'word_progress_v2.';
+  static const String _legacyQuarantineScope = 'legacy';
+
+  WordProgressService({String? Function()? currentUserId})
+      : _currentUserId = currentUserId ?? _firebaseUserId;
+
+  final String? Function() _currentUserId;
 
   SharedPreferences? _prefs;
+  Future<void>? _initialization;
+
+  static String? _firebaseUserId() => FirebaseAuth.instance.currentUser?.uid;
+
+  /// Firebase UID가 없는 상태도 별도 guest 공간으로 격리한다.
+  /// 콜백을 매 접근마다 평가해 같은 서비스 인스턴스에서 계정이 바뀌어도
+  /// 이전 사용자의 진행도를 재사용하지 않는다.
+  String _scopeForUserId(String? userId) {
+    if (userId == null || userId.isEmpty) return 'guest';
+    final encodedUserId =
+        base64Url.encode(utf8.encode(userId)).replaceAll('=', '');
+    return 'user.$encodedUserId';
+  }
+
+  String _currentScope() => _scopeForUserId(_currentUserId());
+
+  String _scopedKeyPrefix(String scope) => '$_scopedKeyRoot$scope.';
+
+  String _progressKey(String scope, String wordId) =>
+      '${_scopedKeyPrefix(scope)}$wordId';
 
   /// 초기화
-  Future<void> init() async {
-    _prefs ??= await SharedPreferences.getInstance();
+  Future<void> init() => _initialization ??= _initialize();
+
+  Future<void> _initialize() async {
+    _prefs = await SharedPreferences.getInstance();
+    await _migrateLegacyProgress();
+  }
+
+  /// 계정 정보가 없던 구버전 키는 어느 계정에도 자동 귀속하지 않는다.
+  /// 원본은 격리 공간에 보존하되 명시적인 소유자 확인 절차가 생기기 전까지
+  /// 로그인 사용자나 guest 진행도로 노출하지 않는다.
+  Future<void> _migrateLegacyProgress() async {
+    final prefs = _prefs!;
+    final legacyKeys = prefs
+        .getKeys()
+        .where(
+          (key) =>
+              key.startsWith(_legacyKeyPrefix) &&
+              !key.startsWith(_scopedKeyRoot),
+        )
+        .toList(growable: false);
+    if (legacyKeys.isEmpty) return;
+
+    final targetPrefix = _scopedKeyPrefix(_legacyQuarantineScope);
+
+    for (final legacyKey in legacyKeys) {
+      final value = prefs.getString(legacyKey);
+      if (value == null) continue;
+
+      final wordId = legacyKey.substring(_legacyKeyPrefix.length);
+      final targetKey = '$targetPrefix$wordId';
+      final copied = prefs.containsKey(targetKey) ||
+          await prefs.setString(targetKey, value);
+      if (copied) await prefs.remove(legacyKey);
+    }
   }
 
   /// 단어 진행 상황 가져오기
   Future<WordProgress> getProgress(String wordId) async {
+    final scope = _currentScope();
+    return _getProgressForScope(scope, wordId);
+  }
+
+  Future<WordProgress> _getProgressForScope(
+    String scope,
+    String wordId,
+  ) async {
     await init();
 
-    final key = '$_keyPrefix$wordId';
+    final key = _progressKey(scope, wordId);
     final jsonStr = _prefs!.getString(key);
 
     if (jsonStr == null) {
@@ -34,9 +102,17 @@ class WordProgressService {
 
   /// 진행 상황 저장
   Future<void> saveProgress(WordProgress progress) async {
+    final scope = _currentScope();
+    await _saveProgressForScope(scope, progress);
+  }
+
+  Future<void> _saveProgressForScope(
+    String scope,
+    WordProgress progress,
+  ) async {
     await init();
 
-    final key = '$_keyPrefix${progress.wordId}';
+    final key = _progressKey(scope, progress.wordId);
     final jsonStr = jsonEncode(progress.toJson());
     await _prefs!.setString(key, jsonStr);
   }
@@ -46,9 +122,10 @@ class WordProgressService {
     required String wordId,
     required int quality, // 0-5
   }) async {
-    final current = await getProgress(wordId);
+    final scope = _currentScope();
+    final current = await _getProgressForScope(scope, wordId);
     final updated = SRSCalculator.calculate(current, quality);
-    await saveProgress(updated);
+    await _saveProgressForScope(scope, updated);
     return updated;
   }
 
@@ -57,9 +134,10 @@ class WordProgressService {
     required String wordId,
     required String answer, // 'known', 'vague', 'unknown'
   }) async {
-    final current = await getProgress(wordId);
+    final scope = _currentScope();
+    final current = await _getProgressForScope(scope, wordId);
     final updated = SRSCalculator.calculateFromFlashcard(current, answer);
-    await saveProgress(updated);
+    await _saveProgressForScope(scope, updated);
     return updated;
   }
 
@@ -68,19 +146,21 @@ class WordProgressService {
     required String wordId,
     required bool isCorrect,
   }) async {
-    final current = await getProgress(wordId);
+    final scope = _currentScope();
+    final current = await _getProgressForScope(scope, wordId);
     // 퀴즈: 정답 = quality 4, 오답 = quality 1
     final updated = SRSCalculator.calculateSimple(current, isCorrect);
-    await saveProgress(updated);
+    await _saveProgressForScope(scope, updated);
     return updated;
   }
 
   /// 여러 단어의 진행 상황 가져오기
   Future<Map<String, WordProgress>> getProgressBatch(
       List<String> wordIds) async {
+    final scope = _currentScope();
     final result = <String, WordProgress>{};
     for (final id in wordIds) {
-      result[id] = await getProgress(id);
+      result[id] = await _getProgressForScope(scope, id);
     }
     return result;
   }
@@ -179,15 +259,21 @@ class WordProgressService {
 
   /// 진행 상황 초기화
   Future<void> resetProgress(String wordId) async {
+    final scope = _currentScope();
     await init();
-    final key = '$_keyPrefix$wordId';
+    final key = _progressKey(scope, wordId);
     await _prefs!.remove(key);
   }
 
-  /// 전체 진행 상황 초기화
+  /// 현재 사용자에 해당하는 전체 진행 상황 초기화
   Future<void> resetAllProgress() async {
+    final scope = _currentScope();
     await init();
-    final keys = _prefs!.getKeys().where((k) => k.startsWith(_keyPrefix));
+    final prefix = _scopedKeyPrefix(scope);
+    final keys = _prefs!
+        .getKeys()
+        .where((key) => key.startsWith(prefix))
+        .toList(growable: false);
     for (final key in keys) {
       await _prefs!.remove(key);
     }

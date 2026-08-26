@@ -10,6 +10,8 @@
 |------|------|
 | [ARCHITECTURE.md](dev/ARCHITECTURE.md) | 아키텍처 규칙, 코딩 패턴 |
 | [DEVELOPMENT_RULES.md](dev/DEVELOPMENT_RULES.md) | 통합 개발 가이드 (Firestore, Flutter, UI/UX) |
+| [TOOLCHAIN.md](dev/TOOLCHAIN.md) | 고정 개발 도구와 최초 설치 절차 |
+| [NATIVE.md](dev/NATIVE.md) | iOS·Android 빌드와 실기기 smoke 절차 |
 | [FIRESTORE_RULES.md](deploy/FIRESTORE_RULES.md) | Firestore Rules 회귀검증·승격·rollback 절차 |
 | [BUG_FIXES.md](dev/BUG_FIXES.md) | 버그 수정 이력 및 패턴 |
 | [TECH_STACK.md](dev/TECH_STACK.md) | 기술 스택 상세 |

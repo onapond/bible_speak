@@ -7,7 +7,10 @@ Bible Speak의 로컬 개발 도구는 루트 `mise.toml`에 고정한다.
 | Flutter | 3.47.1 | iOS, Android, web 앱 |
 | Node.js | 22.23.2 | Firebase Functions Node 22 runtime |
 | Firebase CLI | 15.28.1 | Emulator와 개발·운영 환경 관리 |
-| Temurin Java | 21.0.12+8 | Firestore Emulator runtime |
+| Temurin Java | 21.0.12+8 | Android와 Firestore Emulator runtime |
+
+iOS 검증 기준은 Xcode 26.6, iOS Simulator 26.5, CocoaPods 1.17.0이다. 앱의
+최소 지원 버전은 iOS 15이다.
 
 ## First setup
 
@@ -21,13 +24,24 @@ brew install mise
 eval "$(mise activate zsh)"
 ```
 
-저장소 루트에서 설치와 검증을 실행한다.
+저장소 루트에서 설치와 네이티브 설정을 실행한다.
 
 ```sh
 mise trust
-mise install
+./scripts/prepare_native_toolchain.sh
 ./bin/harness doctor --strict
 ```
+
+준비 스크립트는 mise의 Temurin 21 경로를 Flutter Android JDK로 고정하고 잠긴
+Flutter 패키지를 복원한다. macOS에서는 Xcode, CocoaPods, 설치된 iOS Simulator
+runtime도 확인한다. Simulator runtime이 없으면 다음 명령으로 설치한 뒤 다시 실행한다.
+
+```sh
+xcodebuild -downloadPlatform iOS
+```
+
+Android Studio의 `SDK Tools`에서 `Android SDK Command-line Tools (latest)`를
+설치한 뒤 SDK 라이선스는 개발자가 직접 검토하고 승인한다.
 
 새 셸을 열기 전에는 다음처럼 동일한 도구를 실행할 수 있다.
 

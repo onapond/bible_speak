@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../models/startup_destination.dart';
 import '../providers/auth_provider.dart';
 import '../services/data_preloader_service.dart';
 import '../styles/parchment_theme.dart';
@@ -64,40 +65,39 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   }
 
   Future<void> _checkAuthStatus() async {
-    bool isLoggedIn = false;
-    bool onboardingDone = false;
+    var destination = StartupDestination.onboarding;
 
     try {
       // 로컬 상태만 확인 (네트워크 호출 없음 - 빠름)
       final prefs = await SharedPreferences.getInstance();
-      onboardingDone = prefs.getBool('onboarding_completed') ?? false;
-
       final savedUserId = prefs.getString('bible_speak_userId');
       final authService = ref.read(authServiceProvider);
-      final hasFirebaseUser = authService.firebaseUser != null;
-      isLoggedIn = savedUserId != null && hasFirebaseUser;
+      destination = resolveStartupDestination(
+        onboardingCompleted: prefs.getBool('onboarding_completed') ?? false,
+        savedUserId: savedUserId,
+        firebaseUserId: authService.firebaseUser?.uid,
+      );
     } catch (e) {
       debugPrint('❌ 인증 상태 확인 오류: $e');
     }
 
     if (!mounted) return;
 
-    // 로그인되지 않은 경우 - 온보딩 또는 로그인
-    if (!isLoggedIn) {
-      if (!onboardingDone) {
+    switch (destination) {
+      case StartupDestination.onboarding:
         _navigateToOnboarding();
-      } else {
+        return;
+      case StartupDestination.login:
         _navigateToLogin();
-      }
-    } else {
-      // 로그인된 경우 - Riverpod Provider가 자동으로 초기화
-      _preloader.preloadMainScreenData();
-
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => const MainMenuScreen(),
-        ),
-      );
+        return;
+      case StartupDestination.mainMenu:
+        // 로그인된 경우 - Riverpod Provider가 자동으로 초기화
+        _preloader.preloadMainScreenData();
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => const MainMenuScreen(),
+          ),
+        );
     }
   }
 
@@ -205,5 +205,4 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       }),
     );
   }
-
 }

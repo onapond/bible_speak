@@ -1,9 +1,9 @@
 # AI handoff
 
-- Task: DATA-RULES-001 — 사용자 데이터 Firestore 규칙 회귀검증 및 단계적 강화
+- Task: QUALITY-001 — 암송 핵심 흐름 회귀 테스트 확충
 - From/To: codex -> human
-- State: done
-- Summary: Java 21·Node 22 기반 Rules 회귀, reviews 소유권 강화, dev Auth 초기화 및 live smoke, 운영 규칙 read-only snapshot·안전한 rollback 절차를 완료함. production 변경 없음.
-- Changed: docs/deploy/FIRESTORE_RULES.md, docs/deploy/snapshots/production-firestore-20260825T175548+0900.md, docs/deploy/snapshots/production-firestore-20260825T175548+0900.rules
-- Verification: a686ee5-d6726b1b-full-1787648936 (pass)
-- Next: NATIVE-001을 claim해 fresh iOS Simulator·Android debug build 재현과 실기기 smoke 절차 정비를 시작한다.
+- State: ready
+- Summary: 계정별 단어 진행도 UID 격리·원자적 scope 캡처·구버전 무소유 데이터 격리, 완료 구절 canonical ID 통합, 세션 UID 일치 복귀, 실제 오프라인 초기화 경로 테스트를 구현했다. 독립 리뷰 차단 이슈를 모두 해소했고 full 21/21을 통과했다.
+- Changed: lib/models/startup_destination.dart, lib/models/user_model.dart, lib/screens/splash_screen.dart, lib/services/auth_service.dart, lib/services/offline/offline_manager.dart, lib/services/word_progress_service.dart, test/models/startup_destination_test.dart, test/models/user_model_test.dart, test/models/verse_progress_test.dart, test/services/offline_manager_test.dart, test/services/word_progress_service_test.dart
+- Verification: 5e6977f-2df01fdd-full-1787726719 (pass)
+- Next: 변경을 codex/quality-regression에 커밋·푸시하고 보호 브랜치 develop 대상 PR의 원격 필수 검사를 확인한 뒤 사용자 최종 병합 승인을 받는다. 운영 배포·운영 데이터는 변경하지 않는다.

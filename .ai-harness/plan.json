@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "Bible Speak",
   "milestone": "native-mobile-foundation",
-  "updatedAt": "2026-08-26",
+  "updatedAt": "2026-09-08",
   "tasks": [
     {
       "id": "HARNESS-001",
@@ -211,6 +211,32 @@
         "사용자별 진행도 분리 테스트",
         "보상·완료 구절 식별 테스트",
         "로그인 복귀 및 오프라인 초기화 테스트"
+      ],
+      "validationLane": "standard",
+      "target": "ios"
+    },
+    {
+      "id": "SESSION-001",
+      "title": "로그인 세션 상태 단일화와 오프라인 복귀 안정화",
+      "status": "ready",
+      "owner": "codex",
+      "reviewer": "claude",
+      "budget": "L",
+      "allowedPaths": [
+        "lib/models/**",
+        "lib/providers/**",
+        "lib/services/auth_service.dart",
+        "lib/screens/splash_screen.dart",
+        "lib/screens/auth/**",
+        "test/**",
+        "integration_test/**"
+      ],
+      "acceptance": [
+        "Firebase Auth·로컬 UID·프로필 로딩을 단일 SessionState로 표현",
+        "Splash가 loading 또는 일시 오류를 로그아웃으로 오인하지 않고 확정 상태 후 라우팅",
+        "Firebase 사용자가 있고 currentUser가 null이어도 UID로 프로필 복구",
+        "Firestore 오프라인 시 인증 세션을 유지하고 캐시된 프로필로 복귀",
+        "지연 Auth 복원·UID 불일치·오프라인 Firestore·로그아웃 경합 회귀 테스트"
       ],
       "validationLane": "standard",
       "target": "ios"

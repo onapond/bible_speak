@@ -26,6 +26,21 @@ Stream<User?> authStateChanges(Ref ref) {
   return ref.watch(firebaseAuthProvider).authStateChanges();
 }
 
+/// Firebase 인증 복원이 확정된 뒤 방출되는 UID 스트림.
+/// 테스트에서 Firebase User 객체 없이 지연·계정 전환을 재현할 수 있다.
+Stream<String?> authUserIdChanges(Ref ref) {
+  return ref
+      .watch(firebaseAuthProvider)
+      .authStateChanges()
+      .map((user) => user?.uid)
+      .distinct();
+}
+
+final authUserIdChangesProvider = StreamProvider<String?>(
+  authUserIdChanges,
+  name: 'authUserIdChangesProvider',
+);
+
 /// 현재 Firebase User (동기적 접근)
 @riverpod
 User? firebaseUser(Ref ref) {
@@ -35,9 +50,9 @@ User? firebaseUser(Ref ref) {
 /// 로그인 여부 (단순 체크)
 @riverpod
 bool isLoggedIn(Ref ref) {
-  final authState = ref.watch(authStateChangesProvider);
+  final authState = ref.watch(authUserIdChangesProvider);
   return authState.when(
-    data: (user) => user != null,
+    data: (userId) => userId != null,
     loading: () => false,
     error: (_, __) => false,
   );

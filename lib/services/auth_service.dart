@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -5,19 +7,394 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../models/session_state.dart';
 import '../models/user_model.dart';
+
+typedef RemoteUserProfileLoader = Future<UserModel?> Function(String uid);
+
+/// 계정 전환 전후의 비동기 결과를 구분하는 불변 토큰.
+class SessionOperationToken {
+  const SessionOperationToken._({
+    required this.userId,
+    required this.epoch,
+  });
+
+  final String userId;
+  final int epoch;
+}
+
+/// A→B→A 전환에서도 이전 A 작업을 다시 활성화하지 않는 세대 가드.
+class SessionOperationGuard {
+  String? _activeUserId;
+  var _epoch = 0;
+
+  SessionOperationToken activate(String userId) {
+    if (_activeUserId != userId) {
+      _activeUserId = userId;
+      _epoch++;
+    }
+    return SessionOperationToken._(userId: userId, epoch: _epoch);
+  }
+
+  SessionOperationToken? activateIfCurrent(
+    String userId, {
+    required String? firebaseUserId,
+  }) {
+    if (userId != firebaseUserId) return null;
+    return activate(userId);
+  }
+
+  void invalidate() {
+    _activeUserId = null;
+    _epoch++;
+  }
+
+  bool isCurrent(
+    SessionOperationToken operation, {
+    required String? firebaseUserId,
+  }) {
+    return operation.epoch == _epoch &&
+        operation.userId == _activeUserId &&
+        operation.userId == firebaseUserId;
+  }
+}
+
+/// 프로필 완료는 현재 Firebase 계정과 같은 임시 UID에만 허용한다.
+String? resolveProfileCompletionUserId({
+  required String? firebaseUserId,
+  required String? temporaryUserId,
+}) {
+  if (firebaseUserId == null) return null;
+  if (temporaryUserId != null && temporaryUserId != firebaseUserId) {
+    return null;
+  }
+  return temporaryUserId ?? firebaseUserId;
+}
+
+/// AuthNotifier가 의존하는 인증 작업 경계. 테스트에서는 Firebase 없이 대체한다.
+abstract interface class AuthSessionGateway {
+  UserModel? get currentUser;
+
+  Future<SessionState> restoreSession(String firebaseUserId);
+  Future<void> clearLocalSession();
+  Future<AuthResult> signInWithGoogle();
+  Future<AuthResult> signInWithApple();
+  Future<AuthResult> signInWithEmail({
+    required String email,
+    required String password,
+  });
+  Future<AuthResult> signUpWithEmail({
+    required String email,
+    required String password,
+    required String name,
+  });
+  Future<UserModel?> completeProfile({
+    required String name,
+    String? groupId,
+  });
+  Future<void> signOut();
+  Future<void> refreshUser();
+  Future<bool> addTalant({
+    required String book,
+    required int chapter,
+    required int verse,
+  });
+  Future<bool> deductTalant(int amount);
+}
+
+/// UID와 프로필을 한 묶음으로 저장하는 로컬 세션 캐시.
+class SessionProfileCache {
+  SessionProfileCache({
+    Future<SharedPreferences> Function()? loadPreferences,
+  }) : _loadPreferences = loadPreferences ?? SharedPreferences.getInstance;
+
+  static const userIdKey = 'bible_speak_userId';
+  static const profileKey = 'bible_speak_sessionProfile';
+  static const tempUserIdKey = 'bible_speak_tempUid';
+  static const _tempNameKey = 'bible_speak_tempName';
+  static const _tempEmailKey = 'bible_speak_tempEmail';
+  static const _tempPhotoKey = 'bible_speak_tempPhoto';
+  static const _cacheVersion = 1;
+
+  final Future<SharedPreferences> Function() _loadPreferences;
+  Future<void> _mutationQueue = Future<void>.value();
+
+  Future<T> _mutate<T>(Future<T> Function() mutation) {
+    final result = _mutationQueue.then((_) => mutation());
+    _mutationQueue = result.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace __) {},
+    );
+    return result;
+  }
+
+  Future<String?> readPersistedUserId() async {
+    final preferences = await _loadPreferences();
+    return preferences.getString(userIdKey);
+  }
+
+  Future<UserModel?> readProfile(String firebaseUserId) async {
+    final preferences = await _loadPreferences();
+    final encoded = preferences.getString(profileKey);
+    if (encoded == null) return null;
+
+    final decoded = jsonDecode(encoded);
+    if (decoded is! Map) return null;
+    final envelope = Map<String, dynamic>.from(decoded);
+    if (envelope['version'] != _cacheVersion ||
+        envelope['uid'] != firebaseUserId ||
+        envelope['profile'] is! Map) {
+      return null;
+    }
+
+    final profile = UserModel.fromSessionCache(
+      Map<String, dynamic>.from(envelope['profile'] as Map),
+    );
+    return profile.uid == firebaseUserId ? profile : null;
+  }
+
+  Future<bool> writeProfile(
+    UserModel user, {
+    bool Function()? isCurrent,
+  }) {
+    return _mutate(() async {
+      bool operationIsCurrent() => isCurrent?.call() ?? true;
+      if (!operationIsCurrent()) return false;
+
+      final preferences = await _loadPreferences();
+      if (!operationIsCurrent()) return false;
+
+      final envelope = jsonEncode({
+        'version': _cacheVersion,
+        'uid': user.uid,
+        'profile': user.toSessionCache(),
+      });
+
+      // 프로필 묶음을 먼저 기록해 UID 포인터가 앞서가는 상태를 피한다.
+      await preferences.setString(profileKey, envelope);
+      if (!operationIsCurrent()) return false;
+      await preferences.setString(userIdKey, user.uid);
+      return operationIsCurrent();
+    });
+  }
+
+  Future<bool> clearActiveSession({bool Function()? isCurrent}) {
+    return _mutate(() async {
+      bool operationIsCurrent() => isCurrent?.call() ?? true;
+      if (!operationIsCurrent()) return false;
+
+      final preferences = await _loadPreferences();
+      if (!operationIsCurrent()) return false;
+
+      await _removeActiveSession(preferences);
+      return operationIsCurrent();
+    });
+  }
+
+  /// 로그아웃 시 활성 캐시와 임시 프로필을 같은 큐 작업에서 정리한다.
+  Future<bool> clearSessionData({bool Function()? isCurrent}) {
+    return _mutate(() async {
+      bool operationIsCurrent() => isCurrent?.call() ?? true;
+      if (!operationIsCurrent()) return false;
+
+      final preferences = await _loadPreferences();
+      if (!operationIsCurrent()) return false;
+
+      await _removeActiveSession(preferences);
+      await _removeTemporaryProfile(preferences);
+      return operationIsCurrent();
+    });
+  }
+
+  Future<Map<String, String?>> readTemporaryProfile() async {
+    final preferences = await _loadPreferences();
+    return {
+      'uid': preferences.getString(tempUserIdKey),
+      'name': preferences.getString(_tempNameKey),
+      'email': preferences.getString(_tempEmailKey),
+      'photo': preferences.getString(_tempPhotoKey),
+    };
+  }
+
+  Future<bool> writeTemporaryProfile({
+    required String userId,
+    String? name,
+    String? email,
+    String? photo,
+    bool Function()? isCurrent,
+  }) {
+    return _mutate(() async {
+      bool operationIsCurrent() => isCurrent?.call() ?? true;
+      if (!operationIsCurrent()) return false;
+
+      final preferences = await _loadPreferences();
+      if (!operationIsCurrent()) return false;
+
+      await preferences.setString(tempUserIdKey, userId);
+      if (name != null) await preferences.setString(_tempNameKey, name);
+      if (email != null) await preferences.setString(_tempEmailKey, email);
+      if (photo != null) await preferences.setString(_tempPhotoKey, photo);
+
+      if (operationIsCurrent()) return true;
+      if (preferences.getString(tempUserIdKey) == userId) {
+        await _removeTemporaryProfile(preferences);
+      }
+      return false;
+    });
+  }
+
+  Future<bool> clearTemporaryProfile({
+    String? expectedUserId,
+    bool Function()? isCurrent,
+  }) {
+    return _mutate(() async {
+      bool operationIsCurrent() => isCurrent?.call() ?? true;
+      if (!operationIsCurrent()) return false;
+
+      final preferences = await _loadPreferences();
+      if (!operationIsCurrent()) return false;
+      if (expectedUserId != null &&
+          preferences.getString(tempUserIdKey) != expectedUserId) {
+        return false;
+      }
+
+      await _removeTemporaryProfile(preferences);
+      return operationIsCurrent();
+    });
+  }
+
+  static Future<void> _removeTemporaryProfile(
+    SharedPreferences preferences,
+  ) async {
+    await preferences.remove(tempUserIdKey);
+    await preferences.remove(_tempNameKey);
+    await preferences.remove(_tempEmailKey);
+    await preferences.remove(_tempPhotoKey);
+  }
+
+  static Future<void> _removeActiveSession(
+    SharedPreferences preferences,
+  ) async {
+    await preferences.remove(profileKey);
+    await preferences.remove(userIdKey);
+    await preferences.remove('bible_speak_userName');
+    await preferences.remove('bible_speak_groupId');
+  }
+}
+
+/// 원격 프로필과 UID 검증 로컬 캐시를 하나의 SessionState로 결합한다.
+class SessionRestorer {
+  SessionRestorer({
+    required SessionProfileCache cache,
+    required RemoteUserProfileLoader loadRemoteProfile,
+    bool Function()? isCurrent,
+  })  : _cache = cache,
+        _loadRemoteProfile = loadRemoteProfile,
+        _isCurrent = isCurrent ?? _alwaysCurrent;
+
+  final SessionProfileCache _cache;
+  final RemoteUserProfileLoader _loadRemoteProfile;
+  final bool Function() _isCurrent;
+
+  static bool _alwaysCurrent() => true;
+
+  Future<SessionState> restore(String firebaseUserId) async {
+    String? persistedUserId;
+    UserModel? cachedUser;
+
+    try {
+      persistedUserId = await _cache.readPersistedUserId();
+      cachedUser = await _cache.readProfile(firebaseUserId);
+    } catch (_) {
+      // 원격 프로필은 로컬 저장소 오류와 독립적으로 복원할 수 있다.
+    }
+
+    try {
+      final remoteUser = await _loadRemoteProfile(firebaseUserId);
+      if (remoteUser == null) {
+        if (_isCurrent()) {
+          try {
+            await _cache.clearActiveSession(isCurrent: _isCurrent);
+          } catch (_) {
+            // 원격의 프로필 없음 판정은 로컬 정리 실패보다 우선한다.
+          }
+        }
+        return SessionState.needsProfile(
+          firebaseUserId: firebaseUserId,
+        );
+      }
+      if (remoteUser.uid != firebaseUserId) {
+        throw StateError('Firebase UID와 원격 프로필 UID가 일치하지 않습니다.');
+      }
+
+      Object? cacheWarning;
+      StackTrace? cacheWarningStackTrace;
+      if (_isCurrent()) {
+        try {
+          final written = await _cache.writeProfile(
+            remoteUser,
+            isCurrent: _isCurrent,
+          );
+          if (written) persistedUserId = firebaseUserId;
+        } catch (error, stackTrace) {
+          cacheWarning = error;
+          cacheWarningStackTrace = stackTrace;
+        }
+      }
+
+      return SessionState.authenticated(
+        user: remoteUser,
+        source: SessionProfileSource.remote,
+        persistedUserId: persistedUserId,
+        warning: cacheWarning,
+        warningStackTrace: cacheWarningStackTrace,
+      );
+    } catch (error, stackTrace) {
+      if (cachedUser != null) {
+        if (_isCurrent()) {
+          try {
+            final written = await _cache.writeProfile(
+              cachedUser,
+              isCurrent: _isCurrent,
+            );
+            if (written) persistedUserId = firebaseUserId;
+          } catch (_) {
+            // 유효한 UID 캐시가 있으면 저장소 갱신 실패에도 세션을 유지한다.
+          }
+        }
+        return SessionState.authenticated(
+          user: cachedUser,
+          source: SessionProfileSource.cache,
+          persistedUserId: persistedUserId,
+          warning: error,
+          warningStackTrace: stackTrace,
+        );
+      }
+
+      return SessionState.recoverableError(
+        firebaseUserId: firebaseUserId,
+        persistedUserId: persistedUserId,
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+}
 
 /// 인증 서비스
 /// - Firebase Auth 기반 로그인/로그아웃
 /// - Google, Apple, Email 로그인 지원
 /// - 사용자 프로필 관리
-class AuthService {
+class AuthService implements AuthSessionGateway {
   static final AuthService _instance = AuthService._internal();
   factory AuthService() => _instance;
   AuthService._internal();
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final SessionProfileCache _sessionCache = SessionProfileCache();
+  final SessionOperationGuard _operationGuard = SessionOperationGuard();
+  int _sessionEpoch = 0;
 
   // GoogleSignIn 지연 초기화 (웹에서 Client ID 에러 방지)
   GoogleSignIn? _googleSignInInstance;
@@ -32,6 +409,7 @@ class AuthService {
   UserModel? _currentUser;
 
   /// 현재 로그인된 사용자
+  @override
   UserModel? get currentUser => _currentUser;
 
   /// 로그인 여부
@@ -45,38 +423,82 @@ class AuthService {
 
   /// 초기화 - 저장된 세션 복원
   Future<bool> init() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final savedUserId = prefs.getString('bible_speak_userId');
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return false;
+    final restored = await restoreSession(uid);
+    return restored.isAuthenticated;
+  }
 
-      if (savedUserId != null && savedUserId == _auth.currentUser?.uid) {
-        // Firestore에서 사용자 정보 로드
-        final userDoc =
-            await _firestore.collection('users').doc(savedUserId).get();
-        if (userDoc.exists) {
-          _currentUser = UserModel.fromFirestore(savedUserId, userDoc.data()!);
-          print('✅ 세션 복원: ${_currentUser!.name}');
-          return true;
-        }
-      }
-
-      // Firebase 인증이 있지만 로컬 저장이 없는 경우 - 복원 시도
-      if (_auth.currentUser != null) {
-        final uid = _auth.currentUser!.uid;
-        final userDoc = await _firestore.collection('users').doc(uid).get();
-        if (userDoc.exists) {
-          _currentUser = UserModel.fromFirestore(uid, userDoc.data()!);
-          await prefs.setString('bible_speak_userId', uid);
-          print('✅ Firebase 세션 복원: ${_currentUser!.name}');
-          return true;
-        }
-      }
-
-      return false;
-    } catch (e) {
-      print('❌ AuthService 초기화 오류: $e');
-      return false;
+  @override
+  Future<SessionState> restoreSession(String firebaseUserId) async {
+    final accountOperation = _operationGuard.activateIfCurrent(
+      firebaseUserId,
+      firebaseUserId: _auth.currentUser?.uid,
+    );
+    if (accountOperation == null) {
+      return SessionState.loading(firebaseUserId: _auth.currentUser?.uid);
     }
+    final operation = ++_sessionEpoch;
+    final restored = await SessionRestorer(
+      cache: _sessionCache,
+      loadRemoteProfile: _loadRemoteProfile,
+      isCurrent: () =>
+          operation == _sessionEpoch && _isOperationCurrent(accountOperation),
+    ).restore(firebaseUserId);
+
+    if (operation != _sessionEpoch || !_isOperationCurrent(accountOperation)) {
+      return SessionState.loading(
+        firebaseUserId: _auth.currentUser?.uid,
+        persistedUserId: restored.persistedUserId,
+      );
+    }
+
+    if (restored.isAuthenticated) {
+      _currentUser = restored.user;
+      print('✅ 세션 복원: ${_currentUser!.name}');
+    } else if (restored.status == SessionStatus.needsProfile) {
+      _currentUser = null;
+    }
+    return restored;
+  }
+
+  Future<UserModel?> _loadRemoteProfile(String uid) async {
+    final userDoc = await _firestore
+        .collection('users')
+        .doc(uid)
+        .get(const GetOptions(source: Source.server));
+    if (!userDoc.exists || userDoc.data() == null) return null;
+    return UserModel.fromFirestore(uid, userDoc.data()!);
+  }
+
+  @override
+  Future<void> clearLocalSession() async {
+    final operation = ++_sessionEpoch;
+    _operationGuard.invalidate();
+    _currentUser = null;
+    try {
+      await _sessionCache.clearSessionData(
+        isCurrent: () =>
+            operation == _sessionEpoch && _auth.currentUser == null,
+      );
+    } catch (error) {
+      print('⚠️ 로컬 세션 정리 오류: $error');
+    }
+  }
+
+  SessionOperationToken? _beginCurrentUserOperation(UserModel? user) {
+    if (user == null) return null;
+    return _operationGuard.activateIfCurrent(
+      user.uid,
+      firebaseUserId: _auth.currentUser?.uid,
+    );
+  }
+
+  bool _isOperationCurrent(SessionOperationToken operation) {
+    return _operationGuard.isCurrent(
+      operation,
+      firebaseUserId: _auth.currentUser?.uid,
+    );
   }
 
   // ============================================================
@@ -84,6 +506,7 @@ class AuthService {
   // ============================================================
 
   /// Google 로그인
+  @override
   Future<AuthResult> signInWithGoogle() async {
     try {
       GoogleSignInAccount? googleUser;
@@ -132,6 +555,7 @@ class AuthService {
   }
 
   /// Apple 로그인
+  @override
   Future<AuthResult> signInWithApple() async {
     try {
       final appleCredential = await SignInWithApple.getAppleIDCredential(
@@ -180,6 +604,7 @@ class AuthService {
   // ============================================================
 
   /// 이메일 로그인
+  @override
   Future<AuthResult> signInWithEmail({
     required String email,
     required String password,
@@ -200,6 +625,7 @@ class AuthService {
   }
 
   /// 이메일 회원가입
+  @override
   Future<AuthResult> signUpWithEmail({
     required String email,
     required String password,
@@ -250,19 +676,27 @@ class AuthService {
     bool isNewUser = false,
   }) async {
     final uid = userCredential.user!.uid;
+    final accountOperation = _operationGuard.activateIfCurrent(
+      uid,
+      firebaseUserId: _auth.currentUser?.uid,
+    );
+    if (accountOperation == null) return AuthResult.cancelled();
+    bool operationIsCurrent() => _isOperationCurrent(accountOperation);
+    if (!operationIsCurrent()) return AuthResult.cancelled();
 
     // 1. UID로 사용자 확인
     final userDoc = await _firestore.collection('users').doc(uid).get();
+    if (!operationIsCurrent()) return AuthResult.cancelled();
 
     if (userDoc.exists) {
       // 기존 사용자 - 로그인 완료
-      _currentUser = UserModel.fromFirestore(uid, userDoc.data()!);
+      final user = UserModel.fromFirestore(uid, userDoc.data()!);
+      await _cacheUser(user, isCurrent: operationIsCurrent);
+      if (!operationIsCurrent()) return AuthResult.cancelled();
+      _currentUser = user;
 
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('bible_speak_userId', uid);
-
-      print('✅ 로그인 완료: ${_currentUser!.name}');
-      return AuthResult.success(user: _currentUser);
+      print('✅ 로그인 완료: ${user.name}');
+      return AuthResult.success(user: user);
     }
 
     // 2. 이메일로 기존 사용자 찾기 (익명 계정으로 가입한 경우)
@@ -273,6 +707,7 @@ class AuthService {
             .where('email', isEqualTo: email)
             .limit(1)
             .get();
+        if (!operationIsCurrent()) return AuthResult.cancelled();
 
         if (emailQuery.docs.isNotEmpty) {
           // 이메일로 기존 사용자 발견 - 문서를 새 UID로 마이그레이션
@@ -285,14 +720,15 @@ class AuthService {
             'migratedFrom': oldDoc.id,
             'migratedAt': FieldValue.serverTimestamp(),
           });
+          if (!operationIsCurrent()) return AuthResult.cancelled();
 
-          _currentUser = UserModel.fromFirestore(uid, oldData);
+          final user = UserModel.fromFirestore(uid, oldData);
+          await _cacheUser(user, isCurrent: operationIsCurrent);
+          if (!operationIsCurrent()) return AuthResult.cancelled();
+          _currentUser = user;
 
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('bible_speak_userId', uid);
-
-          print('✅ 기존 사용자 마이그레이션 완료: ${_currentUser!.name}');
-          return AuthResult.success(user: _currentUser);
+          print('✅ 기존 사용자 마이그레이션 완료: ${user.name}');
+          return AuthResult.success(user: user);
         }
       } catch (e) {
         print('⚠️ 이메일 검색 오류 (무시하고 계속): $e');
@@ -300,60 +736,90 @@ class AuthService {
     }
 
     // 3. 신규 사용자 - 프로필 설정 필요
-    await _saveTempUserInfo(uid, displayName, email, photoUrl);
+    final saved = await _saveTempUserInfo(
+      uid,
+      displayName,
+      email,
+      photoUrl,
+      isCurrent: operationIsCurrent,
+    );
+    if (!saved || !operationIsCurrent()) {
+      await _sessionCache.clearTemporaryProfile(expectedUserId: uid);
+      return AuthResult.cancelled();
+    }
 
     print('📝 신규 사용자 - 프로필 설정 필요');
     return AuthResult.success(needsProfile: true, tempUid: uid);
   }
 
   /// 임시 사용자 정보 저장
-  Future<void> _saveTempUserInfo(
+  Future<bool> _saveTempUserInfo(
     String uid,
     String? displayName,
     String? email,
-    String? photoUrl,
-  ) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('bible_speak_tempUid', uid);
-    if (displayName != null) {
-      await prefs.setString('bible_speak_tempName', displayName);
-    }
-    if (email != null) {
-      await prefs.setString('bible_speak_tempEmail', email);
-    }
-    if (photoUrl != null) {
-      await prefs.setString('bible_speak_tempPhoto', photoUrl);
-    }
+    String? photoUrl, {
+    bool Function()? isCurrent,
+  }) async {
+    return _sessionCache.writeTemporaryProfile(
+      userId: uid,
+      name: displayName,
+      email: email,
+      photo: photoUrl,
+      isCurrent: isCurrent,
+    );
   }
 
   /// 임시 저장된 사용자 정보 가져오기
   Future<Map<String, String?>> getTempUserInfo() async {
-    final prefs = await SharedPreferences.getInstance();
-    return {
-      'uid': prefs.getString('bible_speak_tempUid'),
-      'name': prefs.getString('bible_speak_tempName'),
-      'email': prefs.getString('bible_speak_tempEmail'),
-      'photo': prefs.getString('bible_speak_tempPhoto'),
-    };
+    return _sessionCache.readTemporaryProfile();
+  }
+
+  Future<void> _cacheUser(
+    UserModel user, {
+    bool Function()? isCurrent,
+  }) async {
+    try {
+      await _sessionCache.writeProfile(user, isCurrent: isCurrent);
+    } catch (error) {
+      print('⚠️ 세션 프로필 캐시 저장 오류: $error');
+    }
   }
 
   /// 프로필 설정 완료 (신규 사용자)
+  @override
   Future<UserModel?> completeProfile({
     required String name,
     String? groupId,
   }) async {
-    final prefs = await SharedPreferences.getInstance();
-    final uid =
-        prefs.getString('bible_speak_tempUid') ?? _auth.currentUser?.uid;
-
-    if (uid == null) {
-      print('❌ 프로필 완료 오류: UID 없음');
-      return null;
-    }
-
     try {
-      final email = prefs.getString('bible_speak_tempEmail');
-      final photoUrl = prefs.getString('bible_speak_tempPhoto');
+      final temporaryProfile = await _sessionCache.readTemporaryProfile();
+      final firebaseUid = _auth.currentUser?.uid;
+      final tempUid = temporaryProfile['uid'];
+      final uid = resolveProfileCompletionUserId(
+        firebaseUserId: firebaseUid,
+        temporaryUserId: tempUid,
+      );
+
+      if (uid == null && tempUid != null) {
+        await _sessionCache.clearTemporaryProfile(expectedUserId: tempUid);
+        print('❌ 프로필 완료 오류: Firebase UID와 임시 UID 불일치');
+        return null;
+      }
+
+      if (uid == null) {
+        print('❌ 프로필 완료 오류: UID 없음');
+        return null;
+      }
+
+      final accountOperation = _operationGuard.activateIfCurrent(
+        uid,
+        firebaseUserId: _auth.currentUser?.uid,
+      );
+      if (accountOperation == null) return null;
+      bool operationIsCurrent() => _isOperationCurrent(accountOperation);
+
+      final email = temporaryProfile['email'];
+      final photoUrl = temporaryProfile['photo'];
 
       // 사용자 문서 생성
       final userData = {
@@ -368,22 +834,24 @@ class AuthService {
       };
 
       await _firestore.collection('users').doc(uid).set(userData);
+      if (!operationIsCurrent()) return null;
 
       // 그룹 멤버 수 증가 (set + merge로 안전하게)
       if (groupId != null && groupId.isNotEmpty) {
         await _firestore.collection('groups').doc(groupId).set({
           'memberCount': FieldValue.increment(1),
         }, SetOptions(merge: true));
+        if (!operationIsCurrent()) return null;
       }
 
       // 로컬 저장 정리
-      await prefs.remove('bible_speak_tempUid');
-      await prefs.remove('bible_speak_tempName');
-      await prefs.remove('bible_speak_tempEmail');
-      await prefs.remove('bible_speak_tempPhoto');
-      await prefs.setString('bible_speak_userId', uid);
+      await _sessionCache.clearTemporaryProfile(
+        expectedUserId: uid,
+        isCurrent: operationIsCurrent,
+      );
+      if (!operationIsCurrent()) return null;
 
-      _currentUser = UserModel(
+      final user = UserModel(
         uid: uid,
         name: name.trim(),
         email: email,
@@ -392,9 +860,12 @@ class AuthService {
         talants: 0,
         createdAt: DateTime.now(),
       );
+      await _cacheUser(user, isCurrent: operationIsCurrent);
+      if (!operationIsCurrent()) return null;
+      _currentUser = user;
 
       print('✅ 프로필 설정 완료: $name');
-      return _currentUser;
+      return user;
     } catch (e) {
       print('❌ 프로필 설정 오류: $e');
       return null;
@@ -414,6 +885,12 @@ class AuthService {
       // 익명 로그인
       final credential = await _auth.signInAnonymously();
       final uid = credential.user!.uid;
+      final accountOperation = _operationGuard.activateIfCurrent(
+        uid,
+        firebaseUserId: _auth.currentUser?.uid,
+      );
+      if (accountOperation == null) return null;
+      bool operationIsCurrent() => _isOperationCurrent(accountOperation);
 
       // 사용자 문서 생성
       final userData = {
@@ -427,19 +904,15 @@ class AuthService {
       };
 
       await _firestore.collection('users').doc(uid).set(userData);
+      if (!operationIsCurrent()) return null;
 
       // 그룹 멤버 수 증가 (set + merge로 안전하게)
       await _firestore.collection('groups').doc(groupId).set({
         'memberCount': FieldValue.increment(1),
       }, SetOptions(merge: true));
+      if (!operationIsCurrent()) return null;
 
-      // 로컬 저장
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('bible_speak_userId', uid);
-      await prefs.setString('bible_speak_userName', name);
-      await prefs.setString('bible_speak_groupId', groupId);
-
-      _currentUser = UserModel(
+      final user = UserModel(
         uid: uid,
         name: name,
         groupId: groupId,
@@ -447,9 +920,12 @@ class AuthService {
         talants: 0,
         createdAt: DateTime.now(),
       );
+      await _cacheUser(user, isCurrent: operationIsCurrent);
+      if (!operationIsCurrent()) return null;
+      _currentUser = user;
 
       print('✅ 익명 사용자 등록 완료: $name ($groupId)');
-      return _currentUser;
+      return user;
     } catch (e) {
       print('❌ 익명 사용자 등록 오류: $e');
       return null;
@@ -458,33 +934,44 @@ class AuthService {
 
   /// 익명 계정을 소셜 계정으로 연결
   Future<AuthResult> linkAnonymousToGoogle() async {
-    if (_auth.currentUser == null || !_auth.currentUser!.isAnonymous) {
+    final firebaseUser = _auth.currentUser;
+    final user = _currentUser;
+    final accountOperation = _beginCurrentUserOperation(user);
+    if (firebaseUser == null ||
+        !firebaseUser.isAnonymous ||
+        user == null ||
+        accountOperation == null) {
       return AuthResult.error('익명 계정이 아닙니다.');
     }
+    bool operationIsCurrent() => _isOperationCurrent(accountOperation);
 
     try {
       final googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
         return AuthResult.cancelled();
       }
+      if (!operationIsCurrent()) return AuthResult.cancelled();
 
       final googleAuth = await googleUser.authentication;
+      if (!operationIsCurrent()) return AuthResult.cancelled();
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      await _auth.currentUser!.linkWithCredential(credential);
+      await firebaseUser.linkWithCredential(credential);
+      if (!operationIsCurrent()) return AuthResult.cancelled();
 
       // 사용자 정보 업데이트 (set + merge로 안전하게)
-      await _firestore.collection('users').doc(_currentUser!.uid).set({
+      await _firestore.collection('users').doc(user.uid).set({
         'email': googleUser.email,
         'photoUrl': googleUser.photoUrl,
         'isAnonymous': false,
       }, SetOptions(merge: true));
+      if (!operationIsCurrent()) return AuthResult.cancelled();
 
       print('✅ Google 계정 연결 완료');
-      return AuthResult.success(user: _currentUser);
+      return AuthResult.success(user: user);
     } on FirebaseAuthException catch (e) {
       if (e.code == 'credential-already-in-use') {
         return AuthResult.error('이미 다른 계정에 연결된 Google 계정입니다.');
@@ -501,7 +988,20 @@ class AuthService {
   // ============================================================
 
   /// 로그아웃
+  @override
   Future<void> signOut() async {
+    final signingOutUserId = _auth.currentUser?.uid;
+    final operation = ++_sessionEpoch;
+    _operationGuard.invalidate();
+    _currentUser = null;
+
+    bool cleanupIsCurrent() {
+      final currentFirebaseUserId = _auth.currentUser?.uid;
+      return operation == _sessionEpoch &&
+          (currentFirebaseUserId == null ||
+              currentFirebaseUserId == signingOutUserId);
+    }
+
     try {
       // Google 로그아웃 (실패해도 계속 진행)
       try {
@@ -512,65 +1012,66 @@ class AuthService {
 
       // Firebase 로그아웃
       await _auth.signOut();
-      _currentUser = null;
-
-      // 로컬 저장소 완전 삭제
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('bible_speak_userId');
-      await prefs.remove('bible_speak_userName');
-      await prefs.remove('bible_speak_groupId');
-      await prefs.remove('bible_speak_tempUid');
-      await prefs.remove('bible_speak_tempName');
-      await prefs.remove('bible_speak_tempEmail');
-      await prefs.remove('bible_speak_tempPhoto');
-
-      print('✅ 로그아웃 완료');
     } catch (e) {
       print('❌ 로그아웃 오류: $e');
-      // 오류가 있어도 로컬 상태는 초기화
-      _currentUser = null;
+    } finally {
+      // 인증 작업이 늦게 끝나더라도 명시적 로그아웃 뒤에는 복원하지 않는다.
+      try {
+        await _sessionCache.clearSessionData(
+          isCurrent: cleanupIsCurrent,
+        );
+      } catch (error) {
+        print('⚠️ 로컬 세션 정리 오류: $error');
+      }
+      print('✅ 로컬 로그아웃 정리 완료');
     }
   }
 
   /// 사용자 정보 새로고침
+  @override
   Future<void> refreshUser() async {
-    if (_currentUser == null) return;
-
-    try {
-      final userDoc =
-          await _firestore.collection('users').doc(_currentUser!.uid).get();
-      if (userDoc.exists) {
-        _currentUser =
-            UserModel.fromFirestore(_currentUser!.uid, userDoc.data()!);
-      }
-    } catch (e) {
-      print('❌ 사용자 정보 새로고침 오류: $e');
-    }
+    final firebaseUid = _auth.currentUser?.uid;
+    if (firebaseUid == null) return;
+    await restoreSession(firebaseUid);
   }
 
   /// 계정 삭제
   Future<bool> deleteAccount() async {
-    if (_currentUser == null || _auth.currentUser == null) return false;
+    final user = _currentUser;
+    final firebaseUser = _auth.currentUser;
+    final accountOperation = _beginCurrentUserOperation(user);
+    if (user == null || firebaseUser == null || accountOperation == null) {
+      return false;
+    }
+    bool operationIsCurrent() => _isOperationCurrent(accountOperation);
 
     try {
       // Firestore에서 사용자 삭제
-      await _firestore.collection('users').doc(_currentUser!.uid).delete();
+      await _firestore.collection('users').doc(user.uid).delete();
+      if (!operationIsCurrent()) return false;
 
       // 그룹 멤버 수 감소 (set + merge로 안전하게)
-      if (_currentUser!.groupId.isNotEmpty) {
-        await _firestore.collection('groups').doc(_currentUser!.groupId).set({
+      if (user.groupId.isNotEmpty) {
+        await _firestore.collection('groups').doc(user.groupId).set({
           'memberCount': FieldValue.increment(-1),
         }, SetOptions(merge: true));
+        if (!operationIsCurrent()) return false;
       }
 
       // Firebase Auth에서 삭제
-      await _auth.currentUser!.delete();
+      await firebaseUser.delete();
+      final remainingFirebaseUid = _auth.currentUser?.uid;
+      if (remainingFirebaseUid != null && remainingFirebaseUid != user.uid) {
+        return false;
+      }
 
       // 로컬 저장 삭제
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.clear();
-
+      _sessionEpoch++;
+      _operationGuard.invalidate();
       _currentUser = null;
+      await _sessionCache.clearSessionData(
+        isCurrent: () => _auth.currentUser == null,
+      );
 
       print('✅ 계정 삭제 완료');
       return true;
@@ -611,15 +1112,19 @@ class AuthService {
   // ============================================================
 
   /// 달란트 추가
+  @override
   Future<bool> addTalant({
     required String book,
     required int chapter,
     required int verse,
   }) async {
-    if (_currentUser == null) {
+    final startingUser = _currentUser;
+    final accountOperation = _beginCurrentUserOperation(startingUser);
+    if (startingUser == null || accountOperation == null) {
       print('❌ 달란트 적립 실패: 사용자 없음');
       return false;
     }
+    bool operationIsCurrent() => _isOperationCurrent(accountOperation);
 
     try {
       final verseId = UserModel.completedVerseId(
@@ -627,7 +1132,7 @@ class AuthService {
         chapter: chapter,
         verse: verse,
       );
-      final userRef = _firestore.collection('users').doc(_currentUser!.uid);
+      final userRef = _firestore.collection('users').doc(startingUser.uid);
       final added = await _firestore.runTransaction<bool>((transaction) async {
         final snapshot = await transaction.get(userRef);
         final completed =
@@ -645,9 +1150,9 @@ class AuthService {
             },
             SetOptions(merge: true));
 
-        if (_currentUser!.groupId.isNotEmpty) {
+        if (startingUser.groupId.isNotEmpty) {
           final groupRef =
-              _firestore.collection('groups').doc(_currentUser!.groupId);
+              _firestore.collection('groups').doc(startingUser.groupId);
           transaction.set(
               groupRef,
               {
@@ -663,13 +1168,21 @@ class AuthService {
         print('ℹ️ 이미 완료한 구절: $verseId');
         return false;
       }
+      if (!operationIsCurrent()) return false;
 
-      _currentUser = _currentUser!.copyWith(
-        talants: _currentUser!.talants + 1,
-        completedVerses: [..._currentUser!.completedVerses, verseId],
+      final currentUser = _currentUser;
+      if (currentUser == null || currentUser.uid != startingUser.uid) {
+        return false;
+      }
+      final updatedUser = currentUser.copyWith(
+        talants: currentUser.talants + 1,
+        completedVerses: [...currentUser.completedVerses, verseId],
       );
+      _currentUser = updatedUser;
+      await _cacheUser(updatedUser, isCurrent: operationIsCurrent);
+      if (!operationIsCurrent()) return false;
 
-      print('🏆 달란트 적립 완료! 구절 $verseId, 총 ${_currentUser!.talants} 달란트');
+      print('🏆 달란트 적립 완료! 구절 $verseId, 총 ${updatedUser.talants} 달란트');
       return true;
     } catch (e) {
       print('❌ 달란트 적립 오류: $e');
@@ -678,19 +1191,31 @@ class AuthService {
   }
 
   /// 달란트 차감
+  @override
   Future<bool> deductTalant(int amount) async {
-    if (_currentUser == null) return false;
-    if (_currentUser!.talants < amount) return false;
+    final startingUser = _currentUser;
+    final accountOperation = _beginCurrentUserOperation(startingUser);
+    if (startingUser == null || accountOperation == null) return false;
+    if (startingUser.talants < amount) return false;
+    bool operationIsCurrent() => _isOperationCurrent(accountOperation);
 
     try {
       // set + merge로 안전하게 업데이트
-      await _firestore.collection('users').doc(_currentUser!.uid).set({
+      await _firestore.collection('users').doc(startingUser.uid).set({
         'talants': FieldValue.increment(-amount),
       }, SetOptions(merge: true));
+      if (!operationIsCurrent()) return false;
 
-      _currentUser = _currentUser!.copyWith(
-        talants: _currentUser!.talants - amount,
+      final currentUser = _currentUser;
+      if (currentUser == null || currentUser.uid != startingUser.uid) {
+        return false;
+      }
+      final updatedUser = currentUser.copyWith(
+        talants: currentUser.talants - amount,
       );
+      _currentUser = updatedUser;
+      await _cacheUser(updatedUser, isCurrent: operationIsCurrent);
+      if (!operationIsCurrent()) return false;
 
       print('💸 달란트 차감: -$amount');
       return true;
@@ -707,7 +1232,10 @@ class AuthService {
     required int correctCount,
     int bonusMultiplier = 1,
   }) async {
-    if (_currentUser == null) return 0;
+    final startingUser = _currentUser;
+    final accountOperation = _beginCurrentUserOperation(startingUser);
+    if (startingUser == null || accountOperation == null) return 0;
+    bool operationIsCurrent() => _isOperationCurrent(accountOperation);
 
     try {
       int earnedTalants = 0;
@@ -734,19 +1262,28 @@ class AuthService {
 
       if (earnedTalants > 0) {
         // set + merge로 필드 없어도 안전하게 업데이트
-        await _firestore.collection('users').doc(_currentUser!.uid).set({
+        await _firestore.collection('users').doc(startingUser.uid).set({
           'talants': FieldValue.increment(earnedTalants),
         }, SetOptions(merge: true));
+        if (!operationIsCurrent()) return 0;
 
-        if (_currentUser!.groupId.isNotEmpty) {
-          await _firestore.collection('groups').doc(_currentUser!.groupId).set({
+        if (startingUser.groupId.isNotEmpty) {
+          await _firestore.collection('groups').doc(startingUser.groupId).set({
             'totalTalants': FieldValue.increment(earnedTalants),
           }, SetOptions(merge: true));
+          if (!operationIsCurrent()) return 0;
         }
 
-        _currentUser = _currentUser!.copyWith(
-          talants: _currentUser!.talants + earnedTalants,
+        final currentUser = _currentUser;
+        if (currentUser == null || currentUser.uid != startingUser.uid) {
+          return 0;
+        }
+        final updatedUser = currentUser.copyWith(
+          talants: currentUser.talants + earnedTalants,
         );
+        _currentUser = updatedUser;
+        await _cacheUser(updatedUser, isCurrent: operationIsCurrent);
+        if (!operationIsCurrent()) return 0;
 
         print('🏆 단어 학습 달란트 적립! +$earnedTalants ($activityType)');
       }
@@ -760,25 +1297,37 @@ class AuthService {
 
   /// 일일 목표 달성 보너스
   Future<bool> addDailyGoalBonus() async {
-    if (_currentUser == null) return false;
+    final startingUser = _currentUser;
+    final accountOperation = _beginCurrentUserOperation(startingUser);
+    if (startingUser == null || accountOperation == null) return false;
+    bool operationIsCurrent() => _isOperationCurrent(accountOperation);
 
     try {
       const bonusTalants = 3;
 
       // set + merge로 필드 없어도 안전하게 업데이트
-      await _firestore.collection('users').doc(_currentUser!.uid).set({
+      await _firestore.collection('users').doc(startingUser.uid).set({
         'talants': FieldValue.increment(bonusTalants),
       }, SetOptions(merge: true));
+      if (!operationIsCurrent()) return false;
 
-      if (_currentUser!.groupId.isNotEmpty) {
-        await _firestore.collection('groups').doc(_currentUser!.groupId).set({
+      if (startingUser.groupId.isNotEmpty) {
+        await _firestore.collection('groups').doc(startingUser.groupId).set({
           'totalTalants': FieldValue.increment(bonusTalants),
         }, SetOptions(merge: true));
+        if (!operationIsCurrent()) return false;
       }
 
-      _currentUser = _currentUser!.copyWith(
-        talants: _currentUser!.talants + bonusTalants,
+      final currentUser = _currentUser;
+      if (currentUser == null || currentUser.uid != startingUser.uid) {
+        return false;
+      }
+      final updatedUser = currentUser.copyWith(
+        talants: currentUser.talants + bonusTalants,
       );
+      _currentUser = updatedUser;
+      await _cacheUser(updatedUser, isCurrent: operationIsCurrent);
+      if (!operationIsCurrent()) return false;
 
       print('🎯 일일 목표 달성 보너스! +$bonusTalants');
       return true;

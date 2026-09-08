@@ -1,11 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../models/session_state.dart';
 import '../models/startup_destination.dart';
 import '../providers/auth_provider.dart';
+import '../providers/core_providers.dart';
 import '../services/data_preloader_service.dart';
 import '../styles/parchment_theme.dart';
 import 'auth/login_screen.dart';
+import 'auth/profile_setup_screen.dart';
 import 'home/main_menu_screen.dart';
 import 'onboarding/onboarding_screen.dart';
 import 'onboarding/goal_setup_screen.dart';
@@ -23,12 +27,8 @@ class SplashScreen extends ConsumerStatefulWidget {
 
 class _SplashScreenState extends ConsumerState<SplashScreen> {
   final DataPreloaderService _preloader = DataPreloaderService();
-
-  @override
-  void initState() {
-    super.initState();
-    _checkAuthStatus();
-  }
+  var _didNavigate = false;
+  var _routingEpoch = 0;
 
   void _navigateToOnboarding() {
     Navigator.of(context).pushReplacement(
@@ -64,24 +64,37 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     );
   }
 
-  Future<void> _checkAuthStatus() async {
-    var destination = StartupDestination.onboarding;
+  void _navigateToProfileSetup() {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => const ProfileSetupScreen(),
+      ),
+    );
+  }
 
-    try {
-      // 로컬 상태만 확인 (네트워크 호출 없음 - 빠름)
-      final prefs = await SharedPreferences.getInstance();
-      final savedUserId = prefs.getString('bible_speak_userId');
-      final authService = ref.read(authServiceProvider);
-      destination = resolveStartupDestination(
-        onboardingCompleted: prefs.getBool('onboarding_completed') ?? false,
-        savedUserId: savedUserId,
-        firebaseUserId: authService.firebaseUser?.uid,
-      );
-    } catch (e) {
-      debugPrint('❌ 인증 상태 확인 오류: $e');
+  Future<void> _routeForSession(SessionState session) async {
+    final operation = ++_routingEpoch;
+    await Future<void>.delayed(Duration.zero);
+
+    var onboardingCompleted = false;
+    if (session.status == SessionStatus.signedOut) {
+      try {
+        final prefs = await ref.read(sharedPreferencesProvider.future);
+        onboardingCompleted = prefs.getBool('onboarding_completed') ?? false;
+      } catch (error) {
+        debugPrint('❌ 온보딩 상태 확인 오류: $error');
+      }
     }
 
-    if (!mounted) return;
+    if (!mounted || _didNavigate || operation != _routingEpoch) return;
+
+    final destination = resolveSessionStartupDestination(
+      session: session,
+      onboardingCompleted: onboardingCompleted,
+    );
+    if (destination == null) return;
+
+    _didNavigate = true;
 
     switch (destination) {
       case StartupDestination.onboarding:
@@ -90,8 +103,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       case StartupDestination.login:
         _navigateToLogin();
         return;
+      case StartupDestination.profileSetup:
+        _navigateToProfileSetup();
+        return;
       case StartupDestination.mainMenu:
-        // 로그인된 경우 - Riverpod Provider가 자동으로 초기화
         _preloader.preloadMainScreenData();
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
@@ -103,6 +118,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final session = ref.watch(sessionNotifierProvider);
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => unawaited(_routeForSession(session)),
+    );
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -145,6 +165,24 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                 ),
               ),
               const SizedBox(height: 48),
+
+              if (session.status == SessionStatus.recoverableError) ...[
+                const Text(
+                  '연결을 확인하며 로그인 정보를 복구하고 있어요.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: ParchmentTheme.weatheredGray,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: () =>
+                      ref.read(sessionNotifierProvider.notifier).refreshUser(),
+                  child: const Text('다시 시도'),
+                ),
+                const SizedBox(height: 8),
+              ],
 
               // 로딩 점
               _buildLoadingDots(),

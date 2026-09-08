@@ -64,6 +64,43 @@ class UserModel {
     );
   }
 
+  /// SharedPreferences 세션 캐시에 저장할 수 있는 JSON 안전 형식.
+  Map<String, dynamic> toSessionCache() {
+    return {
+      'uid': uid,
+      'name': name,
+      'email': email,
+      'groupId': groupId,
+      'role': role.name,
+      'talants': talants,
+      'completedVerses': completedVerses,
+      'createdAt': createdAt?.toIso8601String(),
+    };
+  }
+
+  /// 세션 캐시에서 사용자 프로필을 복원한다.
+  factory UserModel.fromSessionCache(Map<String, dynamic> data) {
+    final uid = data['uid'];
+    if (uid is! String || uid.isEmpty) {
+      throw const FormatException('세션 캐시 UID가 올바르지 않습니다.');
+    }
+
+    final createdAtValue = data['createdAt'];
+    return UserModel(
+      uid: uid,
+      name: data['name'] is String ? data['name'] as String : '익명',
+      email: data['email'] is String ? data['email'] as String : null,
+      groupId: data['groupId'] is String ? data['groupId'] as String : '',
+      role: _parseRole(data['role'] is String ? data['role'] as String : null),
+      talants: data['talants'] is int ? data['talants'] as int : 0,
+      completedVerses: ((data['completedVerses'] as List?) ?? const [])
+          .map((value) => value is String ? value : 'legacy:$value')
+          .toList(growable: false),
+      createdAt:
+          createdAtValue is String ? DateTime.tryParse(createdAtValue) : null,
+    );
+  }
+
   /// Firestore 저장용 Map
   Map<String, dynamic> toFirestore() {
     return {

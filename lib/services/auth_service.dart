@@ -49,7 +49,7 @@ class AuthService {
       final prefs = await SharedPreferences.getInstance();
       final savedUserId = prefs.getString('bible_speak_userId');
 
-      if (savedUserId != null && _auth.currentUser != null) {
+      if (savedUserId != null && savedUserId == _auth.currentUser?.uid) {
         // Firestore에서 사용자 정보 로드
         final userDoc =
             await _firestore.collection('users').doc(savedUserId).get();
@@ -622,7 +622,11 @@ class AuthService {
     }
 
     try {
-      final verseId = '$book:$chapter:$verse';
+      final verseId = UserModel.completedVerseId(
+        book: book,
+        chapter: chapter,
+        verse: verse,
+      );
       final userRef = _firestore.collection('users').doc(_currentUser!.uid);
       final added = await _firestore.runTransaction<bool>((transaction) async {
         final snapshot = await transaction.get(userRef);

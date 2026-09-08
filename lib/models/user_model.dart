@@ -30,6 +30,24 @@ class UserModel {
     this.createdAt,
   });
 
+  /// 보상 중복 방지와 완료 목록에 공통으로 사용하는 정규 구절 ID.
+  static String completedVerseId({
+    required String book,
+    required int chapter,
+    required int verse,
+  }) =>
+      '$book:$chapter:$verse';
+
+  bool hasCompletedVerse({
+    required String book,
+    required int chapter,
+    required int verse,
+  }) {
+    return completedVerses.contains(
+      completedVerseId(book: book, chapter: chapter, verse: verse),
+    );
+  }
+
   /// Firestore 문서에서 생성
   factory UserModel.fromFirestore(String uid, Map<String, dynamic> data) {
     return UserModel(

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "Bible Speak",
   "milestone": "native-mobile-foundation",
-  "updatedAt": "2026-08-25",
+  "updatedAt": "2026-08-26",
   "tasks": [
     {
       "id": "HARNESS-001",
@@ -102,7 +102,7 @@
     {
       "id": "NATIVE-001",
       "title": "iOS·Android 네이티브 빌드 기반 복구",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex",
       "reviewer": "claude",
       "budget": "M",
@@ -197,8 +197,8 @@
     {
       "id": "QUALITY-001",
       "title": "암송 핵심 흐름 회귀 테스트 확충",
-      "status": "backlog",
-      "owner": null,
+      "status": "ready",
+      "owner": "codex",
       "reviewer": "claude",
       "budget": "L",
       "allowedPaths": [

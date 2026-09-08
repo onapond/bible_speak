@@ -42,12 +42,12 @@ class OfflineManager extends ChangeNotifier {
         }
       }
 
-      // 병렬 초기화 (타임아웃 적용)
+      // 연결 상태와 캐시를 먼저 준비한 뒤 연결 상태에 의존하는 큐를 연다.
       await Future.wait<void>([
         initializeSafely(connectivity.initialize()),
         initializeSafely(cache.initialize()),
-        initializeSafely(syncQueue.initialize()),
       ]);
+      await initializeSafely(syncQueue.initialize());
 
       // 연결 상태 변경 리스닝
       connectivity.addListener(_onConnectivityChanged);
@@ -120,22 +120,27 @@ class OfflineManager extends ChangeNotifier {
 /// 싱글톤 인스턴스
 late final OfflineManager offlineManager;
 
+/// 앱 시작 경로와 테스트가 함께 사용하는 오프라인 관리자 생성 함수.
+Future<OfflineManager> createAndInitializeOfflineManager({
+  ConnectivityService? connectivity,
+  CacheService? cache,
+  SyncQueueService Function(ConnectivityService)? createSyncQueue,
+}) async {
+  final resolvedConnectivity = connectivity ?? ConnectivityService();
+  final resolvedCache = cache ?? CacheService();
+  final resolvedSyncQueue = createSyncQueue?.call(resolvedConnectivity) ??
+      SyncQueueService(resolvedConnectivity);
+
+  final manager = OfflineManager(
+    connectivity: resolvedConnectivity,
+    cache: resolvedCache,
+    syncQueue: resolvedSyncQueue,
+  );
+  await manager.initialize();
+  return manager;
+}
+
 /// 오프라인 매니저 초기화
 Future<void> initializeOfflineManager() async {
-  final connectivity = ConnectivityService();
-  final cache = CacheService();
-
-  await connectivity.initialize();
-  await cache.initialize();
-
-  final syncQueue = SyncQueueService(connectivity);
-  await syncQueue.initialize();
-
-  offlineManager = OfflineManager(
-    connectivity: connectivity,
-    cache: cache,
-    syncQueue: syncQueue,
-  );
-
-  await offlineManager.initialize();
+  offlineManager = await createAndInitializeOfflineManager();
 }
